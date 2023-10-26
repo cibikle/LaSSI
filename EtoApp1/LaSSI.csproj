@@ -1,0 +1,18 @@
+﻿<Project Sdk="Eto.Forms/2.7.5">
+
+  <!--
+    Set the BuildPlatform property to the Eto platform you wish to build for.
+    The default is the platform you are building on.
+    Valid values: Wpf, Windows, Mac64, XamMac2, Gtk, Direct2D
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+
+  </PropertyGroup>
+   <ItemGroup>
+      <EmbeddedResource Include="ItemList.txt" />
+   </ItemGroup>
+
+</Project>
