@@ -75,18 +75,18 @@ namespace LaSSI
 					// new SubMenuItem { Text = "&Edit", Items = { /* commands/items */ } },
 					// new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
 				},
-            /*            ApplicationItems =
-                        {
-                           // application (OS X) or file menu (others)
-                           new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Period },
-                        },*/
+            //ApplicationItems =
+            //{
+            //   // application (OS X) or file menu (others)
+            //   new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
+            //},
             QuitItem = quitCommand,
             AboutItem = aboutCommand
 
          };
          Content = InitMainPanel();
-         Focus(); //required to prevent focus from being on the first item in the menu bar when the app launches
-
+         //Focus(); //required to prevent focus from being on the first item in the menu bar when the app launches
+         BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
          // create toolbar			
          /*ToolBar = new ToolBar { Items = { clickMe } };*/
       }
@@ -440,7 +440,7 @@ namespace LaSSI
                }
             },
          };
-         if(!string.IsNullOrEmpty(headerText))
+         if (!string.IsNullOrEmpty(headerText))
          {
             LeftListBox.Columns[0].HeaderText = headerText;
          }
@@ -469,9 +469,9 @@ namespace LaSSI
                }
             }
          };
-         if(headerText != null)
+         if (headerText != null)
          {
-            for(int i = 0; i < headerText.Count; i++)
+            for (int i = 0; i < headerText.Count; i++)
             {
                RightListBox.Columns[i].HeaderText = headerText[i];
             }
@@ -534,13 +534,13 @@ namespace LaSSI
          GridView LeftListBox = CreateLeftGrid(leftList, "Remaing catalog");
          GridView RightListBox = CreateRightGrid(rightList, new List<string> { "In stock", "Count" });
          List<Button> buttons = CreateDualListboxButtons();
-         
+
          Panel MainPanel = new Panel
          {
             Content = GetMainLayout(LeftListBox, RightListBox, buttons/*, "Remaining catalog", "Items in stock"*/),
             ID = "ListBuilderMainPanel"
          };
-         
+
          return MainPanel;
       }
       private static StackLayout GetButtonsLayout(List<Button> buttons)
@@ -621,12 +621,12 @@ namespace LaSSI
       {
          throw new NotImplementedException();
       }
-/*      private void DetailScrollable_Scroll(object? sender, ScrollEventArgs e)
-      {
-         Scrollable x = (Scrollable)sender;
-         StackLayout buttons = (StackLayout)x.Children.Where<Control>(x => (string)x.Tag == "ButtonsLayout").First();
-         buttons.Padding = new Padding(0, x.VisibleRect.Top + 50, 0, 0);
-      }*/
+      /*      private void DetailScrollable_Scroll(object? sender, ScrollEventArgs e)
+            {
+               Scrollable x = (Scrollable)sender;
+               StackLayout buttons = (StackLayout)x.Children.Where<Control>(x => (string)x.Tag == "ButtonsLayout").First();
+               buttons.Padding = new Padding(0, x.VisibleRect.Top + 50, 0, 0);
+            }*/
       public class InventoryGridItem : GridItem
       {
          public string Name { get; set; } = string.Empty;
