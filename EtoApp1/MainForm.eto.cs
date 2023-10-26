@@ -26,7 +26,7 @@ namespace LaSSI
          Size = new Size(1024, 600);
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
-         savesFolder = new Uri(($"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\\Introversion\\LastStarship\\saves"));//todo: this might need to be OS-aware
+         savesFolder = GetSavesUri();
          using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.ItemList.txt"))
          {
             ItemList = new ObservableCollection<string>();
@@ -85,10 +85,26 @@ namespace LaSSI
 
          };
          Content = InitMainPanel();
-         Focus(); //required to prevent focus from being on the first item in the menu bar when the app launches
+         Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
          BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
+         //what do you suppose will be the weird thing I have to account for on Linux?
          // create toolbar			
          /*ToolBar = new ToolBar { Items = { clickMe } };*/
+      }
+      private static Uri GetSavesUri()
+      {
+         string savesFolderPath = string.Empty; //todo: probably should put some sort of fallback on this
+         if (EtoEnvironment.Platform.IsMac)
+         {
+            savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support");
+         }
+         else if (EtoEnvironment.Platform.IsWindows)
+         {
+            savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Introversion");
+         } //todo: Linux
+         savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
+         Uri SavesUri = new Uri(savesFolderPath);
+         return SavesUri;
       }
       private static Point GetScreenCenter()
       {
