@@ -85,7 +85,7 @@ namespace LaSSI
 
          };
          Content = InitMainPanel();
-         //Focus(); //required to prevent focus from being on the first item in the menu bar when the app launches
+         Focus(); //required to prevent focus from being on the first item in the menu bar when the app launches
          BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
          // create toolbar			
          /*ToolBar = new ToolBar { Items = { clickMe } };*/
