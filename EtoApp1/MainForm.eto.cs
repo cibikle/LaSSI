@@ -85,9 +85,16 @@ namespace LaSSI
 
          };
          Content = InitMainPanel();
-         Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
-         BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
+         if (EtoEnvironment.Platform.IsWindows)
+         {
+            Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
+         }
+         else if (EtoEnvironment.Platform.IsMac)
+         {
+            BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
+         }
          //what do you suppose will be the weird thing I have to account for on Linux?
+
          // create toolbar			
          /*ToolBar = new ToolBar { Items = { clickMe } };*/
       }
