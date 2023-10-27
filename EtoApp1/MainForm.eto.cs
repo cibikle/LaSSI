@@ -93,16 +93,19 @@ namespace LaSSI
       }
       private static Uri GetSavesUri()
       {
-         string savesFolderPath = string.Empty; //todo: probably should put some sort of fallback on this
+         string savesFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
          if (EtoEnvironment.Platform.IsMac)
          {
-            savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support");
+            savesFolderPath = Path.Combine(savesFolderPath, "Library", "Application Support");
          }
          else if (EtoEnvironment.Platform.IsWindows)
          {
             savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Introversion");
-         } //todo: Linux
-         savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
+         }
+         if (!EtoEnvironment.Platform.IsLinux) // OK, turns out TLS isn't on Linux (thought for sure it was), but that's no reason LaSSI shouldn't be!
+         {
+            savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
+         }
          Uri SavesUri = new Uri(savesFolderPath);
          return SavesUri;
       }
