@@ -1,36 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace LaSSI
 {
    public class SaveFilev2
    {
-      public string TimeIndex { get; set; }
-      public string NextId { get; set; }
-      public string DeltaTime { get; set; }
-      public string PlayTime { get; set; }
-      public string SaveVersion { get; set; }
-      public string GameMode { get; set; }
+      public string TimeIndex { get; set; } = string.Empty;
+      public string NextId { get; set; } = string.Empty;
+      public string DeltaTime { get; set; } = string.Empty;
+      public string PlayTime { get; set; } = string.Empty;
+      public string SaveVersion { get; set; } = string.Empty;
+      public string GameMode { get; set; } = "FreeRoam";
       public Dictionary<string, string> HUD;
       public Node hudNode { get; set; }
       public Node galaxyNode { get; set; }
       public Node root { get; set; }
+      public static readonly string NewLineUnix = @"\n";
+      public static readonly string NewLineWindows = @"\r\n";
       public SaveFilev2(string filename)
       {
-         GameMode = string.Empty;
+         //GameMode = string.Empty;
          HUD = new Dictionary<string, string>();
-         hudNode = new Node();
-         hudNode.Text = "HUD";
-         hudNode.Name = "HudNode";
-         galaxyNode = new Node();
-         galaxyNode.Text = "Galaxy";
-         galaxyNode.Name = "GalaxyNode";
-         root = new Node(filename);
+         hudNode = new Node("Hud");
+         galaxyNode = new Node("Galaxy");
+         root = new Node($"{filename}");
          root.Children.Add(hudNode);
          root.Children.Add(galaxyNode);
       }
@@ -38,54 +35,56 @@ namespace LaSSI
       {
          for (int i = 2; i < HudData.Length - 1; i += 2)
          {
-            saveFile.hudNode.Properties.Add($"{HudData[i]}",$"{HudData[i + 1]}");
-            //            saveFile.HUD.Add(HudData[i], HudData[i + 1]);
+            saveFile.hudNode.Properties.Add($"{HudData[i]}", $"{HudData[i + 1]}");
          }
       }
-      private static void LoadOneLiner(Node node, string[] Data)
+      private static Dictionary<string, string> LoadDictionary(string[] Data, int start, int end)
       {
-         for (int i = 0; i < Data.Length - 1; i += 2)
+         Dictionary<string, string> Dictionary = new Dictionary<string, string>();
+         for (int i = start; i < end; i += 2)
          {
-            string addlData = String.Empty;
-            string addlName = String.Empty;
-
-            if (node.Parent != null && node.Parent.Text == "Hazards" && Data[i] == "Type")
-            {
-               if (Data[i + 1] == "1") addlData = " (asteroid field)";
-               else if (Data[i + 1] == "2") addlData = " (gas cloud)";
-               if (addlData != String.Empty)
-               {
-                  addlName = addlData;
-               }
-            }
-            else if (node.Parent != null && node.Parent.Text == "Objects" && node.Parent.Parent != null && node.Parent.Text == "Galaxy" && Data[i] == "Name")
-            {
-               addlName = $" ({Data[i + 1]})";
-            }
-            if (addlName != String.Empty)
-            {
-               node.Text = node.Text + addlName;
-            }
-
-            node.Children.Add(new Node($"{Data[i]}={Data[i + 1]}{addlData}"));
-            //            saveFile.HUD.Add(HudData[i], HudData[i + 1]);
+            Dictionary.Add(Data[i], Data[i + 1]);
          }
+         return Dictionary;
       }
       public static void LoadFile(SaveFilev2 saveFile, string filename)
       {
          if (File.Exists(filename))
          {
             string subNodeRegex = @"""\[i \d+\]""";
-
+            string newlinechar = Environment.NewLine;
             Stack<Node> nodeStack = new Stack<Node>();
             //saveFile = new SaveFile(Path.GetFileName(filename));
             nodeStack.Push(saveFile.root);
             Debug.WriteLine(filename);
             TextReader reader = new StreamReader(filename);
             string text = reader.ReadToEnd();
+            reader.Dispose();
             bool quit = false;
             string[] foo = new string[5];
-            foreach (string line in text.Split(Environment.NewLine))
+            if (text.Contains(Environment.NewLine))
+            {
+               //newlinechar = Environment.NewLine;
+               Debug.WriteLine("file matches this system");
+            }
+            else
+            {
+               if (text.Contains(NewLineUnix))
+               {
+                  newlinechar = NewLineUnix;
+                  Debug.WriteLine("file uses Unix new line characters");
+               }
+               else if (text.Contains(NewLineWindows))
+               {
+                  newlinechar = NewLineWindows;
+                  Debug.WriteLine("file uses Windows new line characters");
+               }
+               else
+               {
+                  Debug.WriteLine("Um, what? Save file apparently does not use Unix or Windows new line characters");
+               }
+            }
+            foreach (string line in text.Split(newlinechar))
             {
                if (line.Length < 1) continue;
                if (quit)
@@ -98,14 +97,6 @@ namespace LaSSI
                   case "TimeIndex":
                      {
                         saveFile.TimeIndex = lineParts[1];
-                        break;
-                     }
-                  case "NextId":
-                     {
-                        if (saveFile.NextId == string.Empty)
-                        {
-                           saveFile.NextId = lineParts[1];
-                        }
                         break;
                      }
                   case "DeltaTime":
@@ -134,25 +125,13 @@ namespace LaSSI
                         {
                            string subnodeId = $"{lineParts[1]} {lineParts[2]}";
                            Match m = Regex.Match(subnodeId, subNodeRegex);
-                           if (m.Success)
+                           if (m.Success && lineParts.Length == 3) //we found an array line, multi-part
                            {
-                              if (lineParts.Length == 3) //multi-line subnodes
-                              {
-                                 Node node = new Node(subnodeId);
-                                 nodeStack.Peek().Children.Add(node);
-                                 nodeStack.Push(node);
-                              }
-                              else //oneliners
-                              {
-                                 int dataLength = lineParts.Length - 4;
-                                 string[] data = new string[dataLength];
-                                 Array.Copy(lineParts, 3, data, 0, dataLength);
-                                 Node subNode = new Node(subnodeId);
-                                 LoadOneLiner(subNode, data);
-                                 nodeStack.Peek().Children.Add(subNode);
-                              }
+                              Node node = new Node(subnodeId);
+                              nodeStack.Peek().Add(node);
+                              nodeStack.Push(node);
                            }
-                           else
+                           else //not an array line or a one-liner
                            {
                               switch (lineParts[1])
                               {
@@ -163,12 +142,18 @@ namespace LaSSI
                                     }
                                  default:
                                     {
-                                       Node node = new Node(lineParts[1]);
-                                       nodeStack.Peek().Children.Add(node);
-                                       int dataLength = lineParts.Length - 2;
-                                       string[] data = new string[dataLength];
-                                       Array.Copy(lineParts, 2, data, 0, dataLength);
-                                       LoadOneLiner(node, data);
+                                       int start = 2; // non-array one-liners (e.g., BEGIN Orders Salvage true...) have worthwhile data starting at index 2
+                                       if (m.Success) // OTOH, array one-liners (e.g., BEGIN "[i 0]"      StringId mission_sectorrescue_title...) have worthwhile data starting at index 3 (damn off-by-ones...)
+                                       {
+                                          start++;
+                                       }
+                                       else
+                                       {
+                                          subnodeId = lineParts[1];
+                                       }
+                                       int end = lineParts.Length - start + 1;
+                                       Node node = new Node(subnodeId, LoadDictionary(lineParts, start, end), nodeStack.Peek());
+                                       nodeStack.Peek().Add(node);
                                        break;
                                     }
                               }
@@ -186,17 +171,14 @@ namespace LaSSI
                               default:
                                  {
                                     Node node = new Node(lineParts[1]);
-                                    nodeStack.Peek().Children.Add(node);
+                                    nodeStack.Peek().Add(node);
                                     if (lineParts.Length == 2)
                                     {
                                        nodeStack.Push(node);
                                     }
                                     else
                                     {
-                                       int dataLength = lineParts.Length - 3;
-                                       string[] data = new string[dataLength];
-                                       Array.Copy(lineParts, 2, data, 0, dataLength);
-                                       LoadOneLiner(node, data);
+                                       Debug.WriteLine("Hey, something that shouldn't be both not greater than 2 and not equal to 2 somehow was!");
                                     }
                                     break;
                                  }
@@ -206,21 +188,56 @@ namespace LaSSI
                      }
                   case "END":
                      {
-                        nodeStack.Pop();
-                        if (nodeStack.Count == 0)
+                        Node node = nodeStack.Pop();
+                        node.AddAddlNameDetails();
+                        
+                        /*if (nodeStack.Count == 0)
                         {
 
+                        }*/
+                        break;
+                     }
+                  case "NextId":
+                     {
+                        if (nodeStack.Peek() == saveFile.root && saveFile.NextId == string.Empty)
+                        {
+                           saveFile.NextId = lineParts[1];
+                        }
+                        else
+                        {
+                           nodeStack.Peek().Properties.Add(lineParts[0], lineParts[1]);
                         }
                         break;
                      }
                   default:
                      {
-                        if (nodeStack.Count > 1 && nodeStack.Peek().Parent != null && nodeStack.Peek().Parent!.Text == "Missions")
+                        Node curNode = nodeStack.Peek();
+                        string key = lineParts[0], value = lineParts[1];
+                        if (curNode.IsResearch())
                         {
-                           if (lineParts[0] == "Type") nodeStack.Peek().Text += $" ({lineParts[1]})";
-                           //else if (lineParts[0] == "Resource") ;
+                           if (lineParts.Length > 2)
+                           {
+                              value = line[line.IndexOf("\"")..].TrimStart('"', '[').TrimEnd(']', '"', ' ');
+                           }
+                           else
+                           {
+                              value = lineParts[1].TrimStart('[').TrimEnd(']');
+                           }
                         }
-                        nodeStack.Peek().Children.Add(new Node($"{lineParts[0]}={lineParts[1]}"));
+                        else if (curNode.IsLayer()) //remember, layers include both "FreeSpace" and all ships/stations!
+                        {
+                           if(lineParts.Length > 2)
+                           {
+                              if(key == "Name")
+                              {
+                                 value = line[line.IndexOf("\"")..].Trim();
+                              }
+                           }
+                        }
+                        if (key != string.Empty && value != string.Empty) //unneccessary?
+                        {
+                           curNode.Properties.Add(key, value);
+                        }
                         break;
                      }
                }

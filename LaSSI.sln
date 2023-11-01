@@ -1,9 +1,9 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34018.315
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaSSI", "EtoApp1\LaSSI.csproj", "{25E1408A-D99F-4684-A0A0-64E2F6AADF64}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaSSI", "LaSSI\LaSSI.csproj", "{25E1408A-D99F-4684-A0A0-64E2F6AADF64}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

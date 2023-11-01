@@ -1,13 +1,18 @@
 using Eto;
 using Eto.Drawing;
 using Eto.Forms;
+using MonoMac.AppKit;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using static Eto.Mac.Forms.MemoryDataObjectHandler;
 //using System.Windows.Documents;
 
 namespace LaSSI
@@ -17,7 +22,7 @@ namespace LaSSI
       private System.Uri savesFolder;
       private string saveFilePath;
       private SaveFilev2 saveFile;
-      private ObservableCollection<string> ItemList;
+      private ObservableCollection<string> InventoryMasterList;
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
@@ -29,12 +34,12 @@ namespace LaSSI
          savesFolder = GetSavesUri();
          using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.ItemList.txt"))
          {
-            ItemList = new ObservableCollection<string>();
+            InventoryMasterList = new ObservableCollection<string>();
             TextReader reader = new StreamReader(ItemListStream!);
             string[] ItemListArray = reader.ReadToEnd().Split(Environment.NewLine);
             foreach (var line in ItemListArray)
             {
-               ItemList.Add(line);
+               InventoryMasterList.Add(line);
             }
          }
 
@@ -47,7 +52,7 @@ namespace LaSSI
          var prefsCommand = new Command(PrefsCommand_Executed);
 
          var aboutCommand = new Command { MenuText = "About..." };
-         aboutCommand.Executed += (sender, e) =>
+         aboutCommand.Executed += (sender, e) => //todo: break this out into its own handler method
          {
             string title = "LaSSI (Last Starship Save Inspector)";
             string author = "CIBikle, 2023";
@@ -59,22 +64,21 @@ namespace LaSSI
             Button b = (Button)bar.Children.Where(x => (string)x.Tag == "Abort button").First();
             bar.Remove(b);
             var linkButton1 = new LinkButton { Tag = "Link button 1", Text = tlsOwnerLink };
-            linkButton1.Click += delegate { Process.Start("explorer", linkButton1.Text); };
+            linkButton1.Click += delegate { Application.Instance.Open(linkButton1.Text); };
             bar.Add(linkButton1);
             bar.Add(b);
             dlg.ShowModal(this);
          };
-
          // create menu
          Menu = new MenuBar
          {
             Items =
             {
-					// File submenu
-					new SubMenuItem { Text = "&File", Items = { openFileCommand } },
-					// new SubMenuItem { Text = "&Edit", Items = { /* commands/items */ } },
-					// new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
-				},
+               // File submenu
+               new SubMenuItem { Text = "&File", Items = { openFileCommand } },
+               // new SubMenuItem { Text = "&Edit", Items = { /* commands/items */ } },
+               // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
+            },
             //ApplicationItems =
             //{
             //   // application (OS X) or file menu (others)
@@ -85,16 +89,18 @@ namespace LaSSI
 
          };
          Content = InitMainPanel();
+         //leftgrid.Height = rightgrid.Height;
          if (EtoEnvironment.Platform.IsWindows)
          {
             Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
          }
          else if (EtoEnvironment.Platform.IsMac)
          {
-            BringToFront(); //for whatever reason, LaSSI was opening behind VS on Mac
+            //BringToFront(); //may or may not be needed
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
 
+         
          // create toolbar			
          /*ToolBar = new ToolBar { Items = { clickMe } };*/
       }
@@ -109,10 +115,12 @@ namespace LaSSI
          {
             savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Introversion");
          }
-         if (!EtoEnvironment.Platform.IsLinux) // OK, turns out TLS isn't on Linux (thought for sure it was), but that's no reason LaSSI shouldn't be!
+         else if (EtoEnvironment.Platform.IsLinux) //this reflects TLS when run on Linux through Proton; must be updated if TLS is ever ported
          {
-            savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
+            savesFolderPath = Path.Combine(savesFolderPath
+               , "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
          }
+         savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
          Uri SavesUri = new Uri(savesFolderPath);
          return SavesUri;
       }
@@ -132,31 +140,39 @@ namespace LaSSI
       }
       private void OpenFileCommand_Executed(object? sender, EventArgs e)
       {
-         OpenFileDialog foo = new OpenFileDialog();
-         foo.Directory = savesFolder;
-         foo.Filters.Add("Last Starship save files|*.space");
-         if (foo.ShowDialog(this) == DialogResult.Ok)
-         {
-            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-            saveFilePath = foo.FileName;
-            saveFile = new SaveFilev2(saveFilePath);
-            UpdateTextbox("saveFileTextbox", saveFilePath);
-            Eto.Forms.Form progressForm = GetProgressForm();
-            progressForm.Show();
-            SaveFilev2.LoadFile(saveFile, saveFilePath);
-            if (progressForm != null && progressForm.Visible) progressForm.Close();
-            UpdateTextbox("gameModeTextbox", saveFile.GameMode);
-            UpdateTextbox("saveVersionTextbox", saveFile.SaveVersion.ToString());
-            UpdateTextbox("nextIdTextbox", saveFile.NextId.ToString());
-            UpdateTextbox("timeIndexTextbox", saveFile.TimeIndex.ToString());
-            UpdateTextbox("deltaTimeTextbox", saveFile.DeltaTime.ToString());
-            UpdateTextbox("playTimeTextbox", saveFile.PlayTime.ToString());
-            UpdateTreeView();
-         }
+         //OpenFileDialog foo = new OpenFileDialog();
+         //foo.Directory = savesFolder;
+         //foo.Filters.Add("Last Starship save files|*.space");
+         //if (foo.ShowDialog(this) == DialogResult.Ok)
+         //{
+         //   //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
+         //   saveFilePath = foo.FileName;
+         //   saveFile = new SaveFilev2(saveFilePath);
+         //   UpdateTextbox("saveFileTextbox", saveFilePath);
+         //   Eto.Forms.Form progressForm = GetProgressForm();
+         //   progressForm.Show();
+         //   SaveFilev2.LoadFile(saveFile, saveFilePath);
+         //   if (progressForm != null && progressForm.Visible) progressForm.Close();
+         //   UpdateTextbox("gameModeTextbox", saveFile.GameMode);
+         //   UpdateTextbox("saveVersionTextbox", saveFile.SaveVersion.ToString());
+         //   UpdateTextbox("nextIdTextbox", saveFile.NextId.ToString());
+         //   UpdateTextbox("timeIndexTextbox", saveFile.TimeIndex.ToString());
+         //   UpdateTextbox("deltaTimeTextbox", saveFile.DeltaTime.ToString());
+         //   UpdateTextbox("playTimeTextbox", saveFile.PlayTime.ToString());
+         //   UpdateTreeView(); //todo: this is all trash; find a better way
+         //}
+         //DynamicLayout dyla = (DynamicLayout)Content;
+         //GridView leftgrid = (GridView)dyla.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
+         //GridView rightgrid = (GridView)dyla.Children.Where<Control>(x => (string)x.Tag == "RightListBox").First();
+         //foreach (var item in ItemList)
+         //{
+         //   ((ObservableCollection<string>)leftgrid.DataStore).Add(item);
+         //}
+         Debug.WriteLine($"{InventoryMasterList.Count}");
       }
       private static Form GetProgressForm() // todo: fix this whole thing
       {
-         Eto.Forms.Form progressForm = new Eto.Forms.Form();
+         Eto.Forms.Form progressForm = new Form();
          ProgressBar progressBar = new ProgressBar();
          progressBar.Indeterminate = true;
          progressForm.Content = progressBar;
@@ -173,8 +189,7 @@ namespace LaSSI
          x.Columns.Clear();
          x.Columns.Add(new GridColumn
          {
-            AutoSize = true
-            ,
+            AutoSize = true,
             DataCell = new TextBoxCell(0)
          });
       }
@@ -201,6 +216,17 @@ namespace LaSSI
             return new TreeGridItem(childItems, node.Name, node.Properties);
          }
       }
+      /// <summary>
+      /// This method changes the point's location by the given x- and y-offsets.
+      /// <example>
+      /// For example:
+      /// <code>
+      /// Point p = new Point(3,5);
+      /// p.Translate(-1,3);
+      /// </code>
+      /// results in <c>p</c>'s having the value (2,8).
+      /// </example>
+      /// </summary>
       private bool UpdateTextbox(string controlTag, string text)
       {
          bool success = false;
@@ -347,15 +373,23 @@ namespace LaSSI
          ObservableCollection<InventoryGridItem> items = new ObservableCollection<InventoryGridItem>();
          items.Add(new InventoryGridItem("Crewmember", 7));
          items.Add(new InventoryGridItem("Wepo", 2));
-         sp.Panel2 = InitDualListbox(ItemList, items);
-         //DetailScrollable.Content = InitDualListbox(ItemList, items);
-         //DetailScrollable.Scroll += DetailScrollable_Scroll; //todo: why does this cause the program to hitch on launch?
-         DetailScrollable.Padding = new Padding(5, 5);
+         ObservableCollection<InventoryGridItem> copyofinvlist = new ObservableCollection<InventoryGridItem>();
+         foreach(var v in InventoryMasterList)
+         {
+            copyofinvlist.Add(new InventoryGridItem(v, 0));
+         }
+         var ListBuilder = new ListBuilder(copyofinvlist, new List<string> { "Remaining inventory" }
+                                          , items, new List<string> { "In stock", "Count" });
+         //var gridview = (GridView)ListBuilder.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
+
+         sp.Panel2 = ListBuilder;
+         //DetailScrollable.Padding = new Padding(5, 5);
          /*         TextArea textArea = new TextArea();
                   textArea.Tag = "TextArea";
                   placeholder.Content = textArea;*/
 
          dataLayout.Rows.Add(sp);
+         
          return dataLayout;
       }
       private static Label CreateDetailLabel(string text)
@@ -391,12 +425,13 @@ namespace LaSSI
          dropDown.SelectedIndex = defaultIndex;
          return dropDown;
       }
+
       private static bool IsValueTrueFalse(string value)
       {
          return String.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
                      || String.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
       }
-      private static StackLayout GetDetailsPanel(TreeGridItem item)
+      private static StackLayout CreateDetailsPanel(TreeGridItem item)
       {
          StackLayout detailsPanel = new StackLayout
          {
@@ -443,229 +478,8 @@ namespace LaSSI
             TreeGridItem item = (TreeGridItem)((TreeGridView)sender).SelectedItem;
             DynamicLayout bar = (DynamicLayout)this.Content;
             Scrollable s = (Scrollable)bar.Children.Where<Control>(x => (string)x.Tag == "DetailScrollable").First();
-            s.Content = GetDetailsPanel(item);
+            s.Content = CreateDetailsPanel(item);
          }
-      }
-      private static GridView CreateLeftGrid(ObservableCollection<string> list, string? headerText)
-      {
-         int maxLength = list.OrderByDescending(x => x.Length).First().Length;
-         GridView LeftListBox = new GridView
-         {
-            //GridLines = GridLines.Both,
-            DataStore = list,
-            AllowMultipleSelection = true,
-            Tag = "LeftListBox",
-            Columns =
-            {
-               new GridColumn
-               {
-                  //AutoSize = true,
-                  Width = maxLength * 7,
-                  DataCell = new TextBoxCell { Binding = Binding.Delegate((object o) => Convert.ToString(o))},
-                  Sortable = true,
-               }
-            },
-         };
-         if (!string.IsNullOrEmpty(headerText))
-         {
-            LeftListBox.Columns[0].HeaderText = headerText;
-         }
-         return LeftListBox;
-      }
-      private static GridView CreateRightGrid(ObservableCollection<InventoryGridItem> list, List<string>? headerText)
-      {
-         GridView RightListBox = new GridView
-         {
-            GridLines = GridLines.Both,
-            DataStore = list,
-            AllowMultipleSelection = true,
-            Tag = "RightListBox",
-            Columns =
-            {
-               new GridColumn
-               {
-                  AutoSize = true,
-                  DataCell = new TextBoxCell { Binding = Binding.Property((InventoryGridItem i) => i.Name)},
-               },
-               new GridColumn
-               {
-                  AutoSize = true,
-                  DataCell = new TextBoxCell { Binding = Binding.Property((InventoryGridItem i) => i.Count).Convert(v => v.ToString(), s => {int i = 0; return int.TryParse(s, out i) ? i : -1; }) },
-                  Editable = true,
-               }
-            }
-         };
-         if (headerText != null)
-         {
-            for (int i = 0; i < headerText.Count; i++)
-            {
-               RightListBox.Columns[i].HeaderText = headerText[i];
-            }
-         }
-         RightListBox.ColumnWidthChanged += RightListBox_ColumnWidthChanged;
-         RightListBox.CellEdited += RightListBox_CellEdited;
-         return RightListBox;
-      }
-
-      private static void RightListBox_ColumnWidthChanged(object? sender, GridColumnEventArgs e)
-      {
-         var foo = (GridView)sender;
-         var bar = (ObservableCollection<InventoryGridItem>)foo.DataStore;
-         int maxLength = bar.OrderByDescending(x => x.Name.Length).First().Name.Length;
-         foo.Width = maxLength * 10;
-      }
-
-      private static void RightListBox_CellEdited(object? sender, GridViewCellEventArgs e)
-      {
-         Debug.WriteLine("hello!");
-      }
-
-      private static List<Button> CreateDualListboxButtons()
-      {
-         Button MoveLeft = new Button
-         {
-            Text = "<",
-            Width = 25
-         };
-         MoveLeft.Click += MoveLeft_Click;
-         Button MoveLeftAll = new Button
-         {
-            Text = "<<",
-            Width = 25
-         };
-         MoveLeftAll.Click += MoveLeftAll_Click;
-         Button MoveRight = new Button
-         {
-            Text = ">",
-            Width = 25
-         };
-         ;
-         MoveRight.Click += MoveRight_Click;
-         Button MoveRightAll = new Button
-         {
-            Text = ">>",
-            Width = 25
-         };
-         MoveRightAll.Click += MoveRightAll_Click;
-         List<Button> buttons = new List<Button>();
-         buttons.Add(MoveRightAll);
-         buttons.Add(MoveRight);
-         buttons.Add(MoveLeft);
-         buttons.Add(MoveLeftAll);
-
-         return buttons;
-      }
-      public static Panel InitDualListbox(ObservableCollection<string> leftList, ObservableCollection<InventoryGridItem> rightList)
-      {
-         GridView LeftListBox = CreateLeftGrid(leftList, "Remaing catalog");
-         GridView RightListBox = CreateRightGrid(rightList, new List<string> { "In stock", "Count" });
-         List<Button> buttons = CreateDualListboxButtons();
-
-         Panel MainPanel = new Panel
-         {
-            Content = GetMainLayout(LeftListBox, RightListBox, buttons/*, "Remaining catalog", "Items in stock"*/),
-            ID = "ListBuilderMainPanel"
-         };
-
-         return MainPanel;
-      }
-      private static StackLayout GetButtonsLayout(List<Button> buttons)
-      {
-         StackLayout layout = new StackLayout();
-         layout.Orientation = Eto.Forms.Orientation.Vertical;
-         layout.Tag = "ButtonsLayout";
-         layout.Padding = new Padding(0, 50, 0, 0);
-         foreach (Button button in buttons)
-         {
-            layout.Items.Add(button);
-         }
-         return layout;
-      }
-      private static DynamicLayout GetMainLayout(GridView LeftListBox, GridView RightListBox, List<Button> buttons)
-      {
-         DynamicLayout dynamicLayout = new DynamicLayout
-         {
-            Spacing = new Size(20, 0)
-         };
-         Scrollable leftScrollable = new Scrollable
-         {
-            Tag = "LeftDualListboxScrollable",
-            ID = "LeftDualListboxScrollable",
-            Content = LeftListBox,
-         };
-         Scrollable rightScrollable = new Scrollable
-         {
-            Tag = "RightDualListboxScrollable",
-            ID = "RightDualListboxScrollable",
-            Content = RightListBox,
-         };
-         dynamicLayout.BeginHorizontal();
-         dynamicLayout.Add(leftScrollable);
-         dynamicLayout.Add(GetButtonsLayout(buttons));
-         dynamicLayout.Add(rightScrollable);
-         dynamicLayout.AddSpace();
-         dynamicLayout.EndHorizontal();
-         return dynamicLayout;
-      }
-      private static void MoveRightAll_Click(object? sender, EventArgs e)
-      {
-         throw new NotImplementedException();
-      }
-      private static bool InventoryGridListContains(ObservableCollection<InventoryGridItem> list, string name)
-      {
-         foreach (InventoryGridItem item in list)
-         {
-            if (item.Name == name) return true;
-         }
-         return false;
-      }
-      private static void MoveRight_Click(object? sender, EventArgs e)
-      {
-         //Button button = ;
-         //GridView left = (GridView)button.Parent.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
-         //Scrollable s = (Scrollable)((Button)sender!).Parents.Where<Widget>(x => (string)x.ID == "DetailScrollable").First();
-         Panel p = (Panel)((Button)sender!).Parents.Where<Widget>(x => (string)x.ID == "ListBuilderMainPanel").First();
-         GridView left = (GridView)p.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
-         GridView right = (GridView)p.Children.Where<Control>(x => (string)x.Tag == "RightListBox").First();
-         //GridView right = (GridView)button.Parent.Children.Where<Control>(x => (string)x.Tag == "RightListBox").First();
-         //List<string> foo = (List<string>)left.DataStore;
-         ObservableCollection<InventoryGridItem> bar = (ObservableCollection<InventoryGridItem>)right.DataStore;
-
-         if (left.SelectedRow > -1 && left.SelectedItem.ToString() != string.Empty && !InventoryGridListContains(bar, left.SelectedItem.ToString()!)) //todo: support multi-select. or turn it off, I guess
-         {
-            string name = left.SelectedItem.ToString()!;
-            bar.Add(new InventoryGridItem(name, 1));
-            //right.DataStore = bar; //todo: this doesn't seem right. I'm definitely doing a *lot* of this wrong.
-            //todo: remove the selected item(s) from the left grid
-         }
-      }
-      private static void MoveLeftAll_Click(object? sender, EventArgs e)
-      {
-         throw new NotImplementedException();
-      }
-      private static void MoveLeft_Click(object? sender, EventArgs e)
-      {
-         throw new NotImplementedException();
-      }
-      /*      private void DetailScrollable_Scroll(object? sender, ScrollEventArgs e)
-            {
-               Scrollable x = (Scrollable)sender;
-               StackLayout buttons = (StackLayout)x.Children.Where<Control>(x => (string)x.Tag == "ButtonsLayout").First();
-               buttons.Padding = new Padding(0, x.VisibleRect.Top + 50, 0, 0);
-            }*/
-      public class InventoryGridItem : GridItem
-      {
-         public string Name { get; set; } = string.Empty;
-         public int Count { get; set; } = -1;
-         public InventoryGridItem(string name, int count)
-         {
-            this.Name = name;
-            this.Count = count;
-         }
-      }
-      public class ListBuilder : Panel
-      {
-
       }
    }
 }
