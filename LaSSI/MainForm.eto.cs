@@ -1,19 +1,13 @@
 using Eto;
 using Eto.Drawing;
 using Eto.Forms;
-using MonoMac.AppKit;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using static Eto.Mac.Forms.MemoryDataObjectHandler;
-//using System.Windows.Documents;
 
 namespace LaSSI
 {
@@ -22,7 +16,8 @@ namespace LaSSI
       private System.Uri savesFolder;
       private string saveFilePath;
       private SaveFilev2 saveFile;
-      private ObservableCollection<string> InventoryMasterList;
+      private List<InventoryGridItem> InventoryMasterList;
+      private Dictionary<TreeGridItem, DynamicLayout> DetailPanelsCache;
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
@@ -32,43 +27,13 @@ namespace LaSSI
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
          savesFolder = GetSavesUri();
-         using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.ItemList.txt"))
-         {
-            InventoryMasterList = new ObservableCollection<string>();
-            TextReader reader = new StreamReader(ItemListStream!);
-            string[] ItemListArray = reader.ReadToEnd().Split(Environment.NewLine);
-            foreach (var line in ItemListArray)
-            {
-               InventoryMasterList.Add(line);
-            }
-         }
+         InventoryMasterList = LoadInventoryMasterList();
+         DetailPanelsCache = new Dictionary<TreeGridItem, DynamicLayout>();
 
-         var openFileCommand = new Command { MenuText = "Open", Shortcut = Application.Instance.CommonModifier | Keys.O };
-         openFileCommand.Executed += OpenFileCommand_Executed;
-
-         var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
-         quitCommand.Executed += (sender, e) => Application.Instance.Quit();
-
+         var openFileCommand = CreateOpenFileCommand();
+         var quitCommand = CreateQuitCommand();
          var prefsCommand = new Command(PrefsCommand_Executed);
-
-         var aboutCommand = new Command { MenuText = "About..." };
-         aboutCommand.Executed += (sender, e) => //todo: break this out into its own handler method
-         {
-            string title = "LaSSI (Last Starship Save Inspector)";
-            string author = "CIBikle, 2023";
-            string tlsOwner = "'The Last Starship' is the property of Introversion Software";
-            string tlsOwnerLink = "https://www.introversion.co.uk/introversion/";
-            string disclaimer = "This is a fan-made tool for educational and entertainment purposes";
-            var dlg = GetModal($"{title}{Environment.NewLine}{author}{Environment.NewLine}{tlsOwner}{Environment.NewLine}{disclaimer}");
-            DynamicLayout bar = (DynamicLayout)dlg.Content;
-            Button b = (Button)bar.Children.Where(x => (string)x.Tag == "Abort button").First();
-            bar.Remove(b);
-            var linkButton1 = new LinkButton { Tag = "Link button 1", Text = tlsOwnerLink };
-            linkButton1.Click += delegate { Application.Instance.Open(linkButton1.Text); };
-            bar.Add(linkButton1);
-            bar.Add(b);
-            dlg.ShowModal(this);
-         };
+         var aboutCommand = CreateAboutCommand();
          // create menu
          Menu = new MenuBar
          {
@@ -89,7 +54,15 @@ namespace LaSSI
 
          };
          Content = InitMainPanel();
-         //leftgrid.Height = rightgrid.Height;
+         PlatformSpecificNonsense();
+         // create toolbar			
+         /*ToolBar = new ToolBar { Items = { clickMe } };*/
+      }
+      /// <summary>
+      /// This method takes care of any platform-specific setup/steps at the end of the mainform init phase
+      /// </summary>
+      private void PlatformSpecificNonsense()
+      {
          if (EtoEnvironment.Platform.IsWindows)
          {
             Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
@@ -99,10 +72,54 @@ namespace LaSSI
             //BringToFront(); //may or may not be needed
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
-
-         
-         // create toolbar			
-         /*ToolBar = new ToolBar { Items = { clickMe } };*/
+      }
+      private Command CreateAboutCommand()
+      {
+         var aboutCommand = new Command { MenuText = "About..." };
+         aboutCommand.Executed += (sender, e) => //todo: break this out into its own handler method
+         {
+            string title = "LaSSI (Last Starship Save Inspector)";
+            string author = "CIBikle, 2023";
+            string tlsOwner = "'The Last Starship' is the property of Introversion Software";
+            string tlsOwnerLink = "https://www.introversion.co.uk/introversion/";
+            string disclaimer = "This is a fan-made tool for educational and entertainment purposes";
+            var dlg = GetModal($"{title}{Environment.NewLine}{author}{Environment.NewLine}{tlsOwner}{Environment.NewLine}{disclaimer}");
+            DynamicLayout bar = (DynamicLayout)dlg.Content;
+            Button b = (Button)bar.Children.Where(x => (string)x.Tag == "Abort button").First();
+            bar.Remove(b);
+            var linkButton1 = new LinkButton { Tag = "Link button 1", Text = tlsOwnerLink };
+            linkButton1.Click += delegate { Application.Instance.Open(linkButton1.Text); };
+            bar.Add(linkButton1);
+            bar.Add(b);
+            dlg.ShowModal(this);
+         };
+         return aboutCommand;
+      }
+      private static Command CreateQuitCommand()
+      {
+         var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
+         quitCommand.Executed += (sender, e) => Application.Instance.Quit();
+         return quitCommand;
+      }
+      private Command CreateOpenFileCommand()
+      {
+         var openFileCommand = new Command { MenuText = "Open", Shortcut = Application.Instance.CommonModifier | Keys.O };
+         openFileCommand.Executed += OpenFileCommand_Executed;
+         return openFileCommand;
+      }
+      private static List<InventoryGridItem> LoadInventoryMasterList()
+      {
+         var InventoryMasterList = new List<InventoryGridItem>();
+         using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.ItemList.txt"))
+         {
+            TextReader reader = new StreamReader(ItemListStream!);
+            string[] ItemListArray = reader.ReadToEnd().Split(Environment.NewLine);
+            foreach (var line in ItemListArray)
+            {
+               InventoryMasterList.Add(new InventoryGridItem(line, 0));
+            }
+         }
+         return InventoryMasterList;
       }
       private static Uri GetSavesUri()
       {
@@ -116,7 +133,7 @@ namespace LaSSI
             savesFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Introversion");
          }
          else if (EtoEnvironment.Platform.IsLinux) //this reflects TLS when run on Linux through Proton; must be updated if TLS is ever ported
-         {
+         { // todo: this kinda sucks -- surely there's any number of better ways
             savesFolderPath = Path.Combine(savesFolderPath
                , "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
          }
@@ -138,37 +155,22 @@ namespace LaSSI
          var adjustedCenter = new Point(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
          return adjustedCenter;
       }
-      private void OpenFileCommand_Executed(object? sender, EventArgs e)
+      private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
       {
-         //OpenFileDialog foo = new OpenFileDialog();
-         //foo.Directory = savesFolder;
-         //foo.Filters.Add("Last Starship save files|*.space");
-         //if (foo.ShowDialog(this) == DialogResult.Ok)
-         //{
-         //   //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-         //   saveFilePath = foo.FileName;
-         //   saveFile = new SaveFilev2(saveFilePath);
-         //   UpdateTextbox("saveFileTextbox", saveFilePath);
-         //   Eto.Forms.Form progressForm = GetProgressForm();
-         //   progressForm.Show();
-         //   SaveFilev2.LoadFile(saveFile, saveFilePath);
-         //   if (progressForm != null && progressForm.Visible) progressForm.Close();
-         //   UpdateTextbox("gameModeTextbox", saveFile.GameMode);
-         //   UpdateTextbox("saveVersionTextbox", saveFile.SaveVersion.ToString());
-         //   UpdateTextbox("nextIdTextbox", saveFile.NextId.ToString());
-         //   UpdateTextbox("timeIndexTextbox", saveFile.TimeIndex.ToString());
-         //   UpdateTextbox("deltaTimeTextbox", saveFile.DeltaTime.ToString());
-         //   UpdateTextbox("playTimeTextbox", saveFile.PlayTime.ToString());
-         //   UpdateTreeView(); //todo: this is all trash; find a better way
-         //}
-         //DynamicLayout dyla = (DynamicLayout)Content;
-         //GridView leftgrid = (GridView)dyla.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
-         //GridView rightgrid = (GridView)dyla.Children.Where<Control>(x => (string)x.Tag == "RightListBox").First();
-         //foreach (var item in ItemList)
-         //{
-         //   ((ObservableCollection<string>)leftgrid.DataStore).Add(item);
-         //}
-         Debug.WriteLine($"{InventoryMasterList.Count}");
+         OpenFileDialog fileDialog = new OpenFileDialog();
+         fileDialog.Directory = savesFolder;
+         fileDialog.Filters.Add("Last Starship save files|*.space");
+         if (fileDialog.ShowDialog(this) == DialogResult.Ok)
+         {
+            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
+            saveFilePath = fileDialog.FileName;
+            saveFile = new SaveFilev2(saveFilePath);
+            Form progressForm = GetProgressForm();
+            progressForm.Show();
+            SaveFilev2.LoadFile(saveFile, saveFilePath);
+            if (progressForm != null && progressForm.Visible) progressForm.Close();
+            UpdateUiAfterLoad();
+         }
       }
       private static Form GetProgressForm() // todo: fix this whole thing
       {
@@ -181,22 +183,40 @@ namespace LaSSI
          progressForm.Location = GetScreenCenter() - 200; // todo: fix this
          return progressForm;
       }
+      private void UpdateUiAfterLoad() // this method used to matter more when there were more independant textboxes to update
+      {
+         DetailPanelsCache.Clear();
+         ClearDetails();
+         UpdateTextbox("saveFileTextbox", saveFilePath);
+         UpdateTreeView(); //todo: is there a better way to do this instead of regenerating the entire tree?
+
+      }
+      private void ClearDetails()
+      {
+         DynamicLayout bar = (DynamicLayout)this.Content;
+         Scrollable x = (Scrollable)bar.Children.Where<Control>(x => (string)x.Tag == "DetailScrollable").First();
+         x.Content = null;
+      }
       private void UpdateTreeView()
       {
          DynamicLayout bar = (DynamicLayout)this.Content;
          TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
          x.DataStore = SaveFile2TreeGridItems();
-         x.Columns.Clear();
-         x.Columns.Add(new GridColumn
+         if(x.Columns.Count == 0)
          {
-            AutoSize = true,
-            DataCell = new TextBoxCell(0)
-         });
+            x.Columns.Add(new GridColumn
+            {
+               AutoSize = true,
+               DataCell = new TextBoxCell(0)
+            });
+         }
       }
       private TreeGridItemCollection SaveFile2TreeGridItems()
       {
-         TreeGridItemCollection treeGridItems = new TreeGridItemCollection();
-         treeGridItems.Add(WalkNodeTree(saveFile.root));
+         TreeGridItemCollection treeGridItems = new TreeGridItemCollection
+         {
+            WalkNodeTree(saveFile.Root)
+         };
          treeGridItems[0].Expanded = true;
          return treeGridItems;
       }
@@ -204,7 +224,10 @@ namespace LaSSI
       {
          if (!node.HasChildren())
          {
-            return new TreeGridItem(node.Name, node.Properties);
+            return new TreeGridItem(node.Name, node.Properties)
+            {
+               Tag = node.Name
+            };
          }
          else
          {
@@ -213,19 +236,14 @@ namespace LaSSI
             {
                childItems.Add(WalkNodeTree(child));
             }
-            return new TreeGridItem(childItems, node.Name, node.Properties);
+            return new TreeGridItem(childItems, node.Name, node.Properties)
+            {
+               Tag = node.Name
+            };
          }
       }
       /// <summary>
-      /// This method changes the point's location by the given x- and y-offsets.
-      /// <example>
-      /// For example:
-      /// <code>
-      /// Point p = new Point(3,5);
-      /// p.Translate(-1,3);
-      /// </code>
-      /// results in <c>p</c>'s having the value (2,8).
-      /// </example>
+      /// Updates the text of a textbox matching the given tag.
       /// </summary>
       private bool UpdateTextbox(string controlTag, string text)
       {
@@ -273,7 +291,7 @@ namespace LaSSI
          DynamicLayout rootLayout = new DynamicLayout();
          rootLayout.Spacing = new Size(0, 5);
          rootLayout.Add(InitFilePanel());
-         rootLayout.Add(InitSaveStatsPanel());
+         //rootLayout.Add(InitSaveStatsPanel());
          rootLayout.Add(InitDetailsPanel());
 
          //rootLayout.Add(null);
@@ -292,59 +310,6 @@ namespace LaSSI
          fileLayout.Rows.Add(new TableRow(currentFile, new TableCell(filename, true), new TableCell(null)));
          return fileLayout;
       }
-      private static TableLayout InitSaveStatsPanel()
-      {
-         TableLayout statsLayout = new TableLayout();
-         statsLayout.Spacing = new Size(5, 0);
-
-         TextBox gameModeTextbox = new TextBox();//todo: change to combobox?
-         gameModeTextbox.Tag = "gameModeTextbox";
-         gameModeTextbox.Width = 80;
-         gameModeTextbox.Enabled = false;
-         TextBox saveVersionTextBox = new TextBox();
-         saveVersionTextBox.Tag = "saveVersionTextbox";
-         saveVersionTextBox.Width = 20;
-         saveVersionTextBox.Enabled = false;
-         TextBox nextIdTextbox = new TextBox();
-         nextIdTextbox.Tag = "nextIdTextbox";
-         nextIdTextbox.Width = 60;
-         nextIdTextbox.Enabled = false;
-         TextBox timeIndexTextbox = new TextBox();//todo: why is this being reported wrong? also, put a warning on it!
-         timeIndexTextbox.Tag = "timeIndexTextbox";
-         timeIndexTextbox.Width = 120;
-         timeIndexTextbox.Enabled = false;
-         TextBox deltaTimeTextbox = new TextBox();//todo: why is this being reported wrong?
-         deltaTimeTextbox.Tag = "deltaTimeTextbox";
-         deltaTimeTextbox.Width = 150;
-         deltaTimeTextbox.Enabled = false;
-         TextBox playTimeTextbox = new TextBox();//todo: why is this being reported wrong?
-         playTimeTextbox.Tag = "playTimeTextbox";
-         playTimeTextbox.Width = 120;
-         playTimeTextbox.Enabled = false;
-
-         var gamemode = new Label();
-         var savevers = new Label();
-         var nextid = new Label();
-         var timeindex = new Label();
-         var deltatime = new Label();
-         var playtime = new Label();
-         gamemode.Text = "Game mode:";
-         gamemode.VerticalAlignment = VerticalAlignment.Center;
-         savevers.Text = "Save version:";
-         savevers.VerticalAlignment = VerticalAlignment.Center;
-         nextid.Text = "Next ID:";
-         nextid.VerticalAlignment = VerticalAlignment.Center;
-         timeindex.Text = "Time index:";
-         timeindex.VerticalAlignment = VerticalAlignment.Center;
-         deltatime.Text = "Delta time:";
-         deltatime.VerticalAlignment = VerticalAlignment.Center;
-         playtime.Text = "Play time:";
-         playtime.VerticalAlignment = VerticalAlignment.Center;
-
-         //statsLayout.Rows.Add(new TableRow(new TableCell(gamemode), new TableCell(gameModeTextbox), savevers, saveVersionTextBox, nextid, nextIdTextbox, null));
-         statsLayout.Rows.Add(new TableRow(gamemode, gameModeTextbox, savevers, saveVersionTextBox, nextid, nextIdTextbox, timeindex, timeIndexTextbox, deltatime, deltaTimeTextbox, playtime, playTimeTextbox, null));
-         return statsLayout;
-      }
       private TableLayout InitDetailsPanel()
       {
          TableLayout dataLayout = new TableLayout();
@@ -354,7 +319,6 @@ namespace LaSSI
          treeView.Tag = "DataTreeView";
          treeView.AllowEmptySelection = true;
          treeView.AllowMultipleSelection = true;
-         //Panel placeholder = new Panel();
          Scrollable DetailScrollable = new Scrollable
          {
             Tag = "DetailScrollable",
@@ -368,44 +332,27 @@ namespace LaSSI
             Panel1 = treeView
          };
          sp.Panel1.Width = this.Width / 2;
-         //sp.Panel2 = DetailScrollable;
-         //sp.Panel2 = InitDualListbox(ItemList, y.ToList<string>());
-         ObservableCollection<InventoryGridItem> items = new ObservableCollection<InventoryGridItem>();
-         items.Add(new InventoryGridItem("Crewmember", 7));
-         items.Add(new InventoryGridItem("Wepo", 2));
-         ObservableCollection<InventoryGridItem> copyofinvlist = new ObservableCollection<InventoryGridItem>();
-         foreach(var v in InventoryMasterList)
-         {
-            copyofinvlist.Add(new InventoryGridItem(v, 0));
-         }
-         var ListBuilder = new ListBuilder(copyofinvlist, new List<string> { "Remaining inventory" }
-                                          , items, new List<string> { "In stock", "Count" });
-         //var gridview = (GridView)ListBuilder.Children.Where<Control>(x => (string)x.Tag == "LeftListBox").First();
-
-         sp.Panel2 = ListBuilder;
-         //DetailScrollable.Padding = new Padding(5, 5);
-         /*         TextArea textArea = new TextArea();
-                  textArea.Tag = "TextArea";
-                  placeholder.Content = textArea;*/
-
+         sp.Panel2 = DetailScrollable;
          dataLayout.Rows.Add(sp);
-         
+
          return dataLayout;
       }
       private static Label CreateDetailLabel(string text)
       {
          return new Label
          {
-            Text = text
-            ,
-            VerticalAlignment = VerticalAlignment.Center
+            Text = text,
+            VerticalAlignment = VerticalAlignment.Center,
+            Wrap = WrapMode.Word
          };
       }
       private static TextBox CreateDetailTextBox(string text)
       {
+         int multiplicand = text.Length > 2 ? text.Length : 2;
          return new TextBox
          {
-            Text = text
+            Text = text,
+            Width = multiplicand * 10
          };
       }
       private static DropDown CreateDetailDropMenu(string options)
@@ -425,33 +372,28 @@ namespace LaSSI
          dropDown.SelectedIndex = defaultIndex;
          return dropDown;
       }
-
       private static bool IsValueTrueFalse(string value)
       {
          return String.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
                      || String.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
       }
-      private static StackLayout CreateDetailsPanel(TreeGridItem item)
+      private static StackLayout CreateDefaultFields(TreeGridItem item)
       {
-         StackLayout detailsPanel = new StackLayout
-         {
-            Orientation = Orientation.Vertical,
-            //Spacing = 10,
-            Padding = new Padding(5, 0)
-         };
+         StackLayout defaultLayout = new StackLayout();
          foreach (var s in item.Values)
          {
             if (s is string)
             {
-               detailsPanel.Items.Add(new StackLayoutItem(new Label().Text = s.ToString()));
+               //detailsLayout.Items.Add(new StackLayoutItem(new Label().Text = s.ToString()));
             }
-            else if (s is Dictionary<string, string> && ((Dictionary<string, string>)s).Count != 0)
+            else if (s is Dictionary<string, string> dictionary && dictionary.Count != 0)
             {
                TableLayout innerLayout = new TableLayout
                {
-                  Spacing = new Size(5, 0)
+                  Spacing = new Size(5, 0),
+                  Padding = new Padding(0, 5)
                };
-               foreach (var p in (Dictionary<string, string>)s)
+               foreach (var p in dictionary)
                {
                   Label label = CreateDetailLabel(p.Key);
                   Control value;
@@ -466,20 +408,141 @@ namespace LaSSI
 
                   innerLayout.Rows.Add(new TableRow(new TableCell(label), new TableCell(value)));
                }
-               detailsPanel.Items.Add(new StackLayoutItem(innerLayout));
+               defaultLayout.Items.Add(new StackLayoutItem(innerLayout));
             }
          }
-         return detailsPanel;
+         return defaultLayout;
       }
+      private ListBuilder CreateListBuilder(TreeGridItem item)
+      {
+         ObservableCollection<InventoryGridItem> InStock = new ObservableCollection<InventoryGridItem>();
+         ObservableCollection<InventoryGridItem> RemainingItems = new ObservableCollection<InventoryGridItem>(InventoryMasterList);
+         foreach (var value in item.Values)
+         {
+            if(value is Dictionary<string,string> dictionary && dictionary.Count != 0)
+            {
+               foreach(var entry in dictionary)
+               {
+                  try
+                  {
+                     InventoryGridItem InvItem = RemainingItems.Where(x => x.Name == entry.Key).First();
+                     RemainingItems.Remove(InvItem);
+                     InvItem.Count = int.Parse(entry.Value);
+                     InStock.Add(InvItem);
+                  }
+                  catch
+                  {
+                     Debug.WriteLine($"Item not found in master list: {entry.Key}");
+                  }
+               }
+            }
+         }
+         return new ListBuilder(RemainingItems, new List<string> { "Remaining items" }, InStock, new List<string> { "In stock", "Count" });
+      }
+      private static string GetNodePath(TreeGridItem item)
+      {
+         string path = item.Values[0].ToString()!;
+         while (item.Parent != null && item.Parent.Parent != null)
+         {
+            item = (TreeGridItem)item.Parent;
+            path = $"{item.Values[0]}/{path}";
+         }
+         return path;
+      }
+      private static Label GetNodePathLabel(TreeGridItem item)
+      {
+         Label nodePathLabel = new Label { Text = GetNodePath(item), BackgroundColor = Colors.Silver, Font = new Font("Arial", 18, FontStyle.Bold) };
+         return nodePathLabel;
+      }
+      private static DynamicLayout CreateNodePathLayout(TreeGridItem item)
+      {
+         DynamicLayout layout = new DynamicLayout();
+         layout.Add(GetNodePathLabel(item));
+         return layout;
+      }
+      private DynamicLayout CreateDetailsLayout(TreeGridItem item)
+      {
+         DynamicLayout detailsLayout = new()
+         {
+            Padding = new Padding(5, 0),
+         };
+
+         detailsLayout.Add(GetNodePathLabel(item));
+         switch (item.Tag)
+         {
+            case "OurStock":
+               {
+                  detailsLayout.Add(CreateListBuilder(item));
+                  break;
+               }
+            case "TheirStock":
+               {
+                  detailsLayout.Add(CreateListBuilder(item));
+                  break;
+               }
+            case "Cells":
+               {
+                  detailsLayout.Add(CreateShipCellsLayout(item));
+                  break;
+               }
+            default:
+               {
+                  detailsLayout.Add(CreateDefaultFields(item));
+                  break;
+               }
+         }
+         
+         return detailsLayout;
+      }
+
+      private static TextArea CreateShipCellsLayout(TreeGridItem item)
+      {
+         //string cells = string.Empty;
+         ////string row = string.Empty;
+         //if (item.Values[1] is Dictionary<string, string> dictionary && dictionary.Count != 0)
+         //{
+         //   foreach(var p in dictionary)
+         //   {
+         //      //row = p.Key + "  " + p.Value + Environment.NewLine;
+         //      cells += p.Key + "  " + p.Value + Environment.NewLine;
+         //   }
+         //}
+         ////return new(new TextArea() { ReadOnly = true, Font = new Font("Courier", 12), Text = cells, });
+         //return new TextArea() { ReadOnly = true, Font = new Font("Courier", 12), Text = cells, };
+         return new TextArea() { ReadOnly = true, Font = new Font("Courier", 12)
+            , Text = $"Coming soon!{Environment.NewLine}(Look, I tried, but it's going to take a whole new module to make the ship layout inspector usable and we both have way bigger fish to fry.)" };
+      }
+
       private void TreeView_SelectedItemChanged(object? sender, EventArgs e)
       {
          if (sender is not null and TreeGridView)
          {
             TreeGridItem item = (TreeGridItem)((TreeGridView)sender).SelectedItem;
-            DynamicLayout bar = (DynamicLayout)this.Content;
-            Scrollable s = (Scrollable)bar.Children.Where<Control>(x => (string)x.Tag == "DetailScrollable").First();
-            s.Content = CreateDetailsPanel(item);
+            if(item is not null)
+            {
+               UpdateDetailsPanel(item);
+            }
+            else
+            {
+               ClearDetailsPanel();
+            }
          }
+      }
+      private void UpdateDetailsPanel(TreeGridItem item)
+      {
+         DynamicLayout bar = (DynamicLayout)this.Content;
+         Scrollable s = (Scrollable)bar.Children.Where<Control>(x => (string)x.Tag == "DetailScrollable").First();
+         if (!DetailPanelsCache.ContainsKey(item))
+         {
+            DetailPanelsCache.Add(item, CreateDetailsLayout(item));
+         }
+         s.Content = DetailPanelsCache[item];
+      }
+      private void ClearDetailsPanel()
+      {
+         DynamicLayout bar = (DynamicLayout)this.Content;
+         Scrollable s = (Scrollable)bar.Children.Where<Control>(x => (string)x.Tag == "DetailScrollable").First();
+         s.Content = null;
       }
    }
 }

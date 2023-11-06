@@ -11,6 +11,6 @@
 		<Platforms>AnyCPU;x64;x86</Platforms>
 	</PropertyGroup>
 	<ItemGroup>
-		<EmbeddedResource Include="ItemList.txt" />
+		<EmbeddedResource Include="InventoryMasterList.txt" />
 	</ItemGroup>
 </Project>

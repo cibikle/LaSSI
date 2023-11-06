@@ -127,9 +127,32 @@ namespace LaSSI
          if(this.Name == "Research") return true;
          return false;
       }
-      public bool IsLayer()
+      /// <summary>
+      /// Determines if the calling node is a layer or, optionally, the child of a Layer (free space/ship).
+      /// </summary>
+      public bool IsLayer(bool DetermineIfChild = false)
       {
          if (this.Name == "Layer") return true;
+         if (this.Parent != null && DetermineIfChild) return this.Parent.IsLayer(DetermineIfChild);
+         return false;
+      }
+
+      internal bool IsPalette(bool DetermineIfChild = false)
+      {
+         if (this.Name == "Palette") return true;
+         if (this.Parent != null && DetermineIfChild) return this.Parent.IsPalette(DetermineIfChild);
+         return false;
+      }
+
+      internal bool IsPowerGrid()
+      {
+         return this.Name == "PowerGrid";
+      }
+
+      internal bool IsEditor(bool DetermineIfChild = false)
+      {
+         if (this.Name == "Editor") return true;
+         if (this.Parent != null && DetermineIfChild) return this.Parent.IsEditor(DetermineIfChild);
          return false;
       }
       private static string GetHazardName(string id) //todo: replace with enum

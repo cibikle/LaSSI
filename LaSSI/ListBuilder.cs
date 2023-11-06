@@ -5,25 +5,32 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Diagnostics;
+using System.Collections;
+using System.IO;
 
 namespace LaSSI
 {
    public class ListBuilder : Panel //todo: this whole darn thing is too tailored to Inventory management!
    {
+      #region class variables
       private ObservableCollection<InventoryGridItem> LeftList { get; set; }
       private ObservableCollection<InventoryGridItem> RightList { get; set; }
       private GridView LeftGridView { get; set; }
       private GridView RightGridView { get; set; }
       private List<string>? LeftHeaders { get; }
       private List<string>? RightHeaders { get; }
-      private int MaxEntryLength { get; }
+      private int WidthMultiplier { get; set; }
       private List<Button> Buttons { get; set; } = new List<Button>();
+      private int MaxHeight { get; set; } = 0;
+      private int WidthMultiplicand { get; } = 8;
+      #endregion
 
+      #region constructors
       public ListBuilder(ObservableCollection<InventoryGridItem> leftList, ObservableCollection<InventoryGridItem> rightList)
       {
          LeftList = leftList;
          RightList = rightList;
-         MaxEntryLength = GetListEntriesMaxLength();
+         WidthMultiplier = GetWidthMultiplier();
          LeftGridView = CreateLeftGrid();
          RightGridView = CreateRightGrid();
 
@@ -36,19 +43,15 @@ namespace LaSSI
          RightHeaders = rightHeaders;
          LeftList = leftList;
          RightList = rightList;
-         MaxEntryLength = GetListEntriesMaxLength();
+         WidthMultiplier = GetWidthMultiplier();
          LeftGridView = CreateLeftGrid();
          RightGridView = CreateRightGrid();
 
          Content = CreateMainLayout();
       }
-      public int GetListEntriesMaxLength()
-      {
-         int leftMaxLen = LeftList.OrderByDescending((InventoryGridItem x) => x.Name.Length).First().Name.Length;
-         int rightMaxLen = RightList.OrderByDescending((InventoryGridItem x) => x.Name.Length).First().Name.Length;
-         return leftMaxLen > rightMaxLen ? leftMaxLen : rightMaxLen;
-      }
-      
+      #endregion
+
+      #region initializers
       private DynamicLayout CreateMainLayout()
       {
          ID = "ListBuilderMainPanel";
@@ -79,13 +82,13 @@ namespace LaSSI
       }
       private GridView CreateLeftGrid()
       {
-         int widthMultiplicand = MaxEntryLength;
+         int widthMultiplier = WidthMultiplier;
          if (LeftHeaders != null && LeftHeaders.Count > 0)
          {
             int maxheaderlength = LeftHeaders.OrderByDescending(x => x.Length).First().Length;
-            if(maxheaderlength > widthMultiplicand)
+            if(maxheaderlength > widthMultiplier)
             {
-               widthMultiplicand = maxheaderlength;
+               widthMultiplier = maxheaderlength;
             }
          }
          GridView LeftGridView = new GridView
@@ -98,7 +101,7 @@ namespace LaSSI
             {
                new GridColumn
                {
-                  Width = widthMultiplicand * 7,
+                  Width = WidthMultiplicand * widthMultiplier,
                   DataCell = new TextBoxCell
                   {
                      Binding = Binding.Property((InventoryGridItem i) => i.Name)
@@ -108,6 +111,8 @@ namespace LaSSI
                }
             },
          };
+         LeftGridView.Shown += LeftGridView_Shown;
+         LeftList.CollectionChanged += LeftList_CollectionChanged;
          if (LeftHeaders != null && LeftHeaders.Count > 0)
          {
             LeftGridView.ShowHeader = true;
@@ -119,35 +124,35 @@ namespace LaSSI
          else
          {
             LeftGridView.ShowHeader = false;
-            
          }
          return LeftGridView;
       }
       private GridView CreateRightGrid()
       {
-         int nameWidthMultiplicand = MaxEntryLength;
-         int countWidthMultiplicand = 0;
+         int nameWidthMultiplier = WidthMultiplier;
+         int countWidthMultiplier = 0;
          if (RightHeaders != null && RightHeaders.Count > 0)
          {
             int maxheaderlength = RightHeaders.OrderByDescending(x => x.Length).First().Length;
-            if (maxheaderlength > nameWidthMultiplicand)
+            if (maxheaderlength > nameWidthMultiplier)
             {
-               nameWidthMultiplicand = maxheaderlength;
+               nameWidthMultiplier = maxheaderlength;
             }
-            countWidthMultiplicand = maxheaderlength;
+            countWidthMultiplier = maxheaderlength;
          }
 
-         GridView RightListBox = new GridView
+         GridView RightGridView = new GridView
          {
             GridLines = GridLines.Both,
             DataStore = RightList,
             AllowMultipleSelection = true,
             Tag = "RightGridView",
+            //Height = MaxHeight,
             Columns =
             {
                new GridColumn
                {
-                  Width = (nameWidthMultiplicand + 1) * 7,
+                  Width = WidthMultiplicand * nameWidthMultiplier,
                   DataCell = new TextBoxCell
                   {
                      Binding = Binding.Property((InventoryGridItem i) => i.Name)
@@ -155,7 +160,7 @@ namespace LaSSI
                },
                new GridColumn
                {
-                  Width = countWidthMultiplicand * 7,
+                  Width = WidthMultiplicand * countWidthMultiplier,
                   Editable = true,
                   DataCell = new TextBoxCell
                   {
@@ -164,16 +169,18 @@ namespace LaSSI
                }
             }
          };
+         RightGridView.Shown += RightGridView_Shown;
+         RightList.CollectionChanged += RightList_CollectionChanged;
          if (RightHeaders != null)
          {
             for (int i = 0; i < RightHeaders.Count; i++)
             {
-               RightListBox.Columns[i].HeaderText = RightHeaders[i];
+               RightGridView.Columns[i].HeaderText = RightHeaders[i];
             }
          }
-         RightListBox.ColumnWidthChanged += RightListBox_ColumnWidthChanged;
-         RightListBox.CellEdited += RightListBox_CellEdited;
-         return RightListBox;
+         //RightListBox.ColumnWidthChanged += RightListBox_ColumnWidthChanged;
+         RightGridView.CellEdited += RightListBox_CellEdited;
+         return RightGridView;
       }
       private StackLayout CreateButtonsLayout()
       {
@@ -186,17 +193,6 @@ namespace LaSSI
             layout.Items.Add(button);
          }
          return layout;
-      }
-      private static void RightListBox_ColumnWidthChanged(object? sender, GridColumnEventArgs e) //todo: revise this
-      {
-         var foo = (GridView)sender;
-         var bar = (ObservableCollection<InventoryGridItem>)foo.DataStore;
-         int maxLength = bar.OrderByDescending(x => x.Name.Length).First().Name.Length;
-         foo.Width = maxLength * 10;
-      }
-      private static void RightListBox_CellEdited(object? sender, GridViewCellEventArgs e) //todo: finish this
-      {
-         Debug.WriteLine("hello!");
       }
       private void CreateListBuilderButtons()
       {
@@ -231,40 +227,8 @@ namespace LaSSI
          Buttons.Add(MoveLeft);
          Buttons.Add(MoveLeftAll);
       }
-      //private static Panel GetListBuilderMainPanel(Control sender)
-      //{
-      //   Panel? panel = null;
-      //   try
-      //   {
-      //      panel = (Panel)((Control)sender!).Parents.Where<Widget>(x => (string)x.ID == "ListBuilderMainPanel").First();
-      //   }
-      //   catch (NullReferenceException)
-      //   {
-      //      Debug.WriteLine("Could not get ListBuilderMainPanel from the given sender");
-      //   }
-      //   return panel;
-      //}
-      private List<InventoryGridItem> GetSelectedItemsLeft()
-      {
-         var foo = LeftGridView.SelectedItems.ToArray();
-
-         List<InventoryGridItem> leftList = new List<InventoryGridItem>();
-         foreach (InventoryGridItem item in LeftGridView.SelectedItems)
-         {
-            leftList.Add(item);
-         }
-         return leftList;
-      }
-      private List<InventoryGridItem> GetSelectedItemsRight()
-      {
-         List<InventoryGridItem> rightList = new List<InventoryGridItem>();
-         foreach (InventoryGridItem item in RightGridView.SelectedItems)
-         {
-            rightList.Add(item);
-         }
-         return rightList;
-      }
-
+      #endregion
+      #region utility
       private static int GetAlphabeticalPosition(ObservableCollection<InventoryGridItem> collection, string value)
       {
          int index = 0;
@@ -283,6 +247,64 @@ namespace LaSSI
          }
          return index;
       }
+      public static ObservableCollection<InventoryGridItem> CreateInventoryGridItemListFromStringList(List<string> itemNames)
+      {
+         ObservableCollection<InventoryGridItem> invItems = new();
+         foreach (string name in itemNames)
+         {
+            invItems.Add(new InventoryGridItem(name, 0));
+         }
+         return invItems;
+      }
+      private int GetTheHeigthUnderControl(Control control) // I don't love this, but it _frelling_ works
+      {
+         if (control.Height < control.ParentWindow.Height)
+         {
+            int offset = 0;
+            if (control is Scrollable s)
+            {
+               var iter = s.Children.Where(x => x.Parent == this.Parent && x != this && x.Height <= s.Height).GetEnumerator();
+               while (iter.MoveNext())
+               {
+                  offset += iter.Current.Height;
+               }
+            }
+            return control.Height - offset;
+         }
+         if (control.Parent != null)
+         {
+            control.Height = GetTheHeigthUnderControl(control.Parent);
+         }
+         return control.Height;
+      }
+      public int GetWidthMultiplier()
+      {
+         int leftMaxLen = LongestEntryLength(LeftList);
+         int rightMaxLen = LongestEntryLength(RightList);
+
+         return leftMaxLen > rightMaxLen ? leftMaxLen : rightMaxLen;
+      }
+      private int LongestEntryLength(ObservableCollection<InventoryGridItem> items)
+      {
+         if(items.Count > 0)
+         {
+            return items.OrderByDescending((InventoryGridItem x) => x.Name.Length).First().Name.Length;
+         }
+         return 0;
+      }
+      private void UpdateColumnWidthMultiplicand(IEnumerator iter)
+      {
+         int longest = 0;
+         while (iter.MoveNext())
+         {
+            int stringLenth = iter.Current.ToString().Length;
+            if (stringLenth > longest) longest = stringLenth;
+         }
+         if (longest > WidthMultiplier) WidthMultiplier = longest;
+      }
+      #endregion
+
+      #region event handlers
       private void MoveRightAll_Click(object? sender, EventArgs e)
       {
          foreach (InventoryGridItem item in LeftList)
@@ -342,15 +364,45 @@ namespace LaSSI
          }
       }
 
-      public static ObservableCollection<InventoryGridItem> CreateInventoryGridItemListFromStringList(List<string> itemNames)
+      private void LeftGridView_Shown(object? sender, EventArgs e)
       {
-         ObservableCollection<InventoryGridItem> invItems = new();
-         foreach (string name in itemNames)
+         if (MaxHeight == 0)
          {
-            invItems.Add(new InventoryGridItem(name, 0));
+            MaxHeight = GetTheHeigthUnderControl(this);
          }
-         return invItems;
+         this.LeftGridView.Height = MaxHeight;
       }
+      private void RightGridView_Shown(object? sender, EventArgs e)
+      {
+         if (MaxHeight == 0)
+         {
+            MaxHeight = GetTheHeigthUnderControl(this);
+         }
+         this.RightGridView.Height = MaxHeight;
+      }
+      private void LeftList_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+      {
+         if (e != null && e.NewItems != null)
+         {
+            UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
+         }
+         int proposedWidth = WidthMultiplicand * WidthMultiplier;
+         if (proposedWidth > LeftGridView.Columns[0].Width) LeftGridView.Columns[0].Width = proposedWidth;
+      }
+      private void RightList_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+      {
+         if (e != null && e.NewItems != null)
+         {
+            UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
+         }
+         int proposedWidth = WidthMultiplicand * WidthMultiplier;
+         if (proposedWidth > RightGridView.Columns[0].Width) RightGridView.Columns[0].Width = proposedWidth;
+      }
+      private static void RightListBox_CellEdited(object? sender, GridViewCellEventArgs e) //todo: finish this
+      {
+         Debug.WriteLine("hello!");
+      }
+      #endregion
+      
    }
 }
-
