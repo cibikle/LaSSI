@@ -110,7 +110,7 @@ namespace LaSSI
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
          var InventoryMasterList = new List<InventoryGridItem>();
-         using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.ItemList.txt"))
+         using (var ItemListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LaSSI.InventoryMasterList.txt"))
          {
             TextReader reader = new StreamReader(ItemListStream!);
             string[] ItemListArray = reader.ReadToEnd().Split(Environment.NewLine);

@@ -115,10 +115,9 @@ namespace LaSSI
          LeftList.CollectionChanged += LeftList_CollectionChanged;
          if (LeftHeaders != null && LeftHeaders.Count > 0)
          {
-            LeftGridView.ShowHeader = true;
-            foreach(GridColumn column in LeftGridView.Columns)
+            for (int i = 0; i < LeftHeaders.Count; i++)
             {
-               column.HeaderText = LeftHeaders[column.DisplayIndex];
+               LeftGridView.Columns[i].HeaderText = LeftHeaders[i];
             }
          }
          else
