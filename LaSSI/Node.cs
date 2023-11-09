@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace LaSSI
 {
@@ -11,16 +11,16 @@ namespace LaSSI
       public int Id { get; set; }
       public Node? Parent { get; set; }
       public List<Node> Children { get; set; }
-      public Dictionary<string, string> Properties { get; }
+      public OrderedDictionary Properties { get; }
       public Node()
       {
          Name = string.Empty;
          Id = 0;
          Parent = null;
          Children = new List<Node>();
-         Properties = new Dictionary<string, string>();
+         Properties = new OrderedDictionary();
       }
-      public Node(string name, int id, Node? parent, List<Node> children, Dictionary<string, string> properties)
+      public Node(string name, int id, Node? parent, List<Node> children, OrderedDictionary properties)
       {
          Name = name;
          Id = id;
@@ -34,9 +34,9 @@ namespace LaSSI
          Id = 0;
          Parent = null;
          Children = new List<Node>();
-         Properties = new Dictionary<string, string>();
+         Properties = new OrderedDictionary();
       }
-      public Node(string name, Dictionary<string, string> properties)
+      public Node(string name, OrderedDictionary properties)
       {
          Name = name;
          Id = 0;
@@ -44,7 +44,7 @@ namespace LaSSI
          Children = new List<Node>();
          Properties = properties;
       }
-      public Node(string name, Dictionary<string, string> properties, Node parent)
+      public Node(string name, OrderedDictionary properties, Node parent)
       {
          Name = name;
          Id = 0;
@@ -59,7 +59,7 @@ namespace LaSSI
          Id = 0;
          Parent = parent;
          Children = new List<Node>();
-         Properties = new Dictionary<string, string>();
+         Properties = new OrderedDictionary();
       }
       public void Add(Node node)
       {
@@ -99,21 +99,21 @@ namespace LaSSI
       }
       private bool IsHazard()
       {
-         if (this.Parent != null && this.Parent.Name == "Hazards" && this.Properties.ContainsKey("Type")) return true;
+         if (this.Parent != null && this.Parent.Name == "Hazards" && this.Properties.Contains("Type")) return true;
          return false;
       }
       private bool IsStarSystem()
       {
          if (this.Parent != null && this.Parent.Name == "Objects"
             && this.Parent.Parent != null && this.Parent.Parent.Name == "Galaxy"
-            && this.Properties.ContainsKey("Name")) return true;
+            && this.Properties.Contains("Name")) return true;
          return false;
       }
       public bool IsMission()
       {
          if (this.Parent != null && this.Parent.Name == "Missions"
             && this.Parent.Parent != null && this.Parent.Parent.Name == "Missions"
-            && this.Properties.ContainsKey("Type")) return true;
+            && this.Properties.Contains("Type")) return true;
          return false;
       }
       public bool IsMissionRequirement()
@@ -166,25 +166,25 @@ namespace LaSSI
       {
          string Summary = String.Empty;
          Summary += node.Properties["Name"];
-         if (node.Properties.ContainsKey("Colony")) Summary += ", Colony";
-         if (node.Properties.ContainsKey("Shipyard")) Summary += ", Shipyard";
-         if (node.Properties.ContainsKey("Comet")) Summary += ", Comet";
-         if (node.Properties.ContainsKey("Hostiles")) Summary += ", Hostiles";
-         if (node.Properties.ContainsKey("Rescue")) Summary += ", Rescue";
+         if (node.Properties.Contains("Colony")) Summary += ", Colony";
+         if (node.Properties.Contains("Shipyard")) Summary += ", Shipyard";
+         if (node.Properties.Contains("Comet")) Summary += ", Comet";
+         if (node.Properties.Contains("Hostiles")) Summary += ", Hostiles";
+         if (node.Properties.Contains("Rescue")) Summary += ", Rescue";
          return Summary;
       }
       public static string GetMissionName(Node node)
       {
-         string details = node.Properties["Type"];
-         if (details == "Production" && node.Properties.ContainsKey("Resource")) { details += $", {node.Properties["Resource"]}"; }
-         if (node.Properties.ContainsKey("ItemCount")) { details += $", {node.Properties["ItemCount"]}"; }
+         string details = node.Properties["Type"].ToString();
+         if (details == "Production" && node.Properties.Contains("Resource")) { details += $", {node.Properties["Resource"]}"; }
+         if (node.Properties.Contains("ItemCount")) { details += $", {node.Properties["ItemCount"]}"; }
          return details;
       }
       public static string GetMissionRequirement(Node node)
       {
-         string details = node.Properties["Type"];
-         if (node.Properties.ContainsKey("ObjectType")) { details += $", {node.Properties["ObjectType"]}"; }
-         if (node.Properties.ContainsKey("Count")) { details += $", {node.Properties["Count"]}"; }
+         string details = node.Properties["Type"].ToString();
+         if (node.Properties.Contains("ObjectType")) { details += $", {node.Properties["ObjectType"]}"; }
+         if (node.Properties.Contains("Count")) { details += $", {node.Properties["Count"]}"; }
          return details;
       }
       public static string GetLayerDetails(Node node)
@@ -196,7 +196,7 @@ namespace LaSSI
          string addlDetails = String.Empty;
          if (this.IsHazard())
          {
-            addlDetails = GetHazardName(Properties["Type"]);
+            addlDetails = GetHazardName(Properties["Type"].ToString());
          }
          else if (this.IsStarSystem())
          {

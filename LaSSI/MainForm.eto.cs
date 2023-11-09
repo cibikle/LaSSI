@@ -2,12 +2,16 @@ using Eto;
 using Eto.Drawing;
 using Eto.Forms;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace LaSSI
 {
@@ -18,6 +22,10 @@ namespace LaSSI
       private SaveFilev2 saveFile;
       private List<InventoryGridItem> InventoryMasterList;
       private Dictionary<TreeGridItem, DynamicLayout> DetailPanelsCache;
+      private readonly string FileFormat = "Last Starship save files|*.space";
+      private Size DetailsPanelInitialSize = new(0,0);
+      private Bitmap waitCursor;
+      private ProgressBar LoadingBar;
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
@@ -31,16 +39,16 @@ namespace LaSSI
          DetailPanelsCache = new Dictionary<TreeGridItem, DynamicLayout>();
 
          var openFileCommand = CreateOpenFileCommand();
+         var saveFileAsCommand = CreateSaveFileAsCommand();
          var quitCommand = CreateQuitCommand();
          var prefsCommand = new Command(PrefsCommand_Executed);
-         var aboutCommand = CreateAboutCommand();
          // create menu
          Menu = new MenuBar
          {
             Items =
             {
                // File submenu
-               new SubMenuItem { Text = "&File", Items = { openFileCommand } },
+               new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
                // new SubMenuItem { Text = "&Edit", Items = { /* commands/items */ } },
                // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
@@ -50,14 +58,20 @@ namespace LaSSI
             //   new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
             //},
             QuitItem = quitCommand,
-            AboutItem = aboutCommand
+            AboutItem = new AboutCommand(this)
 
+      };
+         // create toolbar			
+         /*ToolBar = new ToolBar { Items = { clickMe } };*/
+         LoadingBar = new ProgressBar()
+         {
+            Visible = false,
+            Indeterminate = true
          };
          Content = InitMainPanel();
          PlatformSpecificNonsense();
-         // create toolbar			
-         /*ToolBar = new ToolBar { Items = { clickMe } };*/
       }
+
       /// <summary>
       /// This method takes care of any platform-specific setup/steps at the end of the mainform init phase
       /// </summary>
@@ -69,32 +83,11 @@ namespace LaSSI
          }
          else if (EtoEnvironment.Platform.IsMac)
          {
-            //BringToFront(); //may or may not be needed
+            BringToFront(); //may or may not be needed
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
       }
-      private Command CreateAboutCommand()
-      {
-         var aboutCommand = new Command { MenuText = "About..." };
-         aboutCommand.Executed += (sender, e) => //todo: break this out into its own handler method
-         {
-            string title = "LaSSI (Last Starship Save Inspector)";
-            string author = "CIBikle, 2023";
-            string tlsOwner = "'The Last Starship' is the property of Introversion Software";
-            string tlsOwnerLink = "https://www.introversion.co.uk/introversion/";
-            string disclaimer = "This is a fan-made tool for educational and entertainment purposes";
-            var dlg = GetModal($"{title}{Environment.NewLine}{author}{Environment.NewLine}{tlsOwner}{Environment.NewLine}{disclaimer}");
-            DynamicLayout bar = (DynamicLayout)dlg.Content;
-            Button b = (Button)bar.Children.Where(x => (string)x.Tag == "Abort button").First();
-            bar.Remove(b);
-            var linkButton1 = new LinkButton { Tag = "Link button 1", Text = tlsOwnerLink };
-            linkButton1.Click += delegate { Application.Instance.Open(linkButton1.Text); };
-            bar.Add(linkButton1);
-            bar.Add(b);
-            dlg.ShowModal(this);
-         };
-         return aboutCommand;
-      }
+      #region commands
       private static Command CreateQuitCommand()
       {
          var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
@@ -107,6 +100,73 @@ namespace LaSSI
          openFileCommand.Executed += OpenFileCommand_Executed;
          return openFileCommand;
       }
+      private Command CreateSaveFileAsCommand()
+      {
+         var saveFileAsCommand = new Command { MenuText = "Save As", Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S
+            , Enabled = false, Tag = "SaveFileAsCommand" };
+         saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
+         return saveFileAsCommand;
+      }
+      #region command handlers
+      private void SaveFileAsCommand_Executed(object? sender, EventArgs e)
+      {
+         string barefilename = Path.GetFileNameWithoutExtension(saveFilePath);
+         string dateappend = @"-\d{8}-\d{4}";
+         Match m = Regex.Match(barefilename, dateappend);
+         if (m.Success)
+         {
+            //m.Index
+            string foo = barefilename[..m.Index];
+            barefilename = foo;
+         }
+         string date = DateTime.Now.ToString("yyyyMMdd-HHmm");
+         string proposedfilename = $"{barefilename}-{date}.space";
+         SaveFileDialog saveDialog = new()
+         {
+            Directory = savesFolder,
+            FileName = proposedfilename,
+         };
+         saveDialog.Filters.Add(FileFormat);
+         if (saveDialog.ShowDialog(this) == DialogResult.Ok)
+         {
+            Debug.WriteLine($"{saveDialog.FileName}");
+            DynamicLayout bar = (DynamicLayout)this.Content;
+            TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
+            TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)[0];
+            bool success = FileWriter.WriteFile(y, saveDialog.FileName);
+         }
+      }
+      private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
+      {
+         OpenFileDialog fileDialog = new()
+         {
+            Directory = savesFolder
+         };
+         fileDialog.Filters.Add(FileFormat);
+         LoadingBar.Visible = true;
+         if (fileDialog.ShowDialog(this) == DialogResult.Ok)
+         {
+            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
+
+            saveFilePath = fileDialog.FileName;
+            saveFile = new SaveFilev2(saveFilePath);
+            //saveFile.LoadingBar = LoadingBar;
+            saveFile.Load();
+            UpdateUiAfterLoad();
+            EnableSaveAs();
+         }
+         else
+         {
+            LoadingBar.Visible = false;
+         }
+      }
+      private void EnableSaveAs()
+      {
+         var foo = (SubMenuItem)this.Menu.Items[1];
+         foo.Items[1].Enabled = true;
+      }
+      #endregion command handlers
+      #endregion commands
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
          var InventoryMasterList = new List<InventoryGridItem>();
@@ -155,36 +215,12 @@ namespace LaSSI
          var adjustedCenter = new Point(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
          return adjustedCenter;
       }
-      private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
-      {
-         OpenFileDialog fileDialog = new OpenFileDialog();
-         fileDialog.Directory = savesFolder;
-         fileDialog.Filters.Add("Last Starship save files|*.space");
-         if (fileDialog.ShowDialog(this) == DialogResult.Ok)
-         {
-            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-            saveFilePath = fileDialog.FileName;
-            saveFile = new SaveFilev2(saveFilePath);
-            Form progressForm = GetProgressForm();
-            progressForm.Show();
-            SaveFilev2.LoadFile(saveFile, saveFilePath);
-            if (progressForm != null && progressForm.Visible) progressForm.Close();
-            UpdateUiAfterLoad();
-         }
-      }
-      private static Form GetProgressForm() // todo: fix this whole thing
-      {
-         Eto.Forms.Form progressForm = new Form();
-         ProgressBar progressBar = new ProgressBar();
-         progressBar.Indeterminate = true;
-         progressForm.Content = progressBar;
-         progressForm.Size = new Size(400, 50);
-         progressForm.Title = "Loading...";
-         progressForm.Location = GetScreenCenter() - 200; // todo: fix this
-         return progressForm;
-      }
+
+
       private void UpdateUiAfterLoad() // this method used to matter more when there were more independant textboxes to update
       {
+         //LoadingBar.Value = 0;
+         LoadingBar.Visible = false;
          DetailPanelsCache.Clear();
          ClearDetails();
          UpdateTextbox("saveFileTextbox", saveFilePath);
@@ -259,38 +295,18 @@ namespace LaSSI
       }
       private void PrefsCommand_Executed(Object? sender, EventArgs e)
       {
-         var dlg = GetModal("Preferences not implemented");
+         var dlg = new Modal(new List<string> { "Preferences not implemented" });
          //dlg.Content.
          dlg.ShowModal(Application.Instance.MainForm);
       }
-      private static Eto.Forms.Dialog GetModal(string text)
-      {
-         List<string> lines = text.Split(Environment.NewLine).ToList();
-         int longestLineLength = lines.OrderByDescending(x => x.Length).First().Length;
-         int numLines = lines.Count;
-         var dlg = new Eto.Forms.Dialog();
-         //dlg.ClientSize = new Size((5 * longestLineLength), (50 * numLines));
-         dlg.DefaultButton = new Eto.Forms.Button { Text = "OK" };
-         var layout = new DynamicLayout();
-         layout.AddCentered(new Label { Text = text, Tag = "Label" }, xscale: true, yscale: true);
-         dlg.AbortButton = new Button { Text = "Close", Tag = "Abort button" };
-         dlg.AbortButton.Click += delegate
-         {
-            dlg.Close();
-         };
-         layout.BeginVertical();
-         layout.AddRow(null, dlg.AbortButton);
-         layout.EndVertical();
-
-         dlg.Content = layout;
-
-         return dlg;
-      }
       private DynamicLayout InitMainPanel()
       {
-         DynamicLayout rootLayout = new DynamicLayout();
-         rootLayout.Spacing = new Size(0, 5);
+         DynamicLayout rootLayout = new()
+         {
+            Spacing = new Size(0, 5)
+         };
          rootLayout.Add(InitFilePanel());
+         rootLayout.Add(LoadingBar);
          //rootLayout.Add(InitSaveStatsPanel());
          rootLayout.Add(InitDetailsPanel());
 
@@ -299,15 +315,20 @@ namespace LaSSI
       }
       private static TableLayout InitFilePanel()
       {
-         TableLayout fileLayout = new TableLayout();
-         fileLayout.Spacing = new Size(5, 0);
-         TextBox filename = new TextBox();
-         Label currentFile = new Label();
-         currentFile.Text = "Current file:";
-         currentFile.VerticalAlignment = VerticalAlignment.Center;
+         TableLayout fileLayout = new()
+         {
+            Spacing = new Size(5, 0)
+         };
+         TextBox filename = new();
+         Label currentFile = new()
+         {
+            Text = "Current file:",
+            VerticalAlignment = VerticalAlignment.Center
+         };
          filename.Tag = "saveFileTextbox";
          filename.Width = 500;
          fileLayout.Rows.Add(new TableRow(currentFile, new TableCell(filename, true), new TableCell(null)));
+         
          return fileLayout;
       }
       private TableLayout InitDetailsPanel()
@@ -386,24 +407,24 @@ namespace LaSSI
             {
                //detailsLayout.Items.Add(new StackLayoutItem(new Label().Text = s.ToString()));
             }
-            else if (s is Dictionary<string, string> dictionary && dictionary.Count != 0)
+            else if (s is OrderedDictionary dictionary && dictionary.Count != 0)
             {
                TableLayout innerLayout = new TableLayout
                {
                   Spacing = new Size(5, 0),
                   Padding = new Padding(0, 5)
                };
-               foreach (var p in dictionary)
+               foreach (DictionaryEntry p in dictionary)
                {
-                  Label label = CreateDetailLabel(p.Key);
+                  Label label = CreateDetailLabel((string)p.Key);
                   Control value;
-                  if (IsValueTrueFalse(p.Value))
+                  if (IsValueTrueFalse((string)p.Value))
                   {
-                     value = CreateDetailDropMenu("true,false", String.Equals(p.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1);
+                     value = CreateDetailDropMenu("true,false", String.Equals((string?)p.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1);
                   }
                   else
                   {
-                     value = CreateDetailTextBox(p.Value);
+                     value = CreateDetailTextBox((string)p.Value);
                   }
 
                   innerLayout.Rows.Add(new TableRow(new TableCell(label), new TableCell(value)));
@@ -412,6 +433,74 @@ namespace LaSSI
             }
          }
          return defaultLayout;
+      }
+      private GridView CreateDefaultFieldsGridView(TreeGridItem item)
+      {
+         OrderedDictionary vals = (OrderedDictionary)item.Values[1];
+         //Dictionary<string, string> dic = new Dictionary<string, string>();
+         IEnumerable<object> foo = vals.Cast<object>();
+         GridView defaultGridView = new()
+         {
+            DataStore = foo,
+            AllowMultipleSelection = false,
+            GridLines = GridLines.Both,
+            
+         };
+         //defaultGridView.
+         defaultGridView.Columns.Add(new GridColumn
+         {
+            HeaderText = "Key",
+            DataCell = new TextBoxCell()
+            {
+               Binding = Binding.Property((DictionaryEntry i) => (string)i.Key)
+            },
+            Editable = true,
+            //AutoSize = true,
+            //Resizable = true
+         }) ;
+         defaultGridView.Columns.Add(new GridColumn
+         {
+            HeaderText = "Value",
+            DataCell = new TextBoxCell()
+            {
+               Binding = Binding.Property((DictionaryEntry i) => (string)i.Value!)
+            },
+            Editable = true,
+            //AutoSize = true,
+            //Resizable = true
+         });
+         defaultGridView.Shown += DefaultGridView_Shown;
+         return defaultGridView;
+      }
+
+      private void DefaultGridView_Shown(object? sender, EventArgs e)
+      {
+         if ((DetailsPanelInitialSize.Height == 0 || DetailsPanelInitialSize.Width == 0) && sender is GridView and not null)
+         {
+            DetailsPanelInitialSize = GetTheSizeUnderControl((GridView)sender, (GridView)sender);
+         }
+         if(sender is GridView and not null) ((GridView)sender).Size = DetailsPanelInitialSize;
+      }
+      private Size GetTheSizeUnderControl(Control control, GridView gridView) // I don't love this, but it _frelling_ works
+      {
+         if (control.Height < control.ParentWindow.Height)
+         {
+            int offset = 0;
+            if (control is Scrollable s)
+            {
+               var iter = s.Children.Where(x => x.Parent == gridView.Parent && x != this && x.Height <= s.Height).GetEnumerator();
+               while (iter.MoveNext())
+               {
+                  offset += iter.Current.Height;
+               }
+            }
+            return new Size(control.Height - offset,control.Width-10);
+         }
+         if (control.Parent != null)
+         {
+            control.Size = GetTheSizeUnderControl(control.Parent, gridView);
+         }
+         return control.Size;
       }
       private ListBuilder CreateListBuilder(TreeGridItem item)
       {
@@ -464,7 +553,8 @@ namespace LaSSI
       {
          DynamicLayout detailsLayout = new()
          {
-            Padding = new Padding(5, 0),
+            //Padding = new Padding(5, 0),
+            Spacing = new Size(0,5)
          };
 
          detailsLayout.Add(GetNodePathLabel(item));
@@ -487,7 +577,8 @@ namespace LaSSI
                }
             default:
                {
-                  detailsLayout.Add(CreateDefaultFields(item));
+                  //detailsLayout.Add(CreateDefaultFields(item));
+                  detailsLayout.Add(CreateDefaultFieldsGridView(item));
                   break;
                }
          }
@@ -499,7 +590,7 @@ namespace LaSSI
       {
          //string cells = string.Empty;
          ////string row = string.Empty;
-         //if (item.Values[1] is Dictionary<string, string> dictionary && dictionary.Count != 0)
+         //if (item.Values[1] is OrderedDictionary dictionary && dictionary.Count != 0)
          //{
          //   foreach(var p in dictionary)
          //   {

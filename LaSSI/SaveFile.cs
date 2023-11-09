@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace LaSSI
 {
    public class SaveFilev2
    {
+      public string Filename;
       public Dictionary<string, string> HUD;
       public Node HudNode { get; set; }
       public Node GalaxyNode { get; set; }
@@ -31,6 +32,7 @@ namespace LaSSI
       };
       public SaveFilev2(string filename)
       {
+         Filename = filename;
          //GameMode = string.Empty;
          HUD = new Dictionary<string, string>();
          HudNode = new Node("Hud");
@@ -38,7 +40,6 @@ namespace LaSSI
          Root = new Node($"{Path.GetFileName(filename)}");
          Root.Children.Add(HudNode);
          Root.Children.Add(GalaxyNode);
-         Root.Properties.Add("GameMode", "FreeRoam");
       }
       private static void LoadHUD(SaveFilev2 saveFile, string[] HudData)
       {
@@ -47,9 +48,9 @@ namespace LaSSI
             saveFile.HudNode.Properties.Add($"{HudData[i]}", $"{HudData[i + 1]}");
          }
       }
-      private static Dictionary<string, string> LoadDictionary(string[] Data, int start, int end)
+      private static OrderedDictionary LoadDictionary(string[] Data, int start, int end)
       {
-         Dictionary<string, string> Dictionary = new Dictionary<string, string>();
+         OrderedDictionary Dictionary = new OrderedDictionary();
          for (int i = start; i < end; i += 2)
          {
             Dictionary.Add(Data[i], Data[i + 1]);
@@ -78,18 +79,15 @@ namespace LaSSI
       }
       private void AddPropertyToRootNode(string key, string value)
       {
-         if(key == "GameMode")
-         {
-            this.Root.Properties[key] = value;
-         }
-         else
-         {
-            this.Root.Properties.Add(key, value);
-         }
+         this.Root.Properties.Add(key, value);
       }
       private static bool IsRootNodeProperty(string name)
       {
          return RootPropertyNames.Contains(name);
+      }
+      public void Load()
+      {
+         LoadFile(this, this.Filename);
       }
       public static void LoadFile(SaveFilev2 saveFile, string filename)
       {
@@ -106,8 +104,9 @@ namespace LaSSI
          reader.Dispose();
          bool quit = false;
          string newlinechar = GetNewLineChar(text[0..50]);
-            
-         foreach (string line in text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+         string[] lines = text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+         
+         foreach (string line in lines)
          {
             if (line.Length < 1) continue;
             if (quit)
