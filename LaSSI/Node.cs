@@ -119,6 +119,7 @@ namespace LaSSI
       public bool IsMissionRequirement()
       {
          if (this.Parent != null && this.Parent.Name == "Requirements"
+            && this.Parent.Parent != null
             && this.Parent.Parent.Parent != null && this.Parent.Parent.Parent.Name == "Missions") return true;
          return false;
       }
@@ -175,14 +176,14 @@ namespace LaSSI
       }
       public static string GetMissionName(Node node)
       {
-         string details = node.Properties["Type"].ToString();
+         string details = node.Properties["Type"]!.ToString()!;
          if (details == "Production" && node.Properties.Contains("Resource")) { details += $", {node.Properties["Resource"]}"; }
          if (node.Properties.Contains("ItemCount")) { details += $", {node.Properties["ItemCount"]}"; }
          return details;
       }
       public static string GetMissionRequirement(Node node)
       {
-         string details = node.Properties["Type"].ToString();
+         string details = node.Properties["Type"]!.ToString()!;
          if (node.Properties.Contains("ObjectType")) { details += $", {node.Properties["ObjectType"]}"; }
          if (node.Properties.Contains("Count")) { details += $", {node.Properties["Count"]}"; }
          return details;
@@ -193,10 +194,13 @@ namespace LaSSI
       }
       private string GetAddlNameDetails()
       {
-         string addlDetails = String.Empty;
+         string addlDetails = string.Empty;
          if (this.IsHazard())
          {
-            addlDetails = GetHazardName(Properties["Type"].ToString());
+            if (Properties != null && Properties.Contains("Type"))
+            {
+               addlDetails = GetHazardName(Properties["Type"]!.ToString()!);
+            }
          }
          else if (this.IsStarSystem())
          {

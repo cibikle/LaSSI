@@ -16,14 +16,14 @@ namespace LaSSI
 {
    partial class MainForm : Form
    {
-      private System.Uri savesFolder;
-      private string saveFilePath;
-      private SaveFilev2 saveFile;
-      private List<InventoryGridItem> InventoryMasterList;
-      private Dictionary<TreeGridItem, DynamicLayout> DetailPanelsCache;
+      private System.Uri savesFolder = GetSavesUri();
+      private string saveFilePath = string.Empty;
+      private SaveFilev2 saveFile = new();
+      private List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
+      private Dictionary<TreeGridItem, DynamicLayout> DetailPanelsCache = new Dictionary<TreeGridItem, DynamicLayout>();
       private readonly string FileFormat = "Last Starship save files|*.space";
-      private Size DetailsPanelInitialSize = new(0,0);
-      private ProgressBar LoadingBar;
+      private Size DetailsPanelInitialSize = new(0, 0);
+      private ProgressBar LoadingBar = new();
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
@@ -32,9 +32,7 @@ namespace LaSSI
          Size = new Size(1024, 600);
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
-         savesFolder = GetSavesUri();
-         InventoryMasterList = LoadInventoryMasterList();
-         DetailPanelsCache = new Dictionary<TreeGridItem, DynamicLayout>();
+         
 
          var openFileCommand = CreateOpenFileCommand();
          var saveFileAsCommand = CreateSaveFileAsCommand();
@@ -58,9 +56,7 @@ namespace LaSSI
             QuitItem = quitCommand,
             AboutItem = new AboutCommand(this)
 
-      };
-         // create toolbar			
-         /*ToolBar = new ToolBar { Items = { clickMe } };*/
+         };
          LoadingBar = new ProgressBar()
          {
             Visible = false,
@@ -100,8 +96,14 @@ namespace LaSSI
       }
       private Command CreateSaveFileAsCommand()
       {
-         var saveFileAsCommand = new Command { MenuText = "Save As", Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S
-            , Enabled = false, Tag = "SaveFileAsCommand" };
+         var saveFileAsCommand = new Command
+         {
+            MenuText = "Save As",
+            Shortcut = Application.Instance.CommonModifier /*| Keys.Shift*/ | Keys.S // todo: after Save is implemented, put the Shift back
+            ,
+            Enabled = false,
+            Tag = "SaveFileAsCommand"
+         };
          saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
          return saveFileAsCommand;
       }
@@ -130,7 +132,7 @@ namespace LaSSI
             Debug.WriteLine($"{saveDialog.FileName}");
             DynamicLayout bar = (DynamicLayout)this.Content;
             TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
-            TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)[0];
+            TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)![0];
             FileWriter writer = new FileWriter();
             bool success = writer.WriteFile(y, saveDialog.FileName);
             LoadingBar.Visible = false;
@@ -240,7 +242,7 @@ namespace LaSSI
          DynamicLayout bar = (DynamicLayout)this.Content;
          TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
          x.DataStore = SaveFile2TreeGridItems();
-         if(x.Columns.Count == 0)
+         if (x.Columns.Count == 0)
          {
             x.Columns.Add(new GridColumn
             {
@@ -329,7 +331,7 @@ namespace LaSSI
          filename.Tag = "saveFileTextbox";
          filename.Width = 500;
          fileLayout.Rows.Add(new TableRow(currentFile, new TableCell(filename, true), new TableCell(null)));
-         
+
          return fileLayout;
       }
       private TableLayout InitDetailsPanel()
@@ -419,13 +421,13 @@ namespace LaSSI
                {
                   Label label = CreateDetailLabel((string)p.Key);
                   Control value;
-                  if (IsValueTrueFalse((string)p.Value))
+                  if (IsValueTrueFalse((string)p.Value!))
                   {
                      value = CreateDetailDropMenu("true,false", String.Equals((string?)p.Value, "true", StringComparison.OrdinalIgnoreCase) ? 0 : 1);
                   }
                   else
                   {
-                     value = CreateDetailTextBox((string)p.Value);
+                     value = CreateDetailTextBox((string)p.Value!);
                   }
 
                   innerLayout.Rows.Add(new TableRow(new TableCell(label), new TableCell(value)));
@@ -445,7 +447,7 @@ namespace LaSSI
             DataStore = foo,
             AllowMultipleSelection = false,
             GridLines = GridLines.Both,
-            
+
          };
          //defaultGridView.
          defaultGridView.Columns.Add(new GridColumn
@@ -458,7 +460,7 @@ namespace LaSSI
             Editable = true,
             //AutoSize = true,
             //Resizable = true
-         }) ;
+         });
          defaultGridView.Columns.Add(new GridColumn
          {
             HeaderText = "Value",
@@ -480,7 +482,7 @@ namespace LaSSI
          {
             DetailsPanelInitialSize = GetTheSizeUnderControl((GridView)sender, (GridView)sender);
          }
-         if(sender is GridView and not null) ((GridView)sender).Size = DetailsPanelInitialSize;
+         if (sender is GridView and not null) ((GridView)sender).Size = DetailsPanelInitialSize;
       }
       private Size GetTheSizeUnderControl(Control control, GridView gridView) // I don't love this, but it _frelling_ works
       {
@@ -495,7 +497,7 @@ namespace LaSSI
                   offset += iter.Current.Height;
                }
             }
-            return new Size(control.Height - offset,control.Width-10);
+            return new Size(control.Height - offset, control.Width - 10);
          }
          if (control.Parent != null)
          {
@@ -509,9 +511,9 @@ namespace LaSSI
          ObservableCollection<InventoryGridItem> RemainingItems = new ObservableCollection<InventoryGridItem>(InventoryMasterList);
          foreach (var value in item.Values)
          {
-            if(value is Dictionary<string,string> dictionary && dictionary.Count != 0)
+            if (value is Dictionary<string, string> dictionary && dictionary.Count != 0)
             {
-               foreach(var entry in dictionary)
+               foreach (var entry in dictionary)
                {
                   try
                   {
@@ -555,7 +557,7 @@ namespace LaSSI
          DynamicLayout detailsLayout = new()
          {
             //Padding = new Padding(5, 0),
-            Spacing = new Size(0,5)
+            Spacing = new Size(0, 5)
          };
 
          detailsLayout.Add(GetNodePathLabel(item));
@@ -583,7 +585,7 @@ namespace LaSSI
                   break;
                }
          }
-         
+
          return detailsLayout;
       }
 
@@ -601,8 +603,13 @@ namespace LaSSI
          //}
          ////return new(new TextArea() { ReadOnly = true, Font = new Font("Courier", 12), Text = cells, });
          //return new TextArea() { ReadOnly = true, Font = new Font("Courier", 12), Text = cells, };
-         return new TextArea() { ReadOnly = true, Font = new Font("Courier", 12)
-            , Text = $"Coming soon!{Environment.NewLine}(Look, I tried, but it's going to take a whole new module to make the ship layout inspector usable and we both have way bigger fish to fry.)" };
+         return new TextArea()
+         {
+            ReadOnly = true,
+            Font = new Font("Courier", 12)
+            ,
+            Text = $"Coming soon!{Environment.NewLine}(Look, I tried, but it's going to take a whole new module to make the ship layout inspector usable and we both have way bigger fish to fry.)"
+         };
       }
 
       private void TreeView_SelectedItemChanged(object? sender, EventArgs e)
@@ -610,7 +617,7 @@ namespace LaSSI
          if (sender is not null and TreeGridView)
          {
             TreeGridItem item = (TreeGridItem)((TreeGridView)sender).SelectedItem;
-            if(item is not null)
+            if (item is not null)
             {
                UpdateDetailsPanel(item);
             }

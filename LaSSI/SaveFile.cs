@@ -10,11 +10,10 @@ namespace LaSSI
 {
    public class SaveFilev2
    {
-      public string Filename;
-      public Dictionary<string, string> HUD;
-      public Node HudNode { get; set; }
-      public Node GalaxyNode { get; set; }
-      public Node Root { get; set; }
+      public string Filename = string.Empty;
+      public Node HudNode { get; set; } = new Node("HUD");
+      public Node GalaxyNode { get; set; } = new Node("Galaxy");
+      public Node Root { get; set; } = new Node();
       public static readonly string NewLineUnix = "\n";
       public static readonly string NewLineRegexUnix = @"(?<!\r)\n";
       public static readonly string NewLineWindows = "\r\n";
@@ -30,13 +29,14 @@ namespace LaSSI
          "GameMode",
          "ShipArrivalTimer"
       };
+      public SaveFilev2()
+      {
+         
+      }
       public SaveFilev2(string filename)
       {
          Filename = filename;
          //GameMode = string.Empty;
-         HUD = new Dictionary<string, string>();
-         HudNode = new Node("HUD");
-         GalaxyNode = new Node("Galaxy");
          Root = new Node($"{Path.GetFileName(filename)}");
          Root.Children.Add(HudNode);
          Root.Children.Add(GalaxyNode);
@@ -143,7 +143,8 @@ namespace LaSSI
                      }
                      Node curNode = nodeStack.Peek();
                      string key = lineParts[0], value = lineParts[1];
-                     if (curNode.IsResearch() || lineParts[0] == "Entities" || lineParts[0] == "Workers" || lineParts[0] == "UnloadRequests" || lineParts[0] == "Items") // todo: clean this up
+                     if (curNode.IsResearch() || lineParts[0] == "Entities" || lineParts[0] == "Workers"
+                        || lineParts[0] == "UnloadRequests" || lineParts[0] == "Items") // todo: clean this up
                      {
                         if (lineParts.Length > 2)
                         {

@@ -296,7 +296,7 @@ namespace LaSSI
          int longest = 0;
          while (iter.MoveNext())
          {
-            int stringLenth = iter.Current.ToString().Length;
+            int stringLenth = iter.Current.ToString()!.Length;
             if (stringLenth > longest) longest = stringLenth;
          }
          if (longest > WidthMultiplier) WidthMultiplier = longest;

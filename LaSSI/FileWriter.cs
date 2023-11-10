@@ -31,10 +31,10 @@ namespace LaSSI
 
          return false;
       }
-      private static bool IsOneliner(TreeGridItem item)
+      private static bool IsOneliner(TreeGridItem item) // todo: this is a travesty
       {
          bool IsOneLiner;
-         if (((TreeGridItem)item.Parent).Tag.ToString() == "Zones") // todo: this is a travesty
+         if (((TreeGridItem)item.Parent).Tag.ToString() == "Zones")
          {
             if (item.Values[1] is OrderedDictionary dic)
             {
