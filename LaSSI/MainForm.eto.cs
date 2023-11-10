@@ -11,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace LaSSI
 {
@@ -24,7 +23,6 @@ namespace LaSSI
       private Dictionary<TreeGridItem, DynamicLayout> DetailPanelsCache;
       private readonly string FileFormat = "Last Starship save files|*.space";
       private Size DetailsPanelInitialSize = new(0,0);
-      private Bitmap waitCursor;
       private ProgressBar LoadingBar;
       void InitializeComponent()
       {
@@ -115,7 +113,6 @@ namespace LaSSI
          Match m = Regex.Match(barefilename, dateappend);
          if (m.Success)
          {
-            //m.Index
             string foo = barefilename[..m.Index];
             barefilename = foo;
          }
@@ -127,13 +124,20 @@ namespace LaSSI
             FileName = proposedfilename,
          };
          saveDialog.Filters.Add(FileFormat);
+         LoadingBar.Visible = true;
          if (saveDialog.ShowDialog(this) == DialogResult.Ok)
          {
             Debug.WriteLine($"{saveDialog.FileName}");
             DynamicLayout bar = (DynamicLayout)this.Content;
             TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
             TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)[0];
-            bool success = FileWriter.WriteFile(y, saveDialog.FileName);
+            FileWriter writer = new FileWriter();
+            bool success = writer.WriteFile(y, saveDialog.FileName);
+            LoadingBar.Visible = false;
+         }
+         else
+         {
+            LoadingBar.Visible = false;
          }
       }
       private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
@@ -150,7 +154,6 @@ namespace LaSSI
 
             saveFilePath = fileDialog.FileName;
             saveFile = new SaveFilev2(saveFilePath);
-            //saveFile.LoadingBar = LoadingBar;
             saveFile.Load();
             UpdateUiAfterLoad();
             EnableSaveAs();
@@ -219,7 +222,6 @@ namespace LaSSI
 
       private void UpdateUiAfterLoad() // this method used to matter more when there were more independant textboxes to update
       {
-         //LoadingBar.Value = 0;
          LoadingBar.Visible = false;
          DetailPanelsCache.Clear();
          ClearDetails();
@@ -307,7 +309,6 @@ namespace LaSSI
          };
          rootLayout.Add(InitFilePanel());
          rootLayout.Add(LoadingBar);
-         //rootLayout.Add(InitSaveStatsPanel());
          rootLayout.Add(InitDetailsPanel());
 
          //rootLayout.Add(null);

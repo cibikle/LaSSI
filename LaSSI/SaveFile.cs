@@ -35,7 +35,7 @@ namespace LaSSI
          Filename = filename;
          //GameMode = string.Empty;
          HUD = new Dictionary<string, string>();
-         HudNode = new Node("Hud");
+         HudNode = new Node("HUD");
          GalaxyNode = new Node("Galaxy");
          Root = new Node($"{Path.GetFileName(filename)}");
          Root.Children.Add(HudNode);
@@ -48,10 +48,10 @@ namespace LaSSI
             saveFile.HudNode.Properties.Add($"{HudData[i]}", $"{HudData[i + 1]}");
          }
       }
-      private static OrderedDictionary LoadDictionary(string[] Data, int start, int end)
+      private static OrderedDictionary LoadDictionary(string[] Data)
       {
          OrderedDictionary Dictionary = new OrderedDictionary();
-         for (int i = start; i < end; i += 2)
+         for (int i = 0; i < Data.Length; i += 2)
          {
             Dictionary.Add(Data[i], Data[i + 1]);
          }
@@ -95,7 +95,7 @@ namespace LaSSI
          {
             return;//todo: uh, display a message? throw an exception?
          }
-            
+
          Stack<Node> nodeStack = new Stack<Node>();
          nodeStack.Push(saveFile.Root);
          Debug.WriteLine(filename);
@@ -105,7 +105,7 @@ namespace LaSSI
          bool quit = false;
          string newlinechar = GetNewLineChar(text[0..50]);
          string[] lines = text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-         
+
          foreach (string line in lines)
          {
             if (line.Length < 1) continue;
@@ -143,7 +143,7 @@ namespace LaSSI
                      }
                      Node curNode = nodeStack.Peek();
                      string key = lineParts[0], value = lineParts[1];
-                     if (curNode.IsResearch() || lineParts[0] == "Entities" || lineParts[0] == "Workers") // todo: clean this up
+                     if (curNode.IsResearch() || lineParts[0] == "Entities" || lineParts[0] == "Workers" || lineParts[0] == "UnloadRequests" || lineParts[0] == "Items") // todo: clean this up
                      {
                         if (lineParts.Length > 2)
                         {
@@ -156,9 +156,9 @@ namespace LaSSI
                      }
                      else if (curNode.IsLayer(true) || curNode.IsEditor(true)) //remember, layers include both "FreeSpace" and all ships/stations!
                      {
-                        if(lineParts.Length > 2)
+                        if (lineParts.Length > 2)
                         {
-                           if(key == "Name" || key == "Author" || key.StartsWith("row"))//todo: uh, something better than writing out all possibilities
+                           if (key == "Name" || key == "Author" || key.StartsWith("row"))//todo: uh, something better than writing out all possibilities
                            {
                               value = line[line.IndexOf("\"")..].Trim();
                            }
@@ -228,7 +228,7 @@ namespace LaSSI
          {
             string key = lineParts[1];
             string value = string.Empty;
-            for(int i = start; i < lineParts.Length - 1; i++)
+            for (int i = start; i < lineParts.Length - 1; i++)
             {
                value += lineParts[i] + " ";
             }
@@ -236,78 +236,14 @@ namespace LaSSI
          }
          else if (currentNode.IsPowerGrid())
          {
-            int n = currentNode.Properties.Count - 1;
-            string CatName;
-            switch (n)
-            {
-               //case 0:
-               //   {
-
-               //      break;
-               //   }
-               //case 1:
-               //   {
-
-               //      break;
-               //   }
-               //case 2:
-               //   {
-                     
-               //      break;
-               //   }
-               case 3:
-                  {
-                     CatName = "Engines";
-                     break;
-                  }
-               case 4:
-                  {
-                     CatName = "FTL";
-                     break;
-                  }
-               case 5:
-                  {
-                     CatName = "Weapons";
-                     break;
-                  }
-               //case 6:
-               //   {
-
-               //      break;
-               //   }
-               case 7:
-                  {
-                     CatName = "Life Support";
-                     break;
-                  }
-               case 8:
-                  {
-                     CatName = "Logistics";
-                     break;
-                  }
-               case 9:
-                  {
-                     CatName = "Science";
-                     break;
-                  }
-               //case 10:
-               //   {
-
-               //      break;
-               //   }
-               default:
-                  {
-                     CatName = n.ToString();
-                     break;
-                  }
-            }
-            if(lineParts.Length >=4)
+            string CatName = GetPowerGridCategoryName(currentNode);
+            if (lineParts.Length >= 4)
             {
                currentNode.Properties.Add($"{lineParts[1]} {CatName}", $"{lineParts[2]} {lineParts[3]}");
             }
-            else if(lineParts.Length == 3)
+            else if (lineParts.Length == 3)
             {
-               currentNode.Properties.Add($"{lineParts[1]} {CatName}", "0");
+               currentNode.Properties.Add($"{lineParts[1]} {CatName}", "Setting 0");
             }
             else
             {
@@ -316,11 +252,113 @@ namespace LaSSI
          }
          else
          {
-            int end = lineParts.Length - start + 1;
-            Node node = new Node(subnodeId, LoadDictionary(lineParts, start, end), currentNode);
+            var mode = IsWorkersOrEntities(lineParts);
+            int WorkersIndex = Array.IndexOf(lineParts, mode); // todo: this assumes "Workers"/"Entities" is never the first element!
+            int end = WorkersIndex > 0 ? WorkersIndex : lineParts.Length - 1;
+            OrderedDictionary properties = LoadDictionary(lineParts[start..end]);
+            if (WorkersIndex > 0)
+            {
+               string workers = string.Empty;
+               for (int i = WorkersIndex + 1; i < lineParts.Length - 1; i++)
+               {
+                  workers += lineParts[i] + ' ';
+               }
+               workers = workers.TrimStart('"', '[').TrimEnd('"', ']', ' ');
+               properties.Add(lineParts[WorkersIndex], workers);
+            }
+            Node node = new Node(subnodeId, properties, currentNode);
             currentNode.Add(node);
          }
-         
+
+      }
+      private static string IsWorkersOrEntities(string[] data)
+      {
+         string mode = string.Empty;
+         if (data.Contains("Workers"))
+         {
+            mode = "Workers";
+         }
+         else if (data.Contains("Entities"))
+         {
+            mode = "Entities";
+         }
+
+         return mode;
+      }
+      private static string GetPowerGridCategoryName(Node currentNode)
+      {
+         int n = currentNode.Properties.Count;
+
+         if (currentNode.Properties.Contains("LayerId"))
+         {
+            n--;
+         }
+
+         string CatName;
+         switch (n)
+         {
+            //case 0:
+            //   {
+
+            //      break;
+            //   }
+            //case 1:
+            //   {
+
+            //      break;
+            //   }
+            //case 2:
+            //   {
+
+            //      break;
+            //   }
+            case 3:
+               {
+                  CatName = "Engines";
+                  break;
+               }
+            case 4:
+               {
+                  CatName = "FTL";
+                  break;
+               }
+            case 5:
+               {
+                  CatName = "Weapons";
+                  break;
+               }
+            //case 6:
+            //   {
+
+            //      break;
+            //   }
+            case 7:
+               {
+                  CatName = "Life Support";
+                  break;
+               }
+            case 8:
+               {
+                  CatName = "Logistics";
+                  break;
+               }
+            case 9:
+               {
+                  CatName = "Science";
+                  break;
+               }
+            //case 10:
+            //   {
+
+            //      break;
+            //   }
+            default:
+               {
+                  CatName = n.ToString();
+                  break;
+               }
+         }
+         return CatName;
       }
       /// <summary>
       /// Processes a "simple" line, i.e., the beginning of a multiline node or key-value pair (e.g., "BEGIN Galaxy", "TargetSystem 11").
