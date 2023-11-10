@@ -167,8 +167,8 @@ namespace LaSSI
       }
       private void EnableSaveAs()
       {
-         var foo = (SubMenuItem)this.Menu.Items[1];
-         foo.Items[1].Enabled = true;
+         var baz = ((SubMenuItem)Menu.Items.First(c => c.Text == "&File")).Items.Select(m => m.Command as Command).First(s => s != null && s.Tag == (object)"SaveFileAsCommand");
+         if(baz is not null) baz.Enabled = true;
       }
       #endregion command handlers
       #endregion commands
