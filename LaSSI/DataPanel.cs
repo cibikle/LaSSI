@@ -508,7 +508,7 @@ namespace LaSSI
                   offset += iter.Current.Height;
                }
             }
-            return new Size(control.Height - offset, control.Width - 10);
+            return new Size(control.Width - 10, control.Height - offset);
          }
          if (control.Parent != null)
          {
