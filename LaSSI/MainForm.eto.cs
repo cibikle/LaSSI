@@ -16,6 +16,7 @@ namespace LaSSI
 {
    enum NodeStatus
    {
+      Default,
       Edited,
       ChildEdited,
       Deleted
@@ -43,6 +44,7 @@ namespace LaSSI
          var saveFileAsCommand = CreateSaveFileAsCommand();
          var quitCommand = CreateQuitCommand();
          var prefsCommand = new Command(PrefsCommand_Executed);
+         var cleanDerelictsCommand = CreateCleanDerelictsCommand();
          // create menu
          Menu = new MenuBar
          {
@@ -50,7 +52,7 @@ namespace LaSSI
             {
                // File submenu
                new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
-               // new SubMenuItem { Text = "&Edit", Items = { /* commands/items */ } },
+                new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand } },
                // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             //ApplicationItems =
@@ -87,6 +89,33 @@ namespace LaSSI
          //what do you suppose will be the weird thing I have to account for on Linux?
       }
       #region commands
+
+      private Command CreateCleanDerelictsCommand()
+      {
+         var cleanDerelicts = new Command { MenuText = "Clean derelicts", Shortcut = Application.Instance.CommonModifier | Keys.D };
+         cleanDerelicts.Executed += CleanDerelicts_Executed;
+         cleanDerelicts.Enabled = false;
+         return cleanDerelicts;
+      }
+
+      private void CleanDerelicts_Executed(object? sender, EventArgs e)
+      {
+         //todo: throw up a menu asking:
+         //-this system only
+         //-sector-wide
+         //-a particular system (dropdown menu) // todo...
+         RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "current system", "sector-wide", /*"specific system"*/ });
+         r.ShowModal(this);
+         DialogResult d = r.GetDialogResult();
+         if (d == DialogResult.Ok)
+         {
+            Debug.WriteLine(r.GetSelectedIndex());
+            //todo: remove the appropriate layers with the derelict type
+            DataPanel.CleanDerelicts((DataPanel.DerelictsCleaningMode)r.GetSelectedIndex());
+         }
+
+      }
+
       private static Command CreateQuitCommand()
       {
          var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
@@ -112,11 +141,25 @@ namespace LaSSI
          return saveFileAsCommand;
       }
       #endregion commands
+
+
       private void EnableSaveAs()
       {
          var SaveAsCommand = ((SubMenuItem)Menu.Items.First(menuItem => menuItem.Text == "&File")).Items.Select(submenuItem
             => submenuItem.Command as Command).First(command => command != null && command.Tag == (object)"SaveFileAsCommand");
          if (SaveAsCommand is not null) SaveAsCommand.Enabled = true;
+      }
+      private void EnableTools()
+      {
+         var ToolsMenu = (SubMenuItem)Menu.Items.First(menuItem => menuItem.Text == "&Tools");
+         if (ToolsMenu is not null)
+         {
+            foreach (var o in ToolsMenu.Items)
+            {
+               o.Enabled = true;
+            }
+
+         }
       }
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
@@ -212,6 +255,7 @@ namespace LaSSI
          };
          filename.Tag = "saveFileTextbox";
          filename.Width = 500;
+         filename.Enabled = false;
          fileLayout.Rows.Add(new TableRow(currentFile, new TableCell(filename, true), new TableCell(null)));
 
          return fileLayout;
@@ -220,6 +264,7 @@ namespace LaSSI
       #region event handlers
       private void SaveFileAsCommand_Executed(object? sender, EventArgs e)
       {
+         if (!DataPanel.ReadyForSave()) return;
          string barefilename = Path.GetFileNameWithoutExtension(saveFilePath);
          string dateappend = @"-\d{8}-\d{4}";
          Match m = Regex.Match(barefilename, dateappend);
@@ -269,12 +314,14 @@ namespace LaSSI
             saveFile.Load();
             UpdateUiAfterLoad();
             EnableSaveAs();
+            EnableTools();
          }
          else
          {
             LoadingBar.Visible = false;
          }
       }
+
       private void PrefsCommand_Executed(Object? sender, EventArgs e)
       {
          var dlg = new Modal(new List<string> { "Preferences not implemented" });

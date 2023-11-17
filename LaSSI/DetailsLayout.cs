@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Eto.Forms;
 
 namespace LaSSI
@@ -13,6 +14,7 @@ namespace LaSSI
 
       }
       public State Status { get; set; }
+      public List<CollectionChange> Changes = new();
       public DetailsLayout()
       {
          ID = "DetailsLayout";

@@ -1,4 +1,5 @@
 ﻿using Eto.Forms;
+using System.Collections;
 using System.Collections.ObjectModel;
 
 namespace LaSSI
@@ -23,6 +24,10 @@ namespace LaSSI
       public override string ToString()
       {
          return this.Name;
+      }
+      public DictionaryEntry ToDictionaryEntry()
+      {
+         return new DictionaryEntry(this.Name, this.Count);
       }
    }
 }
