@@ -196,7 +196,7 @@ namespace LaSSI
             {
                case "HUD":
                   {
-                     LoadHUD(saveFile, lineParts); //this assumes that HUD will only ever be on a single line!
+                     LoadHUD(saveFile, lineParts); //this handles the HUD if it's one line (mostly for backwards compat)
                      break;
                   }
                default:
@@ -374,6 +374,11 @@ namespace LaSSI
             case "Galaxy":
                {
                   nodeStack.Push(saveFile.GalaxyNode);
+                  break;
+               }
+            case "HUD":
+               {
+                  nodeStack.Push(saveFile.HudNode);
                   break;
                }
             default:
