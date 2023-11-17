@@ -23,7 +23,9 @@ namespace LaSSI
       private List<Button> Buttons { get; set; } = new List<Button>();
       private int MaxHeight { get; set; } = 0;
       private int WidthMultiplicand { get; } = 8;
-      #endregion
+      public event EventHandler? RightGridUpdated;
+      #endregion class variables
+
 
       #region constructors
       public ListBuilder(ObservableCollection<InventoryGridItem> leftList, ObservableCollection<InventoryGridItem> rightList)
@@ -49,7 +51,7 @@ namespace LaSSI
 
          Content = CreateMainLayout();
       }
-      #endregion
+      #endregion constructors
 
       #region initializers
       private DynamicLayout CreateMainLayout()
@@ -86,7 +88,7 @@ namespace LaSSI
          if (LeftHeaders != null && LeftHeaders.Count > 0)
          {
             int maxheaderlength = LeftHeaders.OrderByDescending(x => x.Length).First().Length;
-            if(maxheaderlength > widthMultiplier)
+            if (maxheaderlength > widthMultiplier)
             {
                widthMultiplier = maxheaderlength;
             }
@@ -107,12 +109,12 @@ namespace LaSSI
                      Binding = Binding.Property((InventoryGridItem i) => i.Name)
                   },
                   Sortable = true,
-                  
+
                }
             },
          };
          LeftGridView.Shown += LeftGridView_Shown;
-         LeftList.CollectionChanged += LeftList_CollectionChanged;
+         //LeftList.CollectionChanged += LeftList_CollectionChanged;
          if (LeftHeaders != null && LeftHeaders.Count > 0)
          {
             for (int i = 0; i < LeftHeaders.Count; i++)
@@ -170,6 +172,7 @@ namespace LaSSI
          };
          RightGridView.Shown += RightGridView_Shown;
          RightList.CollectionChanged += RightList_CollectionChanged;
+         RightGridView.CellEdited += RightListBox_CellEdited;
          if (RightHeaders != null)
          {
             for (int i = 0; i < RightHeaders.Count; i++)
@@ -178,7 +181,6 @@ namespace LaSSI
             }
          }
          //RightListBox.ColumnWidthChanged += RightListBox_ColumnWidthChanged;
-         RightGridView.CellEdited += RightListBox_CellEdited;
          return RightGridView;
       }
       private StackLayout CreateButtonsLayout()
@@ -226,7 +228,7 @@ namespace LaSSI
          Buttons.Add(MoveLeft);
          Buttons.Add(MoveLeftAll);
       }
-      #endregion
+      #endregion initializers
       #region utility
       private static int GetAlphabeticalPosition(ObservableCollection<InventoryGridItem> collection, string value)
       {
@@ -285,7 +287,7 @@ namespace LaSSI
       }
       private int LongestEntryLength(ObservableCollection<InventoryGridItem> items)
       {
-         if(items.Count > 0)
+         if (items.Count > 0)
          {
             return items.OrderByDescending((InventoryGridItem x) => x.Name.Length).First().Name.Length;
          }
@@ -301,7 +303,15 @@ namespace LaSSI
          }
          if (longest > WidthMultiplier) WidthMultiplier = longest;
       }
-      #endregion
+      public static bool IsGridModified(Dictionary<string, string> initialData, Dictionary<string, string> currentData)
+      {
+         return !(initialData.Count == currentData.Count && !initialData.Except(currentData).Any());
+      }
+      public ObservableCollection<InventoryGridItem> GetRightList()
+      {
+         return RightList;
+      }
+      #endregion utility
 
       #region event handlers
       private void MoveRightAll_Click(object? sender, EventArgs e)
@@ -381,27 +391,29 @@ namespace LaSSI
       }
       private void LeftList_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
       {
-         if (e != null && e.NewItems != null)
-         {
-            UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
-         }
-         int proposedWidth = WidthMultiplicand * WidthMultiplier;
-         if (proposedWidth > LeftGridView.Columns[0].Width) LeftGridView.Columns[0].Width = proposedWidth;
+         //if (e != null && e.NewItems != null) // is any of this actually necessary at this point?
+         //{
+         //   UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
+         //}
+         //int proposedWidth = WidthMultiplicand * WidthMultiplier;
+         //if (proposedWidth > LeftGridView.Columns[0].Width) LeftGridView.Columns[0].Width = proposedWidth;
       }
       private void RightList_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
       {
-         if (e != null && e.NewItems != null)
-         {
-            UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
-         }
-         int proposedWidth = WidthMultiplicand * WidthMultiplier;
-         if (proposedWidth > RightGridView.Columns[0].Width) RightGridView.Columns[0].Width = proposedWidth;
+         //if (e != null && e.NewItems != null) // is any of this actually necessary at this point?
+         //{
+         //   UpdateColumnWidthMultiplicand(e.NewItems.GetEnumerator());
+         //}
+         //int proposedWidth = WidthMultiplicand * WidthMultiplier;
+         //if (proposedWidth > RightGridView.Columns[0].Width) RightGridView.Columns[0].Width = proposedWidth;
+         //Dictionary<string, string> currentValues = (Dictionary<string, string>)RightList;
+         RightGridUpdated?.Invoke(RightList, null);
       }
       private static void RightListBox_CellEdited(object? sender, GridViewCellEventArgs e) //todo: finish this
       {
          Debug.WriteLine("hello!");
       }
-      #endregion
-      
+      #endregion event handlers
+
    }
 }
