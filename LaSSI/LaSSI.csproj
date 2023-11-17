@@ -9,6 +9,10 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net6.0</TargetFramework>
 		<Platforms>AnyCPU;x64;x86</Platforms>
+		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
+		<Company />
+		<Authors>CIBikle</Authors>
+		<FileVersion>0.9</FileVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />
