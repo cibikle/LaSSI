@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Eto;
+using System.Reflection.Metadata;
+using System.ComponentModel;
 
 namespace LaSSI
 {
@@ -952,17 +954,26 @@ namespace LaSSI
          TreeGridItem item = GetSelectedTreeGridItem();
          //GridView gridview = GetDefaultGridView();
          //ListBuilder listBuilder = GetListBuilder();
-         Control detailControl = GetPanel2DetailsLayout().Content;
-         // find differences between the gridview and the item, update the item
-         //I'm so nervous. I don't know why. Is it because I've been waiting for this moment for so long?
-         if ((detailControl is Scrollable s && s.Content is GridView gridView))
+         //Control detailControl = GetPanel2DetailsLayout().Content;
+         Control detailControl = GetDetailsControl();
+         if (detailControl is not null)
          {
-            detailControl = gridView;
-         }
-         ApplyChange(item, detailControl);
+            ApplyChange(item, detailControl);
 
-         UpdateApplyRevertButtons(DetailsLayout.State.Applied);
-         DetailsApplied();
+            UpdateApplyRevertButtons(DetailsLayout.State.Applied);
+            DetailsApplied();
+         }
+      }
+
+      private Control GetDetailsControl()
+      {
+         DynamicLayout detailsLayout = (DynamicLayout)GetPanel2DetailsLayout().Content;
+         Control detailsControl = detailsLayout.FindChild("DefaultGridView");
+         if (detailsControl is null)
+         {
+            detailsControl = GetPanel2DetailsLayout().FindChild("ListBuilder");
+         }
+         return detailsControl;
       }
 
       private static void ApplyChange(TreeGridItem item, Control detailControl)
