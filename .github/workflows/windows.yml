@@ -103,5 +103,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: Windows
+        name: "LaSSI.win-x64.v0.${{ github.event.inputs.version }}"
         path: ${{ env.Wap_Project_Directory }}\output
