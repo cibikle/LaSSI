@@ -12,7 +12,7 @@
 		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
 		<Company />
 		<Authors>CIBikle</Authors>
-		<FileVersion>0.9</FileVersion>
+		<FileVersion>0.9.2</FileVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />

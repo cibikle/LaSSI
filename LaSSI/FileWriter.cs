@@ -274,7 +274,8 @@ namespace LaSSI
             foreach (DictionaryEntry p in dictionary)
             {
                int keylen = p.Key.ToString()!.Length;
-               string pad = new string(' ', (22 - keylen - 1));
+               //string pad = new string(' ', (22 - keylen - 1)); //magic numbers screwed us again!
+               string pad = " "; // less pretty, but future-proof
                foo += $"{p.Key}{pad}{p.Value}  {Environment.NewLine}";
             }
          }
