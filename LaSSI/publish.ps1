@@ -25,8 +25,8 @@ try {
 
     New-Item "output" -ItemType Directory;
     
-    Compress-Archive -Path ($builtFilePath -f $win64Spec) -DestinationPath (Join-Path -Path "output" -ChildPath ($compressedFilePath -f $win64Spec))
-    #Move-Item -Path ($compressedFilePath -f $win64Spec) -Destination "output";
+    #Compress-Archive -Path ($builtFilePath -f $win64Spec) -DestinationPath (Join-Path -Path "output" -ChildPath ($compressedFilePath -f $win64Spec))
+    Move-Item -Path ($builtFilePath -f $win64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $linux64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $macx64Spec) -Destination "output";
 }
