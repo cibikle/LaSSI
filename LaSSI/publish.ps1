@@ -14,8 +14,8 @@ try {
     #dotnet publish -c Release --self-contained -r linux-x64 -p:PublishSingleFile=true
     #dotnet publish -c Release --self-contained -r osx-x64 -p:PublishSingleFile=true
 
-    $builtFilePath = "bin/Wpf/Release/net6.0/{0}/publish/*";
-    $compressedFilePath = "bin/Wpf/Release/net6.0/{0}/LaSSI.{0}.v$version.zip";
+    $builtFilePath = "bin/Wpf/Release/net6.0-windows/{0}/publish/*";
+    $compressedFilePath = "bin/Wpf/Release/net6.0-windows/{0}/LaSSI.{0}.v$version.zip";
 
     $win64Spec = "win-x64";
     #$linux64Spec = "linux-x64";
