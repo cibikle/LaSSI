@@ -26,7 +26,7 @@ try {
 
     New-Item "output" -ItemType Directory;
     
-    Move-Item -Path ($compressedFilePath -f $win64Spec) -Destination "output";
+    #Move-Item -Path ($compressedFilePath -f $win64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $linux64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $macx64Spec) -Destination "output";
 }
