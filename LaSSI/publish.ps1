@@ -20,12 +20,12 @@ try {
     $win64Spec = "win-x64";
     #$linux64Spec = "linux-x64";
     #$macx64Spec = "osx-x64";
-    Compress-Archive -Path ($builtFilePath -f $win64Spec) -DestinationPath ($compressedFilePath -f $win64Spec)
     #Compress-Archive -Path ($builtFilePath -f $linux64Spec) -DestinationPath ($compressedFilePath -f $linux64Spec)
     #Compress-Archive -Path ($builtFilePath -f $macx64Spec) -DestinationPath ($compressedFilePath -f $macx64Spec)
 
     New-Item "output" -ItemType Directory;
     
+    Compress-Archive -Path ($builtFilePath -f $win64Spec) -DestinationPath (Join-Path -Path "output" -ChildPath ($compressedFilePath -f $win64Spec))
     #Move-Item -Path ($compressedFilePath -f $win64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $linux64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $macx64Spec) -Destination "output";
