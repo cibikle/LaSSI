@@ -234,7 +234,8 @@ namespace LaSSI
             or (object)"UnloadRequests"
             or (object)"UnlockedRecipes"
             or (object)"SpecialUnlocks"
-            or (object)"Items") ; // todo: clean this up
+            or (object)"Items"
+            or (object)"Layers") ; // todo: clean this up
       }
       private string PropertiesToNodes(TreeGridItem item, int indentationLevel = 0, int startIndex = 0)
       {

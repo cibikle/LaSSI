@@ -253,7 +253,7 @@ namespace LaSSI
          }
          else
          {
-            var mode = IsWorkersOrEntities(lineParts);
+            var mode = IsWorkersOrEntitiesOrLayers(lineParts);
             int WorkersIndex = Array.IndexOf(lineParts, mode); // todo: this assumes "Workers"/"Entities" is never the first element!
             int end = WorkersIndex > 0 ? WorkersIndex : lineParts.Length - 1;
             OrderedDictionary properties = LoadDictionary(lineParts[start..end]);
@@ -272,7 +272,7 @@ namespace LaSSI
          }
 
       }
-      private static string IsWorkersOrEntities(string[] data)
+      private static string IsWorkersOrEntitiesOrLayers(string[] data) // todo: this is stupid
       {
          string mode = string.Empty;
          if (data.Contains("Workers"))
@@ -282,6 +282,10 @@ namespace LaSSI
          else if (data.Contains("Entities"))
          {
             mode = "Entities";
+         }
+         else if (data.Contains("Layers"))
+         {
+            mode = "Layers";
          }
 
          return mode;
