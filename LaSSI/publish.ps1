@@ -13,13 +13,15 @@ try {
     dotnet publish -c Release --self-contained -r win-x64 -p:PublishSingleFile=true
     #dotnet publish -c Release --self-contained -r linux-x64 -p:PublishSingleFile=true
     #dotnet publish -c Release --self-contained -r osx-x64 -p:PublishSingleFile=true
+    dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet:true
 
-    $builtFilePath = "bin/Wpf/Release/net6.0-windows/{0}/publish/*";
+    $builtFilePath = "bin/Wpf/Release/net6.0-windows/{0}/publish/";
     $compressedFilePath = "bin/Wpf/Release/net6.0-windows/{0}/LaSSI.{0}.v$version.zip";
-
+    $builtFilePathMac = "bin/Mac64/Release/net6.0/osx-x64/"
+    
     $win64Spec = "win-x64";
     #$linux64Spec = "linux-x64";
-    #$macx64Spec = "osx-x64";
+    $macx64Spec = "osx-x64";
     #Compress-Archive -Path ($builtFilePath -f $linux64Spec) -DestinationPath ($compressedFilePath -f $linux64Spec)
     #Compress-Archive -Path ($builtFilePath -f $macx64Spec) -DestinationPath ($compressedFilePath -f $macx64Spec)
 
@@ -27,6 +29,7 @@ try {
     
     #Compress-Archive -Path ($builtFilePath -f $win64Spec) -DestinationPath (Join-Path -Path "output" -ChildPath ($compressedFilePath -f $win64Spec))
     Move-Item -Path ($builtFilePath -f $win64Spec) -Destination "output";
+    Move-Item -Path $builtFilePathMac -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $linux64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $macx64Spec) -Destination "output";
 }
