@@ -13,7 +13,7 @@ try {
     dotnet publish -c Release --self-contained -r win-x64 -p:PublishSingleFile=true
     #dotnet publish -c Release --self-contained -r linux-x64 -p:PublishSingleFile=true
     #dotnet publish -c Release --self-contained -r osx-x64 -p:PublishSingleFile=true
-    dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet:true
+    dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
 
     $builtFilePath = "bin/Wpf/Release/net6.0-windows/{0}/publish/";
     $compressedFilePath = "bin/Wpf/Release/net6.0-windows/{0}/LaSSI.{0}.v$version.zip";
