@@ -39,12 +39,12 @@ namespace LaSSI
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
          DataPanel = new DataPanel(InventoryMasterList, Width);
-
-         var openFileCommand = CreateOpenFileCommand();
-         var saveFileAsCommand = CreateSaveFileAsCommand();
-         var quitCommand = CreateQuitCommand();
-         var prefsCommand = new Command(PrefsCommand_Executed);
-         var cleanDerelictsCommand = CreateCleanDerelictsCommand();
+         var openFileCommand = CustomCommands.CreateOpenFileCommand(OpenFileCommand_Executed);
+         var saveFileAsCommand = CustomCommands.CreateSaveFileAsCommand(SaveFileAsCommand_Executed);
+         var quitCommand = CustomCommands.CreateQuitCommand();
+         /*var prefsCommand = new Command(PrefsCommand_Executed);*/
+         var cleanDerelictsCommand = CustomCommands.CreateCleanDerelictsCommand(CleanDerelicts_Executed);
+         var fixAssertionFailedCommand = CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed);
          // create menu
          Menu = new MenuBar
          {
@@ -52,7 +52,7 @@ namespace LaSSI
             {
                // File submenu
                new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
-                new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand } },
+               new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand, fixAssertionFailedCommand } },
                // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             //ApplicationItems =
@@ -73,6 +73,7 @@ namespace LaSSI
          PlatformSpecificNonsense();
       }
 
+
       /// <summary>
       /// This method takes care of any platform-specific setup/steps at the end of the mainform init phase
       /// </summary>
@@ -88,79 +89,7 @@ namespace LaSSI
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
       }
-      #region commands
-
-      private Command CreateCleanDerelictsCommand()
-      {
-         var cleanDerelicts = new Command { MenuText = "Clean derelicts", Shortcut = Application.Instance.CommonModifier | Keys.D };
-         cleanDerelicts.Executed += CleanDerelicts_Executed;
-         cleanDerelicts.Enabled = false;
-         return cleanDerelicts;
-      }
-
-      private void CleanDerelicts_Executed(object? sender, EventArgs e)
-      {
-         //todo: throw up a menu asking:
-         //-this system only
-         //-sector-wide
-         //-a particular system (dropdown menu) // todo...
-         RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "current system", "sector-wide", /*"specific system"*/ });
-         r.ShowModal(this);
-         DialogResult d = r.GetDialogResult();
-         if (d == DialogResult.Ok)
-         {
-            Debug.WriteLine(r.GetSelectedIndex());
-            //todo: remove the appropriate layers with the derelict type
-            DataPanel.CleanDerelicts((DataPanel.DerelictsCleaningMode)r.GetSelectedIndex());
-         }
-
-      }
-
-      private static Command CreateQuitCommand()
-      {
-         var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
-         quitCommand.Executed += (sender, e) => Application.Instance.Quit();
-         return quitCommand;
-      }
-      private Command CreateOpenFileCommand()
-      {
-         var openFileCommand = new Command { MenuText = "Open", Shortcut = Application.Instance.CommonModifier | Keys.O };
-         openFileCommand.Executed += OpenFileCommand_Executed;
-         return openFileCommand;
-      }
-      private Command CreateSaveFileAsCommand()
-      {
-         var saveFileAsCommand = new Command
-         {
-            MenuText = "Save As",
-            Shortcut = Application.Instance.CommonModifier /*| Keys.Shift*/ | Keys.S, // todo: after Save is implemented, put the Shift back
-            Enabled = false,
-            Tag = "SaveFileAsCommand"
-         };
-         saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
-         return saveFileAsCommand;
-      }
-      #endregion commands
-
-
-      private void EnableSaveAs()
-      {
-         var SaveAsCommand = ((SubMenuItem)Menu.Items.First(menuItem => menuItem.Text == "&File")).Items.Select(submenuItem
-            => submenuItem.Command as Command).First(command => command != null && command.Tag == (object)"SaveFileAsCommand");
-         if (SaveAsCommand is not null) SaveAsCommand.Enabled = true;
-      }
-      private void EnableTools()
-      {
-         var ToolsMenu = (SubMenuItem)Menu.Items.First(menuItem => menuItem.Text == "&Tools");
-         if (ToolsMenu is not null)
-         {
-            foreach (var o in ToolsMenu.Items)
-            {
-               o.Enabled = true;
-            }
-
-         }
-      }
+      
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
          var InventoryMasterList = new List<InventoryGridItem>();
@@ -313,15 +242,31 @@ namespace LaSSI
             saveFile = new SaveFilev2(saveFilePath);
             saveFile.Load();
             UpdateUiAfterLoad();
-            EnableSaveAs();
-            EnableTools();
+            CustomCommands.EnableSaveAs(this.Menu);
+            CustomCommands.EnableTools(Menu);
          }
          else
          {
             LoadingBar.Visible = false;
          }
       }
+      internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
+      {
+         //todo: test if the issue exists first
 
+      }
+
+      internal void CleanDerelicts_Executed(object? sender, EventArgs e)
+      {
+         RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "current system", "sector-wide", /*"specific system"*/ });
+         r.ShowModal(this);
+         DialogResult d = r.GetDialogResult();
+         if (d == DialogResult.Ok)
+         {
+            Debug.WriteLine(r.GetSelectedIndex());
+            DataPanel.CleanDerelicts((DataPanel.DerelictsCleaningMode)r.GetSelectedIndex());
+         }
+      }
       private void PrefsCommand_Executed(Object? sender, EventArgs e)
       {
          var dlg = new Modal(new List<string> { "Preferences not implemented" });

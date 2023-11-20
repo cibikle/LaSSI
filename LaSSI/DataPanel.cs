@@ -182,8 +182,9 @@ namespace LaSSI
                {
                   detailsLayout.Add(CreateListBuilder(item));
                   ListBuilder lb = (ListBuilder)detailsLayout.Children.First(x => x.ID == "ListBuilder");
-                  lb.Enabled = false;
+                  //lb.Enabled = false;
                   lb.ContextMenu = new ContextMenu(new Command { MenuText = "Disabled/unfinished" });
+                  lb.ToolTip = "Disabled/unfinished";
                   break;
                }
             case "TheirStock":
