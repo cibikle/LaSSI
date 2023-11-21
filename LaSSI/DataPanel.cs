@@ -221,7 +221,23 @@ namespace LaSSI
 
          return detailsLayout;
       }
+      public bool ResetCamera()
+      {
+         bool success = false;
+         TreeGridItem? Hud = GetHud();
+         if (Hud is not null)
+         {
+            TrySetProperty(Hud, "Camera.x", "0");
+            TrySetProperty(Hud, "Camera.y", "0");
+            success = TrySetProperty(Hud, "ViewSize", "100");
 
+            if (success)
+            {
+               UpdateDetailsPanel(Hud, true);
+            }
+         }
+         return success;
+      }
       public void CleanDerelicts(DerelictsCleaningMode mode)  // todo: this whole thing kinda sucks. Works though!
       {
          TreeGridView tree = GetTreeGridView();
@@ -266,6 +282,7 @@ namespace LaSSI
                //   }
          }
          tree.DataStore = items;
+         ClearDetails();
       }
       private List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
       {
@@ -335,8 +352,6 @@ namespace LaSSI
                Binding = Binding.Property((DictionaryEntry i) => (string)i.Key)
             },
             Editable = false,
-            //AutoSize = true,
-            //Resizable = true
          });
          defaultGridView.Columns.Add(new GridColumn
          {
@@ -347,13 +362,10 @@ namespace LaSSI
             },
             Editable = true,
             //AutoSize = true,
-            //Resizable = true
          });
          defaultGridView.Shown += DefaultGridView_Shown;
          defaultGridView.CellEditing += DefaultGridView_CellEditing;
          defaultGridView.CellEdited += DefaultGridView_CellEdited;
-         //defaultGridView.KeyUp += DefaultGridView_KeyUp;
-         //defaultGridView.MouseDown += DefaultGridView_MouseDown;
          bar.CollectionChanged += Bar_CollectionChanged;
          return defaultGridView;
       }
@@ -538,9 +550,9 @@ namespace LaSSI
 
       private void UpdateDetailsPanel(TreeGridItem item, bool clearPreexisting = false)
       {
-         if (clearPreexisting && DetailPanelsCache.ContainsKey(item))
+         if (clearPreexisting)
          {
-            DetailPanelsCache.Remove(item);
+            ClearItemFromCache(item);
          }
          DynamicLayout detailslayout = GetPanel2DetailsLayout();
          if (!DetailPanelsCache.ContainsKey(item))
@@ -549,6 +561,13 @@ namespace LaSSI
          }
          detailslayout.Content = DetailPanelsCache[item];
          UpdateApplyRevertButtons(DetailPanelsCache[item].Status);
+      }
+      private void ClearItemFromCache(TreeGridItem item)
+      {
+         if (DetailPanelsCache.ContainsKey(item))
+         {
+            DetailPanelsCache.Remove(item);
+         }
       }
       //private void UpdateTreeGridItemStatus(TreeGridItem item, NodeStatus status)
       //{
@@ -638,6 +657,7 @@ namespace LaSSI
                            if (TrySetProperty(mission, "AssignedLayerId", newShipID))
                            {
                               Debug.WriteLine($"successfully transferred mission to {newShipID}");
+                              UpdateDetailsPanel(mission, true);
                            }
                         }
                         else
@@ -701,10 +721,18 @@ namespace LaSSI
                }
          }
       }
-      //private bool CheckMissionsNodesForTutorialFlightReady()
-      //{
-
-      //}
+      private TreeGridItem? GetHud()
+      {
+         TreeGridItem root = GetRoot();
+         foreach (TreeGridItem item in root.Children)
+         {
+            if (item.Tag.ToString() == "HUD")
+            {
+               return item;
+            }
+         }
+         return null;
+      }
       private TreeGridItem? GetMissionsNode()
       {
          TreeGridItem root = GetRoot();

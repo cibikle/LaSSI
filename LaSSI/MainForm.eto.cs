@@ -45,6 +45,8 @@ namespace LaSSI
          /*var prefsCommand = new Command(PrefsCommand_Executed);*/
          var cleanDerelictsCommand = CustomCommands.CreateCleanDerelictsCommand(CleanDerelicts_Executed);
          var fixAssertionFailedCommand = CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed);
+         var resetCameraCommand = CustomCommands.CreateResetCameraCommand(ResetCamera_Executed);
+         // ^^^ this is getting out of hand
          // create menu
          Menu = new MenuBar
          {
@@ -52,7 +54,7 @@ namespace LaSSI
             {
                // File submenu
                new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
-               new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand, fixAssertionFailedCommand } },
+               new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand, fixAssertionFailedCommand, resetCameraCommand } },
                // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             //ApplicationItems =
@@ -253,7 +255,9 @@ namespace LaSSI
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
          if (DataPanel.AssertionFailureConditionExists(true))
+         {
             _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
       }
 
       internal void CleanDerelicts_Executed(object? sender, EventArgs e)
@@ -265,6 +269,22 @@ namespace LaSSI
          {
             Debug.WriteLine(r.GetSelectedIndex());
             DataPanel.CleanDerelicts((DataPanel.DerelictsCleaningMode)r.GetSelectedIndex());
+            _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
+      }
+      internal void ResetCamera_Executed(object? sender, EventArgs e)
+      {
+         //RadioInputDialog r = new RadioInputDialog("Reset camera to...", new string[] { "system center", "nearest friendly ship" });
+         //r.ShowModal(this);
+         //DialogResult d = r.GetDialogResult();
+         //if (d == DialogResult.Ok)
+         //{
+         //   Debug.WriteLine(r.GetSelectedIndex());
+
+         //}
+         if (DataPanel.ResetCamera())
+         {
+            _ = MessageBox.Show("Camera reset to system center, viewsize 100", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          }
       }
       private void PrefsCommand_Executed(Object? sender, EventArgs e)

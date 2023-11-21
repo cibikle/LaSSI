@@ -27,14 +27,27 @@ namespace LaSSI
       }
       internal static Command CreateFixAssertionFailedCommand(EventHandler<EventArgs> FixAssertionFailed_Executed)
       {
-         var cleanDerelicts = new Command
+         var fixAssertionFailed = new Command
          {
-            MenuText = "Fix assertion failed", /*Shortcut = Application.Instance.CommonModifier | Keys.D*/
+            MenuText = "Fix assertion failed",
+            Shortcut = Application.Instance.CommonModifier | Keys.J,
             ID = "FixAssertionFailedTool"
          };
-         cleanDerelicts.Executed += FixAssertionFailed_Executed;
-         cleanDerelicts.Enabled = false;
-         return cleanDerelicts;
+         fixAssertionFailed.Executed += FixAssertionFailed_Executed;
+         fixAssertionFailed.Enabled = false;
+         return fixAssertionFailed;
+      }
+      internal static Command CreateResetCameraCommand(EventHandler<EventArgs> ResetCamera_Executed)
+      {
+         var resetCamera = new Command
+         {
+            MenuText = "Reset camera",
+            Shortcut = Application.Instance.CommonModifier | Keys.R,
+            ID = "ResetCameraTool"
+         };
+         resetCamera.Executed += ResetCamera_Executed;
+         resetCamera.Enabled = false;
+         return resetCamera;
       }
       internal static Command CreateQuitCommand()
       {
@@ -98,14 +111,17 @@ namespace LaSSI
          {
             case "CleanDerelictsTool":
                {
-                  // todo: check for derelicts
                   enablability = data.DerelictsPresent();
                   break;
                }
             case "FixAssertionFailedTool":
                {
-                  // todo: check for condition
                   enablability = data.AssertionFailureConditionExists();
+                  break;
+               }
+            case "ResetCameraTool":
+               {
+                  enablability = true;
                   break;
                }
          }
