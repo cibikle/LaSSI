@@ -12,29 +12,49 @@ namespace LaSSI
    {
       #region commands
 
-      /**/internal static Command CreateCleanDerelictsCommand(EventHandler<EventArgs> CleanDerelicts_Executed)
+      /**/
+      internal static Command CreateCleanDerelictsCommand(EventHandler<EventArgs> CleanDerelicts_Executed)
       {
-         var cleanDerelicts = new Command { MenuText = "Clean derelicts", Shortcut = Application.Instance.CommonModifier | Keys.D };
+         var cleanDerelicts = new Command
+         {
+            MenuText = "Clean derelicts",
+            Shortcut = Application.Instance.CommonModifier | Keys.D,
+            ID = "CleanDerelictsTool"
+         };
          cleanDerelicts.Executed += CleanDerelicts_Executed;
          cleanDerelicts.Enabled = false;
          return cleanDerelicts;
       }
       internal static Command CreateFixAssertionFailedCommand(EventHandler<EventArgs> FixAssertionFailed_Executed)
       {
-         var cleanDerelicts = new Command { MenuText = "Fix assertion failed", /*Shortcut = Application.Instance.CommonModifier | Keys.D*/ };
+         var cleanDerelicts = new Command
+         {
+            MenuText = "Fix assertion failed", /*Shortcut = Application.Instance.CommonModifier | Keys.D*/
+            ID = "FixAssertionFailedTool"
+         };
          cleanDerelicts.Executed += FixAssertionFailed_Executed;
          cleanDerelicts.Enabled = false;
          return cleanDerelicts;
       }
       internal static Command CreateQuitCommand()
       {
-         var quitCommand = new Command { MenuText = "Quit", Shortcut = Application.Instance.CommonModifier | Keys.Q };
+         var quitCommand = new Command
+         {
+            MenuText = "Quit",
+            Shortcut = Application.Instance.CommonModifier | Keys.Q,
+            ID = "QuitCommand"
+         };
          quitCommand.Executed += (sender, e) => Application.Instance.Quit();
          return quitCommand;
       }
       internal static Command CreateOpenFileCommand(EventHandler<EventArgs> OpenFileCommand_Executed)
       {
-         var openFileCommand = new Command { MenuText = "Open", Shortcut = Application.Instance.CommonModifier | Keys.O };
+         var openFileCommand = new Command
+         {
+            MenuText = "Open",
+            Shortcut = Application.Instance.CommonModifier | Keys.O,
+            ID = "OpenFileCommand"
+         };
          openFileCommand.Executed += OpenFileCommand_Executed;
          return openFileCommand;
       }
@@ -45,7 +65,7 @@ namespace LaSSI
             MenuText = "Save As",
             Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S, // todo: after Save is implemented, put the Shift back
             Enabled = false,
-            Tag = "SaveFileAsCommand"
+            ID = "SaveFileAsCommand"
          };
          saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
          return saveFileAsCommand;
@@ -56,20 +76,41 @@ namespace LaSSI
       internal static void EnableSaveAs(MenuBar menu)
       {
          var SaveAsCommand = ((SubMenuItem)menu.Items.First(menuItem => menuItem.Text == "&File")).Items.Select(submenuItem
-            => submenuItem.Command as Command).First(command => command != null && command.Tag == (object)"SaveFileAsCommand");
+            => submenuItem.Command as Command).First(command => command != null && command.ID == "SaveFileAsCommand");
          if (SaveAsCommand is not null) SaveAsCommand.Enabled = true;
       }
-      internal static void EnableTools(MenuBar menu)
+      internal static void EnableTools(MenuBar menu, DataPanel data)
       {
          var ToolsMenu = (SubMenuItem)menu.Items.First(menuItem => menuItem.Text == "&Tools");
          if (ToolsMenu is not null)
          {
             foreach (var o in ToolsMenu.Items)
             {
-               o.Enabled = true;
+               o.Enabled = CheckEnablablility(o, data);
             }
 
          }
+      }
+      internal static bool CheckEnablablility(MenuItem tool, DataPanel data)
+      {
+         bool enablability = false;
+         switch (tool.ID)
+         {
+            case "CleanDerelictsTool":
+               {
+                  // todo: check for derelicts
+                  enablability = data.DerelictsPresent();
+                  break;
+               }
+            case "FixAssertionFailedTool":
+               {
+                  // todo: check for condition
+                  enablability = data.AssertionFailureConditionExists();
+                  break;
+               }
+         }
+
+         return enablability;
       }
    }
 }

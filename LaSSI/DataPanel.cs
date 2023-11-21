@@ -21,6 +21,15 @@ namespace LaSSI
          SectorWide,
          SpecificSystem
       }
+      public enum ShipDisposition
+      {
+         Any,
+         Friendly,
+         Neutral,
+         Hostile,
+         Derelict,
+         ForSale
+      }
 
       private Dictionary<TreeGridItem, DetailsLayout> DetailPanelsCache = new();
       private Size DetailsPanelInitialSize = new(0, 0);
@@ -250,14 +259,12 @@ namespace LaSSI
                   }
                   break;
                }
-            case DerelictsCleaningMode.SpecificSystem:
-               {
-                  // I don't know what to do here
-                  break;
-               }
+               //case DerelictsCleaningMode.SpecificSystem:
+               //   {
+               //      // I don't know what to do here
+               //      break;
+               //   }
          }
-
-
          tree.DataStore = items;
       }
       private List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
@@ -269,9 +276,9 @@ namespace LaSSI
             if (/*properties.Contains((object)"Class")
                && */properties.Contains((object)"Type"))
             {
-               //var s = properties[(object)"Class"];
+               var s = properties[(object)"Name"];
                var t = properties[(object)"Type"];
-               if (/*s is not null && s.ToString() == "Ship" && */t is not null && t.ToString() == "Derelict")
+               if (s is not null && s.ToString() != "\"Stranded Ship\"" && t is not null && t.ToString() == "Derelict")
                {
                   toRemove.Add(item);
                }
@@ -280,13 +287,7 @@ namespace LaSSI
          }
          return toRemove;
       }
-      //private void RemoveDerelictNode(TreeGridItem node)
-      //{
-      //   if ()
-      //   {
 
-      //   }
-      //}
       private static string GetNodePath(TreeGridItem item)
       {
          string path = item.Values[0].ToString()!;
@@ -369,48 +370,6 @@ namespace LaSSI
          return deleteRow;
       }
 
-      private void DeleteRow_Executed(object? sender, EventArgs e)
-      {
-         GridView grid = GetDefaultGridView();
-         if (grid.SelectedRow >= 0)
-         {
-            Oncler row = (Oncler)grid.SelectedItem;
-            CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
-
-            ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
-         }
-      }
-
-      private void AddRow_Executed(object? sender, EventArgs e)
-      {
-         GridView grid = GetDefaultGridView();
-         ObservableCollection<Oncler> onclers = ((ObservableCollection<Oncler>)grid.DataStore);
-         int i = onclers.Count;
-
-         TextInputDialog dialog = new("New row", "Key");
-         dialog.ShowModal(this);
-         if (dialog.GetDialogResult() == DialogResult.Ok)
-         {
-            string newkey = dialog.GetInput();
-            bool alreadyInUse = false;
-            foreach (var f in onclers)
-            {
-               if (f.Key == newkey) alreadyInUse = true;
-            }
-            if (alreadyInUse)
-            {
-               MessageBox.Show("That key is already in use", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
-            }
-            else
-            {
-               Oncler newRow = new(newkey);
-               CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, newRow, CollectionChange.ActionType.Addition);
-               onclers.Add(newRow);
-               grid.SelectRow(i);
-               grid.BeginEdit(i, 1);
-            }
-         }
-      }
       private GridView GetDefaultGridView()
       {
          return (GridView)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("DefaultGridView");
@@ -443,29 +402,6 @@ namespace LaSSI
          //   }
          //}
       }
-
-      //private void DefaultGridView_KeyUp(object? sender, KeyEventArgs e)
-      //{
-      //   Keys mod = e.Modifiers;
-      //   Keys key = e.Key;
-
-      //   // backspace = propmt
-      //   // common mod+backspace = no prompt
-      //   // delete = no prompt
-      //   Keys ModifiedBackspace = Application.Instance.CommonModifier | Keys.Backspace; // todo: this doesn't work
-      //   bool delete = e.KeyData == ModifiedBackspace || e.KeyData == Keys.Delete;
-      //   if (!delete && key.Equals(Keys.Backspace))
-      //   {
-      //      delete = MessageBox.Show(this.ParentWindow, "Delete this row?",
-      //         MessageBoxButtons.YesNo, MessageBoxType.Warning, MessageBoxDefaultButton.No) == DialogResult.Yes;
-      //   }
-      //   if (delete)
-      //   {
-      //      GridView view = (GridView)sender!;
-      //      ObservableCollection<Oncler> foo = (ObservableCollection<Oncler>)view.DataStore;
-      //      foo.RemoveAt(view.SelectedRow);
-      //   }
-      //}
 
       private static Label CreateDetailLabel(string text)
       {
@@ -676,6 +612,225 @@ namespace LaSSI
          return (TreeGridView)this.Children.Where<Control>(x => x.ID == "DataTreeView").First();
          // pretty sure this blows up if the data tree isn't found
       }
+      public bool AssertionFailureConditionExists(bool justTakeCareOfIt = false)
+      {
+         TreeGridItem? MissionsNode = GetMissionsNode();
+         if (MissionsNode is not null)
+         {
+            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
+            {
+               if (mission.Tag.ToString()!.Contains("TutorialFlightReady")
+                  && TryGetProperties(mission, "AssignedLayerId", out string LayerId))
+               {
+                  Debug.WriteLine($"Mission is assigned to {LayerId}");
+                  TreeGridItem? assignedShip = FindShip(LayerId);
+                  if (assignedShip is null
+                     || (TryGetProperties(assignedShip, "Type", out string Disposition)
+                     && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
+                  {
+                     if (justTakeCareOfIt)
+                     {
+                        Debug.WriteLine("Could not find a friendly ship with that ID; finding any friendly ship");
+                        assignedShip = FindShip(ShipDisposition.Friendly);
+                        if (assignedShip is not null)
+                        {
+                           TryGetProperties(assignedShip, "Id", out string newShipID);
+                           if (TrySetProperty(mission, "AssignedLayerId", newShipID))
+                           {
+                              Debug.WriteLine($"successfully transferred mission to {newShipID}");
+                           }
+                        }
+                        else
+                        {
+                           Debug.WriteLine("Could not find any friendly ship! WTF?");
+                        }
+                     }
+                     return true;
+                  }
+                  else
+                  {
+                     return false;
+                  }
+               }
+            }
+         }
+         else
+         {
+            Debug.WriteLine("Could not get Missions node");
+         }
+         return false;
+      }
+      private bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
+      {
+         if (required == actual || required == ShipDisposition.Any)
+         {
+            return true;
+         }
+         else
+         {
+            return false;
+         }
+      }
+      private ShipDisposition StringDescToShipDisposition(string desc)
+      {
+         switch (desc)
+         {
+            case "FriendlyShip":
+               {
+                  return ShipDisposition.Friendly;
+               }
+            case "NeutralShip":
+               {
+                  return ShipDisposition.Neutral;
+               }
+            case "HostileShip":
+               {
+                  return ShipDisposition.Hostile;
+               }
+            case "Derelict":
+               {
+                  return ShipDisposition.Derelict;
+               }
+            case "ForSale":
+               {
+                  return ShipDisposition.ForSale;
+               }
+            default:
+               {
+                  return ShipDisposition.Any;
+               }
+         }
+      }
+      //private bool CheckMissionsNodesForTutorialFlightReady()
+      //{
+
+      //}
+      private TreeGridItem? GetMissionsNode()
+      {
+         TreeGridItem root = GetRoot();
+         TreeGridItem? MissionsSupernode = null;
+         foreach (TreeGridItem item in root.Children)
+         {
+            if (item.Tag.ToString() == "Missions")
+            {
+               MissionsSupernode = item;
+               break;
+            }
+         }
+         if (MissionsSupernode is not null)
+         {
+            TreeGridItem? MissionsNode = (TreeGridItem)MissionsSupernode.Children[0];
+            if (MissionsNode.Tag.ToString() == "Missions")
+            {
+               return MissionsNode;
+            }
+         }
+         return null;
+      }
+      private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
+      {
+         TreeGridItem root = GetRoot();
+         foreach (TreeGridItem item in root.Children)
+         {
+            if (TryGetProperties(item, "Class", out string Class) && Class == "Ship"
+               && TryGetProperties(item, "Id", out string ID) && ID == LayerId
+               && TryGetProperties(item, "Type", out string Disposition) && Disposition == disposition.ToString())
+            {
+               return item;
+            }
+         }
+         return null;
+      }
+      private TreeGridItem? FindShip(ShipDisposition disposition = ShipDisposition.Any)
+      {
+         TreeGridItem root = GetRoot();
+         foreach (TreeGridItem item in root.Children)
+         {
+            if (TryGetProperties(item, "Class", out string Class) && Class == "Ship"
+               && TryGetProperties(item, "Id", out string ID)
+               && TryGetProperties(item, "Type", out string Disposition)
+               && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition)))
+            {
+               return item;
+            }
+         }
+         return null;
+      }
+
+      public bool DerelictsPresent()
+      {
+         return DerelictsPresent(GetRoot());
+      }
+      private bool DerelictsPresent(TreeGridItem item)
+      {
+         if (item.Children.Count == 0)
+         {
+            return false;
+         }
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         if (properties.Contains((object)"Type") && properties.Contains((object)"Class"))
+         {
+            var t = properties[(object)"Type"];
+            if (t is not null && t.ToString() == "Derelict")
+            {
+               return true;
+            }
+         }
+
+         foreach (TreeGridItem child in item.Children.Cast<TreeGridItem>())
+         {
+            if (DerelictsPresent(child)) return true;
+         }
+
+         return false;
+      }
+      private bool PropertiesContains(TreeGridItem item, string propertyname) // todo: figure out how to do multiples
+      {
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         if (properties.Contains((object)propertyname))
+         {
+            return true;
+         }
+         return false;
+      }
+      private bool TryGetProperties(TreeGridItem item, string propertyName, out string propertyValue) // todo: figure out how to do multiples
+      {
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         if (properties.Contains((object)propertyName))
+         {
+            string t = properties[(object)propertyName]!.ToString()!;
+            if (t is not null)
+            {
+               propertyValue = t;
+               return true;
+            }
+         }
+         propertyValue = string.Empty;
+         return false;
+      }
+      private bool TrySetProperty(TreeGridItem item, string propertyName, string propertyValue)
+      {
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         if (properties.Contains((object)propertyName))
+         {
+            properties[(object)propertyName] = propertyValue;
+            //string t = properties[(object)propertyname]!.ToString()!;
+            //if (t is not null)
+            //{
+            //   propertyvalue = t;
+            return true;
+            //}
+         }
+         //propertyvalue = string.Empty;
+         return false;
+      }
+      private TreeGridItem GetRoot()
+      {
+         TreeGridView tree = GetTreeGridView();
+         TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
+         TreeGridItem root = (TreeGridItem)items[0];
+         return root;
+      }
 
       public void Rebuild(Node root)
       {
@@ -835,7 +990,48 @@ namespace LaSSI
          UpdateApplyRevertButtons(DetailsLayout.State.Applied);
       }
       #region event handlers
+      private void DeleteRow_Executed(object? sender, EventArgs e)
+      {
+         GridView grid = GetDefaultGridView();
+         if (grid.SelectedRow >= 0)
+         {
+            Oncler row = (Oncler)grid.SelectedItem;
+            CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
 
+            ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
+         }
+      }
+
+      private void AddRow_Executed(object? sender, EventArgs e)
+      {
+         GridView grid = GetDefaultGridView();
+         ObservableCollection<Oncler> onclers = ((ObservableCollection<Oncler>)grid.DataStore);
+         int i = onclers.Count;
+
+         TextInputDialog dialog = new("New row", "Key");
+         dialog.ShowModal(this);
+         if (dialog.GetDialogResult() == DialogResult.Ok)
+         {
+            string newkey = dialog.GetInput();
+            bool alreadyInUse = false;
+            foreach (var f in onclers)
+            {
+               if (f.Key == newkey) alreadyInUse = true;
+            }
+            if (alreadyInUse)
+            {
+               MessageBox.Show("That key is already in use", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
+            }
+            else
+            {
+               Oncler newRow = new(newkey);
+               CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, newRow, CollectionChange.ActionType.Addition);
+               onclers.Add(newRow);
+               grid.SelectRow(i);
+               grid.BeginEdit(i, 1);
+            }
+         }
+      }
       private void DefaultGridView_CellEdited(object? sender, GridViewCellEventArgs e)
       {
          //DetailsLayout.State state = DetailsLayout.State.Unmodified;

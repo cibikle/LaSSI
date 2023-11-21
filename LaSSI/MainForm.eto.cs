@@ -89,7 +89,7 @@ namespace LaSSI
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
       }
-      
+
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
          var InventoryMasterList = new List<InventoryGridItem>();
@@ -243,7 +243,7 @@ namespace LaSSI
             saveFile.Load();
             UpdateUiAfterLoad();
             CustomCommands.EnableSaveAs(this.Menu);
-            CustomCommands.EnableTools(Menu);
+            CustomCommands.EnableTools(Menu, DataPanel);
          }
          else
          {
@@ -252,8 +252,8 @@ namespace LaSSI
       }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
-         //todo: test if the issue exists first
-
+         if (DataPanel.AssertionFailureConditionExists(true))
+            _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
       }
 
       internal void CleanDerelicts_Executed(object? sender, EventArgs e)
