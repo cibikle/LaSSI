@@ -899,6 +899,27 @@ namespace LaSSI
 
          return success;
       }
+      internal bool DetectMeteors()
+      {
+         TreeGridItem root = GetRoot();
+         TreeGridItem Weather = GetChildNode(root, "Weather")!;
+         if (TryGetProperties(Weather, "Meteors", out string meteorsOn))
+         {
+            return meteorsOn == "true";
+         }
+         else
+         {
+            return false;
+         }
+      }
+      internal bool TurnOffMeteors()
+      {
+         TreeGridItem root = GetRoot();
+         TreeGridItem Weather = GetChildNode(root, "Weather")!;
+         bool success = TrySetProperty(Weather, "Meteors", "false");
+         if (success) UpdateDetailsPanel(Weather, true);
+         return success;
+      }
       private bool PropertiesContains(TreeGridItem item, string propertyname) // todo: figure out how to do multiples
       {
          OrderedDictionary properties = (OrderedDictionary)item.Values[1];

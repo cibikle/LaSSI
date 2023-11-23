@@ -26,6 +26,7 @@ namespace LaSSI
          ToolsList.Add(CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
          ToolsList.Add(CustomCommands.CreateResetCameraCommand(ResetCamera_Executed));
          ToolsList.Add(CustomCommands.CreateResetCometCommand(ResetComet_Executed));
+         ToolsList.Add(CustomCommands.CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
       }
 
       #region commands
@@ -73,6 +74,17 @@ namespace LaSSI
          resetCamera.Executed += ResetComet_Executed;
          resetCamera.Enabled = false;
          return resetCamera;
+      }
+      internal static Command CreateTurnOffMeteorsCommand(EventHandler<EventArgs> TurnOffMeteors_Executed)
+      {
+         var turnOffMeteors = new Command
+         {
+            MenuText = "Turn off meteors",
+            ID = "TurnOffMeteorsTool"
+         };
+         turnOffMeteors.Executed += TurnOffMeteors_Executed;
+         turnOffMeteors.Enabled = false;
+         return turnOffMeteors;
       }
       internal static Command CreateQuitCommand()
       {
@@ -154,6 +166,11 @@ namespace LaSSI
                   enablability = data.CometExists();
                   break;
                }
+            case "TurnOffMeteorsTool":
+               {
+                  enablability = data.DetectMeteors();
+                  break;
+               }
          }
 
          return enablability;
@@ -228,7 +245,7 @@ namespace LaSSI
          if (sender is Command c and not null && MainForm.DataPanel.AssertionFailureConditionExists(true))
          {
             _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-            c.Enabled = true;
+            c.Enabled = false;
             //todo: invalidate/refresh details if selected
          }
       }
@@ -278,6 +295,14 @@ namespace LaSSI
          if (sender is Command c and not null && MainForm.DataPanel.ResetComet())
          {
             _ = MessageBox.Show("Comet(s) reset to system center", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
+         }
+      }
+      internal void TurnOffMeteors_Executed(object? sender, EventArgs e)
+      {
+         if (sender is Command c and not null && MainForm.DataPanel.TurnOffMeteors())
+         {
+            _ = MessageBox.Show("Meteors turned off", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
          }
       }
