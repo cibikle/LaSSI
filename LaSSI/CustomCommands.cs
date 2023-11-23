@@ -30,7 +30,7 @@ namespace LaSSI
          var fixAssertionFailed = new Command
          {
             MenuText = "Fix assertion failed",
-            Shortcut = Application.Instance.CommonModifier | Keys.J,
+            //Shortcut = Application.Instance.CommonModifier | Keys.J,
             ID = "FixAssertionFailedTool"
          };
          fixAssertionFailed.Executed += FixAssertionFailed_Executed;
@@ -42,10 +42,22 @@ namespace LaSSI
          var resetCamera = new Command
          {
             MenuText = "Reset camera",
-            Shortcut = Application.Instance.CommonModifier | Keys.R,
+            //Shortcut = Application.Instance.CommonModifier | Keys.R,
             ID = "ResetCameraTool"
          };
          resetCamera.Executed += ResetCamera_Executed;
+         resetCamera.Enabled = false;
+         return resetCamera;
+      }
+      internal static Command CreateResetCometCommand(EventHandler<EventArgs> ResetComet_Executed)
+      {
+         var resetCamera = new Command
+         {
+            MenuText = "Reset comet(s)",
+            //Shortcut = Application.Instance.CommonModifier | Keys.R,
+            ID = "ResetCometTool"
+         };
+         resetCamera.Executed += ResetComet_Executed;
          resetCamera.Enabled = false;
          return resetCamera;
       }
@@ -124,9 +136,18 @@ namespace LaSSI
                   enablability = true;
                   break;
                }
+            case "ResetCometTool":
+               {
+                  enablability = data.CometExists();
+                  break;
+               }
          }
 
          return enablability;
       }
+      //internal static void SetToolEnabled(MenuItem tool, bool enabled)
+      //{
+      //   tool.Enabled = enabled;
+      //}
    }
 }

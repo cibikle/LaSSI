@@ -46,6 +46,7 @@ namespace LaSSI
          var cleanDerelictsCommand = CustomCommands.CreateCleanDerelictsCommand(CleanDerelicts_Executed);
          var fixAssertionFailedCommand = CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed);
          var resetCameraCommand = CustomCommands.CreateResetCameraCommand(ResetCamera_Executed);
+         var resetCometCommand = CustomCommands.CreateResetCometCommand(ResetComet_Executed);
          // ^^^ this is getting out of hand
          // create menu
          Menu = new MenuBar
@@ -54,7 +55,11 @@ namespace LaSSI
             {
                // File submenu
                new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
-               new SubMenuItem { Text = "&Tools", Items = { cleanDerelictsCommand, fixAssertionFailedCommand, resetCameraCommand } },
+               new SubMenuItem { Text = "&Tools", Items =
+                  {
+                     cleanDerelictsCommand, fixAssertionFailedCommand, resetCameraCommand, resetCometCommand
+                  }
+               },
                // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             //ApplicationItems =
@@ -254,23 +259,27 @@ namespace LaSSI
       }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
-         if (DataPanel.AssertionFailureConditionExists(true))
+         if (sender is Command c and not null && DataPanel.AssertionFailureConditionExists(true))
          {
             _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = true;
+            //todo: invalidate/refresh details if selected
          }
       }
 
       internal void CleanDerelicts_Executed(object? sender, EventArgs e)
       {
-         RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "current system", "sector-wide", /*"specific system"*/ });
-         r.ShowModal(this);
-         DialogResult d = r.GetDialogResult();
-         if (d == DialogResult.Ok)
-         {
-            Debug.WriteLine(r.GetSelectedIndex());
-            DataPanel.CleanDerelicts((DataPanel.DerelictsCleaningMode)r.GetSelectedIndex());
-            _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-         }
+         //RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "sector-wide", "current system(s)",  /*"specific system"*/ });
+         //r.ShowModal(this);
+         //DialogResult d = r.GetDialogResult();
+         //if (d == DialogResult.Ok)
+         //{
+         //Debug.WriteLine(r.GetSelectedIndex());
+         DataPanel.CleanDerelicts(DataPanel.DerelictsCleaningMode.SectorWide);
+         _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         CustomCommands.EnableTools(Menu, DataPanel);
+         //todo: invalidate/refresh details if selected
+         //}
       }
       internal void ResetCamera_Executed(object? sender, EventArgs e)
       {
@@ -282,9 +291,28 @@ namespace LaSSI
          //   Debug.WriteLine(r.GetSelectedIndex());
 
          //}
-         if (DataPanel.ResetCamera())
+         if (sender is Command c and not null && DataPanel.ResetCamera())
          {
             _ = MessageBox.Show("Camera reset to system center, viewsize 100", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
+         }
+      }
+      internal void ResetComet_Executed(object? sender, EventArgs e)
+      {
+         //RadioInputDialog r = new RadioInputDialog("Reset camera to...", new string[] { "system center", "nearest friendly ship" });
+         //r.ShowModal(this);
+         //DialogResult d = r.GetDialogResult();
+         //if (d == DialogResult.Ok)
+         //{
+         //   Debug.WriteLine(r.GetSelectedIndex());
+
+         //}
+         // todo: prompt for clarification if more than 1 comet?
+
+         if (sender is Command c and not null && DataPanel.ResetComet())
+         {
+            _ = MessageBox.Show("Comet(s) reset to system center", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
          }
       }
       private void PrefsCommand_Executed(Object? sender, EventArgs e)

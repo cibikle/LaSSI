@@ -50,6 +50,7 @@ namespace LaSSI
          Enabled = false
       };
       private DetailsLayout? CurrentDetails;
+      private List<TreeGridItem>? systemsWithComets = null;
       public DataPanel()
       {
 
@@ -242,7 +243,7 @@ namespace LaSSI
       {
          TreeGridView tree = GetTreeGridView();
          TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
-         List<TreeGridItem> toRemove = new List<TreeGridItem>();
+         List<TreeGridItem> toRemove;
          TreeGridItem root = (TreeGridItem)items.First();
          TreeGridItemCollection sysArchChildren = ((TreeGridItem)((TreeGridItem)root[1])[2]).Children;
          switch (mode)
@@ -253,6 +254,7 @@ namespace LaSSI
                   foreach (var v in toRemove)
                   {
                      root.Children.Remove(v);
+                     ClearItemFromCache(v);
                   }
                   break;
                }
@@ -265,6 +267,7 @@ namespace LaSSI
                      foreach (var v in toRemove)
                      {
                         sys.Children.Remove(v);
+                        ClearItemFromCache(v);
                      }
                   }
 
@@ -272,6 +275,7 @@ namespace LaSSI
                   foreach (var v in toRemove)
                   {
                      root.Children.Remove(v);
+                     ClearItemFromCache(v);
                   }
                   break;
                }
@@ -755,6 +759,49 @@ namespace LaSSI
          }
          return null;
       }
+      private TreeGridItem? GetGalaxyNode()
+      {
+         return GetChildNode(GetRoot(), "Galaxy");
+      }
+      private TreeGridItem? GetChildNode(TreeGridItem item, string childname, bool looseMatch = false)
+      {
+         foreach (TreeGridItem child in item.Children)
+         {
+            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            {
+               return child;
+            }
+         }
+         return null;
+      }
+      private TreeGridItem? GetSystemArchives()
+      {
+         return GetChildNode(GetGalaxyNode(), "SystemArchives");
+      }
+      private TreeGridItem? GetSystemArchive(string id)
+      {
+         TreeGridItem systemArchives = GetSystemArchives();
+         foreach (TreeGridItem systemArchive in systemArchives.Children)
+         {
+            if (systemArchive.Tag.ToString()!.Contains(id)) return systemArchive;
+         }
+         return null;
+      }
+      private List<TreeGridItem> FindChildNodesWithProperty(TreeGridItem item, string propertyName, string propertyValue = "")
+      {
+         List<TreeGridItem> list = new();
+         foreach (TreeGridItem child in item.Children.Cast<TreeGridItem>())
+         {
+            if (TryGetProperties(child, propertyName, out string value))
+            {
+               if ((propertyValue != "" && propertyValue == value) || propertyValue == "")
+               {
+                  list.Add(child);
+               }
+            }
+         }
+         return list;
+      }
       private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
       {
          TreeGridItem root = GetRoot();
@@ -811,6 +858,49 @@ namespace LaSSI
          }
 
          return false;
+      }
+      public bool CometExists()
+      {
+         TreeGridItem? galaxy = GetGalaxyNode();
+         if (galaxy is not null)
+         {
+            TreeGridItem? galaxyObjects = GetChildNode(galaxy, "Objects");
+            if (galaxyObjects is not null)
+            {
+               systemsWithComets = FindChildNodesWithProperty(galaxyObjects, "Comet", "true");
+               if (systemsWithComets.Count > 0) return true;
+            }
+         }
+
+         return false;
+      }
+      internal bool ResetComet()
+      {
+         bool success = true;
+         if (systemsWithComets is not null)
+         {
+            foreach (var systemWithComet in systemsWithComets)
+            {
+               // get each ID property
+               if (TryGetProperties(systemWithComet, "Id", out string systemId))
+               {
+                  TreeGridItem system = GetSystemArchive(systemId);
+                  List<TreeGridItem> comets = FindChildNodesWithProperty(GetChildNode(GetChildNode(system, "FreeSpace", true), "Objects"), "Type", "Comet");
+                  foreach (var comet in comets)
+                  {
+                     success = success && TrySetProperty(comet, "Position.x", "0");
+                     success = success && TrySetProperty(comet, "Position.y", "0");
+                     UpdateDetailsPanel(comet, true);
+                  }
+               }
+            }
+         }
+         else
+         {
+            success = false;
+         }
+
+         return success;
       }
       private bool PropertiesContains(TreeGridItem item, string propertyname) // todo: figure out how to do multiples
       {
@@ -1174,12 +1264,7 @@ namespace LaSSI
 
       private void ApplyButton_Click(object? sender, EventArgs e) // todo: generic way to get ahold of the current details-details panel (damn, I've really screwed up the nomenclature...)
       {
-         //MessageBox.Show("Apply button clicked");
-         // oh god here we go
          TreeGridItem item = GetSelectedTreeGridItem();
-         //GridView gridview = GetDefaultGridView();
-         //ListBuilder listBuilder = GetListBuilder();
-         //Control detailControl = GetPanel2DetailsLayout().Content;
          Control detailControl = GetDetailsControl();
          if (detailControl is not null)
          {
@@ -1257,6 +1342,7 @@ namespace LaSSI
             }
          }
       }
+
       #endregion event handlers
    }
 
