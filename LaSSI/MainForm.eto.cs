@@ -2,15 +2,10 @@ using Eto;
 using Eto.Drawing;
 using Eto.Forms;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
@@ -23,13 +18,14 @@ namespace LaSSI
    }
    partial class MainForm : Form
    {
-      private System.Uri savesFolder = GetSavesUri();
-      private string saveFilePath = string.Empty;
-      private SaveFilev2 saveFile = new();
-      private List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
-      private readonly string FileFormat = "Last Starship save files|*.space";
-      private ProgressBar LoadingBar = new();
-      private DataPanel DataPanel;
+      internal System.Uri savesFolder = GetSavesUri();
+      internal string saveFilePath = string.Empty;
+      internal SaveFilev2 saveFile = new();
+      internal List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
+      internal readonly string FileFormat = "Last Starship save files|*.space";
+      internal ProgressBar LoadingBar = new();
+      internal DataPanel DataPanel;
+      internal CustomCommands CustomCommands;
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
@@ -39,35 +35,27 @@ namespace LaSSI
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
          DataPanel = new DataPanel(InventoryMasterList, Width);
-         var openFileCommand = CustomCommands.CreateOpenFileCommand(OpenFileCommand_Executed);
-         var saveFileAsCommand = CustomCommands.CreateSaveFileAsCommand(SaveFileAsCommand_Executed);
-         var quitCommand = CustomCommands.CreateQuitCommand();
-         /*var prefsCommand = new Command(PrefsCommand_Executed);*/
-         var cleanDerelictsCommand = CustomCommands.CreateCleanDerelictsCommand(CleanDerelicts_Executed);
-         var fixAssertionFailedCommand = CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed);
-         var resetCameraCommand = CustomCommands.CreateResetCameraCommand(ResetCamera_Executed);
-         var resetCometCommand = CustomCommands.CreateResetCometCommand(ResetComet_Executed);
-         // ^^^ this is getting out of hand
+         CustomCommands = new CustomCommands(this);
          // create menu
+         SubMenuItem fileMenu = new() { Text = "&File" };
+         fileMenu.Items.AddRange(CustomCommands.FileCommands);
+         SubMenuItem toolsMenu = new() { Text = "&Tools" };
+         toolsMenu.Items.AddRange(CustomCommands.ToolsList);
          Menu = new MenuBar
          {
             Items =
             {
                // File submenu
-               new SubMenuItem { Text = "&File", Items = { openFileCommand, saveFileAsCommand } },
-               new SubMenuItem { Text = "&Tools", Items =
-                  {
-                     cleanDerelictsCommand, fixAssertionFailedCommand, resetCameraCommand, resetCometCommand
-                  }
-               },
-               // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
+               fileMenu,
+               toolsMenu
+            // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             //ApplicationItems =
             //{
             //   // application (OS X) or file menu (others)
             //   new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
             //},
-            QuitItem = quitCommand,
+            QuitItem = CustomCommands.QuitCommand,
             AboutItem = new AboutCommand(this)
 
          };
@@ -145,7 +133,7 @@ namespace LaSSI
          var adjustedCenter = new Point(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
          return adjustedCenter;
       }
-      private void UpdateUiAfterLoad()
+      internal void UpdateUiAfterLoad()
       {
          UpdateTextbox("saveFileTextbox", saveFilePath);
          DataPanel.Rebuild(saveFile.Root);
@@ -197,130 +185,5 @@ namespace LaSSI
          return fileLayout;
       }
 
-      #region event handlers
-      private void SaveFileAsCommand_Executed(object? sender, EventArgs e)
-      {
-         if (!DataPanel.ReadyForSave()) return;
-         string barefilename = Path.GetFileNameWithoutExtension(saveFilePath);
-         string dateappend = @"-\d{8}-\d{4}";
-         Match m = Regex.Match(barefilename, dateappend);
-         if (m.Success)
-         {
-            string foo = barefilename[..m.Index];
-            barefilename = foo;
-         }
-         string date = DateTime.Now.ToString("yyyyMMdd-HHmm");
-         string proposedfilename = $"{barefilename}-{date}.space";
-         SaveFileDialog saveDialog = new()
-         {
-            Directory = savesFolder,
-            FileName = proposedfilename,
-         };
-         saveDialog.Filters.Add(FileFormat);
-         LoadingBar.Visible = true;
-         if (saveDialog.ShowDialog(this) == DialogResult.Ok)
-         {
-            Debug.WriteLine($"{saveDialog.FileName}");
-            DynamicLayout bar = (DynamicLayout)this.Content;
-            TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
-            TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)![0];
-            FileWriter writer = new FileWriter();
-            bool success = writer.WriteFile(y, saveDialog.FileName);
-            LoadingBar.Visible = false;
-         }
-         else
-         {
-            LoadingBar.Visible = false;
-         }
-      }
-      private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
-      {
-         OpenFileDialog fileDialog = new()
-         {
-            Directory = savesFolder
-         };
-         fileDialog.Filters.Add(FileFormat);
-         LoadingBar.Visible = true;
-         if (fileDialog.ShowDialog(this) == DialogResult.Ok)
-         {
-            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-
-            saveFilePath = fileDialog.FileName;
-            saveFile = new SaveFilev2(saveFilePath);
-            saveFile.Load();
-            UpdateUiAfterLoad();
-            CustomCommands.EnableSaveAs(this.Menu);
-            CustomCommands.EnableTools(Menu, DataPanel);
-         }
-         else
-         {
-            LoadingBar.Visible = false;
-         }
-      }
-      internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
-      {
-         if (sender is Command c and not null && DataPanel.AssertionFailureConditionExists(true))
-         {
-            _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-            c.Enabled = true;
-            //todo: invalidate/refresh details if selected
-         }
-      }
-
-      internal void CleanDerelicts_Executed(object? sender, EventArgs e)
-      {
-         //RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "sector-wide", "current system(s)",  /*"specific system"*/ });
-         //r.ShowModal(this);
-         //DialogResult d = r.GetDialogResult();
-         //if (d == DialogResult.Ok)
-         //{
-         //Debug.WriteLine(r.GetSelectedIndex());
-         DataPanel.CleanDerelicts(DataPanel.DerelictsCleaningMode.SectorWide);
-         _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-         CustomCommands.EnableTools(Menu, DataPanel);
-         //todo: invalidate/refresh details if selected
-         //}
-      }
-      internal void ResetCamera_Executed(object? sender, EventArgs e)
-      {
-         //RadioInputDialog r = new RadioInputDialog("Reset camera to...", new string[] { "system center", "nearest friendly ship" });
-         //r.ShowModal(this);
-         //DialogResult d = r.GetDialogResult();
-         //if (d == DialogResult.Ok)
-         //{
-         //   Debug.WriteLine(r.GetSelectedIndex());
-
-         //}
-         if (sender is Command c and not null && DataPanel.ResetCamera())
-         {
-            _ = MessageBox.Show("Camera reset to system center, viewsize 100", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-            c.Enabled = false;
-         }
-      }
-      internal void ResetComet_Executed(object? sender, EventArgs e)
-      {
-         //RadioInputDialog r = new RadioInputDialog("Reset camera to...", new string[] { "system center", "nearest friendly ship" });
-         //r.ShowModal(this);
-         //DialogResult d = r.GetDialogResult();
-         //if (d == DialogResult.Ok)
-         //{
-         //   Debug.WriteLine(r.GetSelectedIndex());
-
-         //}
-         // todo: prompt for clarification if more than 1 comet?
-
-         if (sender is Command c and not null && DataPanel.ResetComet())
-         {
-            _ = MessageBox.Show("Comet(s) reset to system center", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-            c.Enabled = false;
-         }
-      }
-      private void PrefsCommand_Executed(Object? sender, EventArgs e)
-      {
-         var dlg = new Modal(new List<string> { "Preferences not implemented" });
-         //dlg.Content.
-         dlg.ShowModal(Application.Instance.MainForm);
-      }
-      #endregion event handlers
    }
 }

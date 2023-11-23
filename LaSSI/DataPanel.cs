@@ -7,9 +7,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Eto;
-using System.Reflection.Metadata;
-using System.ComponentModel;
 
 namespace LaSSI
 {
@@ -1194,10 +1191,9 @@ namespace LaSSI
 
       private void TreeView_SelectedItemChanged(object? sender, EventArgs e)
       {
-         if (sender is not null and TreeGridView)
+         if (sender is not null and TreeGridView view)
          {
-            TreeGridView tree = (TreeGridView)sender;
-            TreeGridItem item = (TreeGridItem)(tree).SelectedItem;
+            TreeGridItem item = (TreeGridItem)view.SelectedItem;
             //item.SetValue(2, Colors.Magenta);
             if (item is not null)
             {
