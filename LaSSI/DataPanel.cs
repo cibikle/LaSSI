@@ -280,8 +280,7 @@ namespace LaSSI
             ID = "DefaultGridView"
 
          };
-         defaultGridView.ContextMenu = new ContextMenu(AddGridViewRow(), DeleteGridViewRow());
-         //defaultGridView.
+         defaultGridView.ContextMenu = new ContextMenu(EditGridViewRow(), AddGridViewRow(), DeleteGridViewRow());
          defaultGridView.Columns.Add(new GridColumn
          {
             HeaderText = "Key",
@@ -307,9 +306,15 @@ namespace LaSSI
          bar.CollectionChanged += Bar_CollectionChanged;
          return defaultGridView;
       }
+      private Command EditGridViewRow()
+      {
+         var editNewRow = new Command { MenuText = "Edit row" };
+         editNewRow.Executed += EditRow_Executed;
+         return editNewRow;
+      }
       private Command AddGridViewRow()
       {
-         var addNewRow = new Command { MenuText = "Add row", /*Shortcut = Application.Instance.CommonModifier | Keys.Equal*/ };
+         var addNewRow = new Command { MenuText = "Add row" };
          addNewRow.Executed += AddRow_Executed;
          return addNewRow;
       }
@@ -1383,7 +1388,15 @@ namespace LaSSI
          }
          UpdateApplyRevertButtons(DetailsLayout.State.Applied);
       }
+      private int GetFirstEditableColumn(GridView grid)
+      {
+         foreach (var column in grid.Columns)
+         {
+            if (column.Editable) return column.DisplayIndex;
+         }
 
+         return -1;
+      }
       #region event handlers
       private void DeleteRow_Executed(object? sender, EventArgs e)
       {
@@ -1394,6 +1407,17 @@ namespace LaSSI
             CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
 
             ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
+         }
+      }
+
+      private void EditRow_Executed(object? sender, EventArgs e)
+      {
+         GridView grid = GetDefaultGridView();
+         int selectedRow = grid.SelectedRow;
+         int firstEditableColumn = GetFirstEditableColumn(grid);
+         if (selectedRow >= 0 && firstEditableColumn >= 0)
+         {
+            grid.BeginEdit(selectedRow, firstEditableColumn);
          }
       }
 
