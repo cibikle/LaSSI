@@ -51,6 +51,7 @@ namespace LaSSI
       private DetailsLayout? CurrentDetails;
       private List<TreeGridItem>? systemsWithComets = null;
       private List<TreeGridItem>? crossSectorMissions = null;
+      private List<TreeGridItem>? weatherReports = null;
       public DataPanel()
       {
 
@@ -747,18 +748,39 @@ namespace LaSSI
          }
          return null;
       }
-      private TreeGridItem? GetSystemArchives()
+      private List<TreeGridItem> GetChildNodes(TreeGridItem item, string childname, bool looseMatch = false)
       {
-         return GetChildNode(GetGalaxyNode(), "SystemArchives");
-      }
-      private TreeGridItem? GetSystemArchive(string id)
-      {
-         TreeGridItem systemArchives = GetSystemArchives();
-         foreach (TreeGridItem systemArchive in systemArchives.Children)
+         List<TreeGridItem> children = new();
+         foreach (TreeGridItem child in item.Children)
          {
-            if (systemArchive.Tag.ToString()!.Contains(id)) return systemArchive;
+            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            {
+               children.Add(child);
+            }
          }
-         return null;
+         return children;
+      }
+      private List<TreeGridItem> FindChildNodesWithProperties(TreeGridItem item, string childname, bool looseMatch = false, List<string>? properties = null)
+      {
+         List<TreeGridItem> children = new();
+         foreach (TreeGridItem child in item.Children)
+         {
+            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            {
+               if (properties is not null)
+               {
+                  if (HasProperties(child, properties.ToArray()))
+                  {
+                     children.Add(child);
+                  }
+               }
+               else
+               {
+                  children.Add(child);
+               }
+            }
+         }
+         return children;
       }
       private List<TreeGridItem> FindChildNodesWithProperty(TreeGridItem item, string propertyName, string propertyValue = "")
       {// todo: do multiples
@@ -774,6 +796,19 @@ namespace LaSSI
             }
          }
          return list;
+      }
+      private TreeGridItem? GetSystemArchives()
+      {
+         return GetChildNode(GetGalaxyNode(), "SystemArchives");
+      }
+      private TreeGridItem? GetSystemArchive(string id)
+      {
+         TreeGridItem systemArchives = GetSystemArchives();
+         foreach (TreeGridItem systemArchive in systemArchives.Children)
+         {
+            if (systemArchive.Tag.ToString()!.Contains(id)) return systemArchive;
+         }
+         return null;
       }
       private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
       {
@@ -950,23 +985,28 @@ namespace LaSSI
       internal bool DetectMeteors()
       {
          TreeGridItem root = GetRoot();
-         TreeGridItem Weather = GetChildNode(root, "Weather")!;
-         if (TryGetProperty(Weather, "Meteors", out string meteorsOn))
+         weatherReports = FindChildNodesWithProperties(root, "Weather", false, new List<string> { "Meteors" });
+         return weatherReports.Count > 0;
+      }
+      internal bool TurnOffMeteors()
+      {
+         if (weatherReports is not null && weatherReports.Count > 0)
          {
-            return meteorsOn == "true";
+            int count = 0;
+            foreach (var weatherReport in weatherReports)
+            {
+               if (TrySetProperty(weatherReport, "Meteors", "false"))
+               {
+                  count++;
+                  UpdateDetailsPanel(weatherReport, true);
+               }
+            }
+            return count == weatherReports.Count;
          }
          else
          {
             return false;
          }
-      }
-      internal bool TurnOffMeteors()
-      {
-         TreeGridItem root = GetRoot();
-         TreeGridItem Weather = GetChildNode(root, "Weather")!;
-         bool success = TrySetProperty(Weather, "Meteors", "false");
-         if (success) UpdateDetailsPanel(Weather, true);
-         return success;
       }
       public bool AssertionFailureConditionExists(bool justTakeCareOfIt = false)
       {
@@ -1171,6 +1211,28 @@ namespace LaSSI
       {
          RemoveProperty(item, oldPropertyName);
          AddProperty(item, newPropertyName, newPropertyValue);
+      }
+      private static bool HasProperties(TreeGridItem item, string[] propertyNames, bool all = false)
+      {
+         int matchCount = -1;
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         foreach (var name in propertyNames)
+         {
+            if (properties.Contains((object)name))
+            {
+               if (all)
+               {
+                  if (matchCount < 0) matchCount = 0;
+                  matchCount++;
+               }
+               else
+               {
+                  return true;
+               }
+            }
+         }
+
+         return matchCount == propertyNames.Length;
       }
       private static bool TryGetProperties(TreeGridItem item, string[] propertyNames, out Dictionary<string, string> propertyValues) // add switch for any vs all?
       {

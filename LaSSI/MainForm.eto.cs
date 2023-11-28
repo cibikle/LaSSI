@@ -29,7 +29,7 @@ namespace LaSSI
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
-         Title = "LaSSI (Last Starship Save Inspector)";
+         Title = "LaSSI (the Last Starship Save Inspector)";
          MinimumSize = new Size(200, 200);
          Size = new Size(1024, 600);
          Location = AdjustForFormSize(GetScreenCenter(), Size);

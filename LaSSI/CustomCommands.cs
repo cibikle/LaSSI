@@ -127,7 +127,7 @@ namespace LaSSI
          var saveFileAsCommand = new Command
          {
             MenuText = "Save As",
-            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.S, // todo: after Save is implemented, put the Shift back
+            Shortcut = Application.Instance.CommonModifier | /*Keys.Shift |*/ Keys.S, // todo: after Save is implemented, put the Shift back
             Enabled = false,
             ID = "SaveFileAsCommand"
          };
@@ -251,8 +251,8 @@ namespace LaSSI
             MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
             MainForm.saveFile.Load();
             MainForm.UpdateUiAfterLoad();
-            CustomCommands.EnableSaveAs(MainForm.Menu);
-            CustomCommands.EnableTools(MainForm.Menu, MainForm.DataPanel);
+            EnableSaveAs(MainForm.Menu);
+            EnableTools(MainForm.Menu, MainForm.DataPanel);
          }
          else
          {
@@ -278,7 +278,7 @@ namespace LaSSI
          //Debug.WriteLine(r.GetSelectedIndex());
          MainForm.DataPanel.CleanDerelicts(DataPanel.DerelictsCleaningMode.SectorWide);
          _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
-         CustomCommands.EnableTools(MainForm.Menu, MainForm.DataPanel);
+         EnableTools(MainForm.Menu, MainForm.DataPanel);
          //todo: invalidate/refresh details if selected
          //}
       }
