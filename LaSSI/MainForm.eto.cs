@@ -80,7 +80,9 @@ namespace LaSSI
          }
          else if (EtoEnvironment.Platform.IsMac)
          {
-            BringToFront(); //may or may not be needed
+#if DEBUG
+            BringToFront(); // this is useful for dev but causes a problem with release builds
+#endif
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
       }

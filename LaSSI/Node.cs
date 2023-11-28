@@ -125,7 +125,17 @@ namespace LaSSI
       }
       public bool IsResearch()
       {
-         if(this.Name == "Research") return true;
+         if (this.Name == "Research") return true;
+         return false;
+      }
+      public bool IsTradingPost()
+      {
+         if (this.Name == "TradingPost") return true;
+         return false;
+      }
+      public bool IsFtlJourney()
+      {
+         if (Parent != null && this.Parent.Name == "Journeys") return true;
          return false;
       }
       /// <summary>
@@ -137,19 +147,20 @@ namespace LaSSI
          if (this.Parent != null && DetermineIfChild) return this.Parent.IsLayer(DetermineIfChild);
          return false;
       }
-
+      internal bool IsLayerObject()
+      {
+         return this.IsLayer(true) && this.Parent != null && Parent.Name == "Objects";
+      }
       internal bool IsPalette(bool DetermineIfChild = false)
       {
          if (this.Name == "Palette") return true;
          if (this.Parent != null && DetermineIfChild) return this.Parent.IsPalette(DetermineIfChild);
          return false;
       }
-
       internal bool IsPowerGrid()
       {
          return this.Name == "PowerGrid";
       }
-
       internal bool IsEditor(bool DetermineIfChild = false)
       {
          if (this.Name == "Editor") return true;
@@ -192,6 +203,18 @@ namespace LaSSI
       {
          return $"{node.Properties["Id"]}, {node.Properties["Name"]}, {node.Properties["Type"]}";
       }
+      public static string GetTradingPostDetails(Node node)
+      {
+         return $"System {node.Properties["SystemId"]}";
+      }
+      private static string GetFtlJourneyDetails(Node node)
+      {
+         return $"System {node.Properties["FromSystem"]} to System {node.Properties["ToSystem"]}";
+      }
+      internal string GetLayerObjectDetails()
+      {
+         return $"{this.Properties["Type"]}";
+      }
       private string GetAddlNameDetails()
       {
          string addlDetails = string.Empty;
@@ -217,6 +240,18 @@ namespace LaSSI
          else if (this.IsMissionRequirement())
          {
             addlDetails = Node.GetMissionRequirement(this);
+         }
+         else if (this.IsTradingPost())
+         {
+            addlDetails = Node.GetTradingPostDetails(this);
+         }
+         else if (this.IsFtlJourney())
+         {
+            addlDetails = GetFtlJourneyDetails(this);
+         }
+         else if (this.IsLayerObject())
+         {
+            addlDetails = this.GetLayerObjectDetails();
          }
          return addlDetails;
       }

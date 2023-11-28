@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
+using System.Security.Cryptography;
 
 namespace LaSSI
 {
@@ -48,6 +50,7 @@ namespace LaSSI
       };
       private DetailsLayout? CurrentDetails;
       private List<TreeGridItem>? systemsWithComets = null;
+      private List<TreeGridItem>? crossSectorMissions = null;
       public DataPanel()
       {
 
@@ -218,72 +221,6 @@ namespace LaSSI
          }
 
          return detailsLayout;
-      }
-      public bool ResetCamera()
-      {
-         bool success = false;
-         TreeGridItem? Hud = GetHud();
-         if (Hud is not null)
-         {
-            TrySetProperty(Hud, "Camera.x", "0");
-            TrySetProperty(Hud, "Camera.y", "0");
-            success = TrySetProperty(Hud, "ViewSize", "100");
-
-            if (success)
-            {
-               UpdateDetailsPanel(Hud, true);
-            }
-         }
-         return success;
-      }
-      public void CleanDerelicts(DerelictsCleaningMode mode)  // todo: this whole thing kinda sucks. Works though!
-      {
-         TreeGridView tree = GetTreeGridView();
-         TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
-         List<TreeGridItem> toRemove;
-         TreeGridItem root = (TreeGridItem)items.First();
-         TreeGridItemCollection sysArchChildren = ((TreeGridItem)((TreeGridItem)root[1])[2]).Children;
-         switch (mode)
-         {
-            case DerelictsCleaningMode.CurrentSystem:
-               {
-                  toRemove = CompileDerelictList(root.Children);
-                  foreach (var v in toRemove)
-                  {
-                     root.Children.Remove(v);
-                     ClearItemFromCache(v);
-                  }
-                  break;
-               }
-            case DerelictsCleaningMode.SectorWide:
-               {
-
-                  foreach (TreeGridItem sys in sysArchChildren)
-                  {
-                     toRemove = CompileDerelictList(sys.Children);
-                     foreach (var v in toRemove)
-                     {
-                        sys.Children.Remove(v);
-                        ClearItemFromCache(v);
-                     }
-                  }
-
-                  toRemove = CompileDerelictList(root.Children);
-                  foreach (var v in toRemove)
-                  {
-                     root.Children.Remove(v);
-                     ClearItemFromCache(v);
-                  }
-                  break;
-               }
-               //case DerelictsCleaningMode.SpecificSystem:
-               //   {
-               //      // I don't know what to do here
-               //      break;
-               //   }
-         }
-         tree.DataStore = items;
-         ClearDetails();
       }
       private List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
       {
@@ -632,55 +569,6 @@ namespace LaSSI
          return (TreeGridView)this.Children.Where<Control>(x => x.ID == "DataTreeView").First();
          // pretty sure this blows up if the data tree isn't found
       }
-      public bool AssertionFailureConditionExists(bool justTakeCareOfIt = false)
-      {
-         TreeGridItem? MissionsNode = GetMissionsNode();
-         if (MissionsNode is not null)
-         {
-            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
-            {
-               if (mission.Tag.ToString()!.Contains("TutorialFlightReady")
-                  && TryGetProperties(mission, "AssignedLayerId", out string LayerId))
-               {
-                  Debug.WriteLine($"Mission is assigned to {LayerId}");
-                  TreeGridItem? assignedShip = FindShip(LayerId);
-                  if (assignedShip is null
-                     || (TryGetProperties(assignedShip, "Type", out string Disposition)
-                     && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
-                  {
-                     if (justTakeCareOfIt)
-                     {
-                        Debug.WriteLine("Could not find a friendly ship with that ID; finding any friendly ship");
-                        assignedShip = FindShip(ShipDisposition.Friendly);
-                        if (assignedShip is not null)
-                        {
-                           TryGetProperties(assignedShip, "Id", out string newShipID);
-                           if (TrySetProperty(mission, "AssignedLayerId", newShipID))
-                           {
-                              Debug.WriteLine($"successfully transferred mission to {newShipID}");
-                              UpdateDetailsPanel(mission, true);
-                           }
-                        }
-                        else
-                        {
-                           Debug.WriteLine("Could not find any friendly ship! WTF?");
-                        }
-                     }
-                     return true;
-                  }
-                  else
-                  {
-                     return false;
-                  }
-               }
-            }
-         }
-         else
-         {
-            Debug.WriteLine("Could not get Missions node");
-         }
-         return false;
-      }
       private bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
       {
          if (required == actual || required == ShipDisposition.Any)
@@ -756,9 +644,92 @@ namespace LaSSI
          }
          return null;
       }
+      private List<TreeGridItem> FindMissions(string[] tags)
+      {
+         TreeGridItem? MissionsNode = GetMissionsNode();
+         List<TreeGridItem> missions = new List<TreeGridItem>();
+         if (MissionsNode is not null)
+         {
+            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
+            {
+               if (ContainsOneOf(mission.Tag.ToString()!, tags))
+               {
+                  missions.Add(mission);
+               }
+            }
+         }
+
+         return missions;
+      }
+      private List<TreeGridItem> FindMissions(Dictionary<string, string> propertyKeysAndValues)
+      {
+         List<TreeGridItem> missions = new();
+         if (GetMissionsNode() is not null and TreeGridItem MissionsNode)
+         {
+            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
+            {
+               TryGetProperties(mission, propertyKeysAndValues.Keys.ToArray(), out Dictionary<string, string> propertyValues);
+               foreach (var propertyValue in propertyValues)
+               {
+                  if (propertyValue.Value.Equals(propertyKeysAndValues[propertyValue.Key]))
+                  {
+                     missions.Add(mission);
+                  }
+               }
+            }
+         }
+
+         return missions;
+      }
+
+      private bool ContainsOneOf(string stringToCheck, string[] stringsToCheckAgainst)
+      {
+         foreach (string stringToCheckAgainst in stringsToCheckAgainst)
+         {
+            if (stringToCheckAgainst.Equals(stringToCheck)) return true;
+         }
+         return false;
+      }
       private TreeGridItem? GetGalaxyNode()
       {
          return GetChildNode(GetRoot(), "Galaxy");
+      }
+      private List<TreeGridItem> GetGalaxyObjects(bool all = false, Dictionary<string, string>? filters = null)
+      {
+         List<TreeGridItem> matchingGalaxyObjects = new List<TreeGridItem>();
+         if (GetChildNode(GetGalaxyNode()!, "Objects") is not null and TreeGridItem galaxyObjects)
+         {
+            foreach (TreeGridItem galaxyObject in galaxyObjects.Children)
+            {
+               if (filters is not null && filters.Count > 0)
+               {
+                  //foreach (string filter in filters)
+                  //{
+                  if (TryGetProperties(galaxyObject, filters.Keys.ToArray(), out Dictionary<string, string> val))
+                  {
+                     int matchCount = 0;
+                     foreach (var entry in val)
+                     {
+                        if (entry.Value.Equals(filters[entry.Key]))
+                        {
+                           matchCount++;
+                        }
+                     }
+                     if ((all && matchCount == filters.Count) || matchCount > 0)
+                     {
+                        matchingGalaxyObjects.Add(galaxyObject);
+                     }
+                  }
+                  //}
+               }
+               else
+               {
+                  matchingGalaxyObjects.Add(galaxyObject);
+               }
+            }
+         }
+
+         return matchingGalaxyObjects;
       }
       private TreeGridItem? GetChildNode(TreeGridItem item, string childname, bool looseMatch = false)
       {
@@ -785,11 +756,11 @@ namespace LaSSI
          return null;
       }
       private List<TreeGridItem> FindChildNodesWithProperty(TreeGridItem item, string propertyName, string propertyValue = "")
-      {
+      {// todo: do multiples
          List<TreeGridItem> list = new();
          foreach (TreeGridItem child in item.Children.Cast<TreeGridItem>())
          {
-            if (TryGetProperties(child, propertyName, out string value))
+            if (TryGetProperty(child, propertyName, out string value))
             {
                if ((propertyValue != "" && propertyValue == value) || propertyValue == "")
                {
@@ -801,12 +772,14 @@ namespace LaSSI
       }
       private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
       {
+         string[] propertyNames = new string[] { "Class", "Id", "Type" };
          TreeGridItem root = GetRoot();
-         foreach (TreeGridItem item in root.Children)
+         foreach (TreeGridItem item in root.Children.Cast<TreeGridItem>())
          {
-            if (TryGetProperties(item, "Class", out string Class) && Class == "Ship"
-               && TryGetProperties(item, "Id", out string ID) && ID == LayerId
-               && TryGetProperties(item, "Type", out string Disposition) && Disposition == disposition.ToString())
+            TryGetProperties(item, propertyNames, out Dictionary<string, string> values);
+            if (values["Class"] == "Ship"
+               && values["Id"] == LayerId
+               && values["Type"] == disposition.ToString())
             {
                return item;
             }
@@ -815,20 +788,19 @@ namespace LaSSI
       }
       private TreeGridItem? FindShip(ShipDisposition disposition = ShipDisposition.Any)
       {
+         string[] propertyNames = new string[] { "Class", "Id", "Type" };
          TreeGridItem root = GetRoot();
          foreach (TreeGridItem item in root.Children)
          {
-            if (TryGetProperties(item, "Class", out string Class) && Class == "Ship"
-               && TryGetProperties(item, "Id", out string ID)
-               && TryGetProperties(item, "Type", out string Disposition)
-               && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition)))
+            if (TryGetProperties(item, propertyNames, out Dictionary<string, string> values)
+               && values.ContainsKey("Class") && values["Class"] == "Ship"
+               && ShipDispositionMatches(disposition, StringDescToShipDisposition(values["Type"])))
             {
                return item;
             }
          }
          return null;
       }
-
       public bool DerelictsPresent()
       {
          return DerelictsPresent(GetRoot());
@@ -856,6 +828,72 @@ namespace LaSSI
 
          return false;
       }
+      public bool ResetCamera()
+      {
+         bool success = false;
+         TreeGridItem? Hud = GetHud();
+         if (Hud is not null)
+         {
+            TrySetProperty(Hud, "Camera.x", "0");
+            TrySetProperty(Hud, "Camera.y", "0");
+            success = TrySetProperty(Hud, "ViewSize", "100");
+
+            if (success)
+            {
+               UpdateDetailsPanel(Hud, true);
+            }
+         }
+         return success;
+      }
+      public void CleanDerelicts(DerelictsCleaningMode mode)  // todo: this whole thing kinda sucks. Works though!
+      {
+         TreeGridView tree = GetTreeGridView();
+         TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
+         List<TreeGridItem> toRemove;
+         TreeGridItem root = (TreeGridItem)items.First();
+         TreeGridItemCollection sysArchChildren = ((TreeGridItem)((TreeGridItem)root[1])[2]).Children;
+         switch (mode)
+         {
+            case DerelictsCleaningMode.CurrentSystem:
+               {
+                  toRemove = CompileDerelictList(root.Children);
+                  foreach (var v in toRemove)
+                  {
+                     root.Children.Remove(v);
+                     ClearItemFromCache(v);
+                  }
+                  break;
+               }
+            case DerelictsCleaningMode.SectorWide:
+               {
+
+                  foreach (TreeGridItem sys in sysArchChildren)
+                  {
+                     toRemove = CompileDerelictList(sys.Children);
+                     foreach (var v in toRemove)
+                     {
+                        sys.Children.Remove(v);
+                        ClearItemFromCache(v);
+                     }
+                  }
+
+                  toRemove = CompileDerelictList(root.Children);
+                  foreach (var v in toRemove)
+                  {
+                     root.Children.Remove(v);
+                     ClearItemFromCache(v);
+                  }
+                  break;
+               }
+               //case DerelictsCleaningMode.SpecificSystem:
+               //   {
+               //      // I don't know what to do here
+               //      break;
+               //   }
+         }
+         tree.DataStore = items;
+         ClearDetails();
+      }
       public bool CometExists()
       {
          TreeGridItem? galaxy = GetGalaxyNode();
@@ -879,15 +917,20 @@ namespace LaSSI
             foreach (var systemWithComet in systemsWithComets)
             {
                // get each ID property
-               if (TryGetProperties(systemWithComet, "Id", out string systemId))
+               if (TryGetProperty(systemWithComet, "Id", out string systemId))
                {
                   TreeGridItem system = GetSystemArchive(systemId);
                   List<TreeGridItem> comets = FindChildNodesWithProperty(GetChildNode(GetChildNode(system, "FreeSpace", true), "Objects"), "Type", "Comet");
+                  //bool cometWasSelected = false;
                   foreach (var comet in comets)
                   {
                      success = success && TrySetProperty(comet, "Position.x", "0");
                      success = success && TrySetProperty(comet, "Position.y", "0");
-                     UpdateDetailsPanel(comet, true);
+                     ClearItemFromCache(comet);
+                     if (comet == GetSelectedTreeGridItem())
+                     {
+                        UpdateDetailsPanel(comet);
+                     }
                   }
                }
             }
@@ -903,7 +946,7 @@ namespace LaSSI
       {
          TreeGridItem root = GetRoot();
          TreeGridItem Weather = GetChildNode(root, "Weather")!;
-         if (TryGetProperties(Weather, "Meteors", out string meteorsOn))
+         if (TryGetProperty(Weather, "Meteors", out string meteorsOn))
          {
             return meteorsOn == "true";
          }
@@ -920,6 +963,186 @@ namespace LaSSI
          if (success) UpdateDetailsPanel(Weather, true);
          return success;
       }
+      public bool AssertionFailureConditionExists(bool justTakeCareOfIt = false)
+      {
+         if (FindMissions(new string[] { "TutorialFlightReady" }) is not null and List<TreeGridItem> missions && missions.Count > 0)
+         {
+            TreeGridItem mission = missions.ElementAt(0);
+            TryGetProperty(mission, "AssignedLayerId", out string LayerId);
+            Debug.WriteLine($"Mission is assigned to {LayerId}");
+            TreeGridItem? assignedShip = FindShip(LayerId);
+            if (assignedShip is null
+               || (TryGetProperty(assignedShip, "Type", out string Disposition)
+               && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
+            {
+               if (justTakeCareOfIt)
+               {
+                  return JustTakeCareOfIt(mission);
+               }
+               else
+               {
+                  return true;
+               }
+            }
+            else
+            {
+               return false;
+            }
+         }
+         else
+         {
+            return false;
+         }
+      }
+      private bool JustTakeCareOfIt(TreeGridItem mission)
+      {
+         Debug.WriteLine("Could not find a friendly ship with that ID; finding any friendly ship");
+         TreeGridItem? assignedShip = FindShip(ShipDisposition.Friendly);
+         if (assignedShip is not null)
+         {
+            TryGetProperty(assignedShip, "Id", out string newShipID);
+            if (TrySetProperty(mission, "AssignedLayerId", newShipID))
+            {
+               Debug.WriteLine($"successfully transferred mission to {newShipID}");
+               UpdateDetailsPanel(mission, true);
+               return true;
+            }
+            else
+            {
+               Debug.WriteLine("Failed to reset assigned ship!");
+               return false;
+            }
+         }
+         else
+         {
+            Debug.WriteLine("Could not find any friendly ship! WTF?");
+            return false;
+         }
+      }
+      internal bool CrossSectorMissionsExist()
+      {
+         var property = new Dictionary<string, string> { { "Title", "mission_passengers_titlefurther" } };
+         List<TreeGridItem> missions = FindMissions(property);
+         crossSectorMissions = new List<TreeGridItem>();
+         foreach (var mission in missions)
+         {
+            if (TryGetProperty(mission, "ToSectorId", out string toSectorId))
+            {
+               crossSectorMissions.Add(mission);
+            }
+         }
+         return crossSectorMissions.Count > 0;
+      }
+      internal bool SetCrossSectorMissionsDestination()
+      {
+         string[] options = new string[] { "Fair (selects random habitable systems)", "Fast (right here, right now)" };
+         var y = new RadioInputDialog("Choose resolution type", options);
+         int selectedOption;
+         y.ShowModal(this.ParentWindow);
+         if (y.GetDialogResult() == DialogResult.Ok)
+         {
+            selectedOption = y.GetSelectedIndex();
+            //MessageBox.Show($"{options[selectedOption]}");
+         }
+         else
+         {
+            return false;
+         }
+         string currentSystemId = GetCurrentSystemId(null);
+         List<string> reachableSystems = new List<string>();
+         if (options[selectedOption].StartsWith("Fair"))
+         {
+            // var d = Math.sqrt((x - h)^2+(y - k)^2);
+            // if(d <= r) unreachable
+            TreeGridItem galaxy = GetGalaxyNode()!;
+            TreeGridItem currentSystem = GetChildNode(GetChildNode(galaxy, "Objects")!, currentSystemId, true)!;
+            TryGetProperties(currentSystem, new string[] { "Position.x", "Position.y" }, out Dictionary<string, string> currentSystemData);
+            double currentSystemX = Double.Parse(currentSystemData["Position.x"]);
+            double currentSystemY = Double.Parse(currentSystemData["Position.y"]);
+            TryGetProperties(galaxy, new string[] { "VoidPosition.x", "VoidPosition.y", "VoidRadius" }, out Dictionary<string, string> voidData);
+            double voidX = Double.Parse(voidData["VoidPosition.x"]);
+            double voidY = Double.Parse(voidData["VoidPosition.y"]);
+            double voidR = Double.Parse(voidData["VoidRadius"]);
+            // get galaxy.objects where colony is true or shipyard is true
+            List<TreeGridItem> habitableSystems = GetGalaxyObjects(false
+               , new Dictionary<string, string> { { "Colony", "true" }, { "Shipyard", "true" } });//the "true" is not, strictly speaking, necessary, but it fits the paradigm I devised
+
+            // loop, run the math
+            foreach (var habitableSystem in habitableSystems)
+            {
+               TryGetProperties(habitableSystem, new string[] { "Position.x", "Position.y", "Id" }, out Dictionary<string, string> vals);
+               double habitableSystemX = Double.Parse(vals["Position.x"]);
+               double habitableSystemY = Double.Parse(vals["Position.y"]);
+               string habitableSystemId = vals["Id"];
+
+               // calc distance from current system to habitableSystem
+               var distanceToHabitableSystem = CalculateDistance(currentSystemX, currentSystemY, habitableSystemX, habitableSystemY);
+               Debug.WriteLine($"Distance from Sys {currentSystemId} to Sys {habitableSystemId}: {distanceToHabitableSystem}");
+               // calc void expansion for travel
+               var projectedVoidExpansion = distanceToHabitableSystem * .5;
+               Debug.WriteLine($"Projected Void expansion: {projectedVoidExpansion}");
+               // check if habitableSystem is reachable
+               if (IsSystemReachable(voidX, voidY, voidR + projectedVoidExpansion, habitableSystemX, habitableSystemY)) { reachableSystems.Add(habitableSystemId); }
+            }
+         }
+         else if (options[selectedOption].StartsWith("Fast"))
+         {
+            reachableSystems.Add(currentSystemId);
+         }
+
+         if (crossSectorMissions is not null)
+         {
+            Random rand = new();
+            foreach (var mission in crossSectorMissions)
+            {
+               int randomIndex = rand.Next(reachableSystems.Count);
+               ReplaceProperty(mission, "ToSectorId", "ToSystemId", reachableSystems[randomIndex]);
+               ClearItemFromCache(mission);
+               if (mission == GetSelectedTreeGridItem())
+               {
+                  UpdateDetailsPanel(mission);
+               }
+            }
+            return true;
+         }
+
+         return false;
+      }
+      internal static bool IsSystemReachable(double voidX, double voidY, double voidRadius, double systemX, double systemY)
+      {
+         return CalculateDistance(voidX, voidY, systemX, systemY) > voidRadius;
+      }
+      internal static double CalculateDistance(double point1X, double point1Y, double point2X, double point2Y)
+      {
+         return Math.Sqrt(Math.Pow(point2X - point1X, 2) + Math.Pow((point2Y - point1Y), 2));
+      }
+      /// <summary>
+      /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship
+      /// </summary>
+      /// <param name="shipId"></param>
+      /// <returns></returns>
+      internal string GetCurrentSystemId(string? shipId = "")
+      {
+         string sysId = string.Empty;
+         if (shipId == string.Empty)
+         {
+            TryGetProperty(GetGalaxyNode()!, "CurrentSystem", out sysId);
+         }
+         else
+         {
+            TreeGridItem ship;
+            if (shipId is not null)
+            {
+               ship = FindShip(shipId, ShipDisposition.Friendly)!;
+            }
+            else
+            {
+               ship = FindShip(ShipDisposition.Friendly)!;
+            }
+            TryGetProperty(ship, "SystemId", out sysId);
+         }
+         return sysId;
+      }
       private bool PropertiesContains(TreeGridItem item, string propertyname) // todo: figure out how to do multiples
       {
          OrderedDictionary properties = (OrderedDictionary)item.Values[1];
@@ -929,9 +1152,44 @@ namespace LaSSI
          }
          return false;
       }
-      private bool TryGetProperties(TreeGridItem item, string propertyName, out string propertyValue) // todo: figure out how to do multiples
+      internal void RemoveProperty(TreeGridItem item, string propertyName)
       {
          OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         properties.Remove(propertyName);
+      }
+      internal void AddProperty(TreeGridItem item, string propertyName, string propertyValue = "")
+      {
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         properties.Add(propertyName, propertyValue);
+      }
+      internal void ReplaceProperty(TreeGridItem item, string oldPropertyName, string newPropertyName, string newPropertyValue = "")
+      {
+         RemoveProperty(item, oldPropertyName);
+         AddProperty(item, newPropertyName, newPropertyValue);
+      }
+      private static bool TryGetProperties(TreeGridItem item, string[] propertyNames, out Dictionary<string, string> propertyValues) // add switch for any vs all?
+      {
+         propertyValues = new();
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         foreach (var name in propertyNames)
+         {
+            if (properties.Contains((object)name))
+            {
+               string t = properties[(object)name]!.ToString()!;
+               if (t is not null)
+               {
+                  propertyValues.Add(name, t);
+               }
+            }
+         }
+         return propertyValues.Count > 0;
+      }
+      private bool TryGetProperty(TreeGridItem item, string propertyName, out string propertyValue)
+      {
+         propertyValue = string.Empty;
+         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
+         //foreach (var name in propertyNames)
+         //{
          if (properties.Contains((object)propertyName))
          {
             string t = properties[(object)propertyName]!.ToString()!;
@@ -941,7 +1199,7 @@ namespace LaSSI
                return true;
             }
          }
-         propertyValue = string.Empty;
+         //}
          return false;
       }
       private bool TrySetProperty(TreeGridItem item, string propertyName, string propertyValue)
@@ -967,13 +1225,14 @@ namespace LaSSI
          TreeGridItem root = (TreeGridItem)items[0];
          return root;
       }
-
       public void Rebuild(Node root)
       {
          DetailPanelsCache.Clear();
          ClearDetails();
          Root = root;
          RebuildTreeView(Root);
+         crossSectorMissions = null;
+         systemsWithComets = null;
       }
       private void ClearDetails()
       {
@@ -1112,7 +1371,6 @@ namespace LaSSI
             return true;
          }
       }
-
       private void ApplyAllChanges()
       {
          foreach (var v in DetailPanelsCache)
@@ -1125,6 +1383,7 @@ namespace LaSSI
          }
          UpdateApplyRevertButtons(DetailsLayout.State.Applied);
       }
+
       #region event handlers
       private void DeleteRow_Executed(object? sender, EventArgs e)
       {

@@ -18,18 +18,19 @@ namespace LaSSI
       public CustomCommands(MainForm mainForm)
       {
          MainForm = mainForm;
-         FileCommands.Add(CustomCommands.CreateOpenFileCommand(OpenFileCommand_Executed));
-         FileCommands.Add(CustomCommands.CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
-         QuitCommand = CustomCommands.CreateQuitCommand();
+         FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
+         FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
+         QuitCommand = CreateQuitCommand();
          /*var prefsCommand = new Command(PrefsCommand_Executed);*/
-         ToolsList.Add(CustomCommands.CreateCleanDerelictsCommand(CleanDerelicts_Executed));
-         ToolsList.Add(CustomCommands.CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
-         ToolsList.Add(CustomCommands.CreateResetCameraCommand(ResetCamera_Executed));
-         ToolsList.Add(CustomCommands.CreateResetCometCommand(ResetComet_Executed));
-         ToolsList.Add(CustomCommands.CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
+         ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
+         ToolsList.Add(CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
+         ToolsList.Add(CreateResetCameraCommand(ResetCamera_Executed));
+         ToolsList.Add(CreateResetCometCommand(ResetComet_Executed));
+         ToolsList.Add(CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
+         ToolsList.Add(CreateCrossSectorMissionFixCommand(CrossSectorMissionFix_Executed));
       }
 
-      #region commands
+      #region tools
       internal static Command CreateCleanDerelictsCommand(EventHandler<EventArgs> CleanDerelicts_Executed)
       {
          var cleanDerelicts = new Command
@@ -86,6 +87,19 @@ namespace LaSSI
          turnOffMeteors.Enabled = false;
          return turnOffMeteors;
       }
+      internal static Command CreateCrossSectorMissionFixCommand(EventHandler<EventArgs> CrossSectorMissionFix_Executed)
+      {
+         var crossSectorMissionFix = new Command
+         {
+            MenuText = "Fix cross-sector passenger missions",
+            ID = "CrossSectorMissionFixTool"
+         };
+         crossSectorMissionFix.Executed += CrossSectorMissionFix_Executed;
+         crossSectorMissionFix.Enabled = false;
+         return crossSectorMissionFix;
+      }
+      #endregion tools
+      #region commands
       internal static Command CreateQuitCommand()
       {
          var quitCommand = new Command
@@ -171,6 +185,11 @@ namespace LaSSI
                   enablability = data.DetectMeteors();
                   break;
                }
+            case "CrossSectorMissionFixTool":
+               {
+                  enablability = data.CrossSectorMissionsExist();
+                  break;
+               }
          }
 
          return enablability;
@@ -246,7 +265,6 @@ namespace LaSSI
          {
             _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
-            //todo: invalidate/refresh details if selected
          }
       }
 
@@ -303,6 +321,14 @@ namespace LaSSI
          if (sender is Command c and not null && MainForm.DataPanel.TurnOffMeteors())
          {
             _ = MessageBox.Show("Meteors turned off", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
+         }
+      }
+      internal void CrossSectorMissionFix_Executed(object? sender, EventArgs e)
+      {
+         if (sender is Command c and not null && MainForm.DataPanel.SetCrossSectorMissionsDestination())
+         {
+            _ = MessageBox.Show("Cross-sector passenger missions updated", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
          }
       }
