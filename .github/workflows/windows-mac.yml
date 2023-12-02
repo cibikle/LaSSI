@@ -122,7 +122,7 @@ jobs:
     - name: Fix Mac file attr
       if: runner.os == 'macOS'
       run: |
-        chmod -R +x ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64
+        chmod -R +x ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
         xattr ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
         xattr -c ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
       shell: bash
