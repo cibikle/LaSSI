@@ -56,7 +56,7 @@ jobs:
     strategy:
       matrix:
         configuration: [Release]
-        os: [ubuntu-latest, windows-latest]
+        os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     #runs-on: windows-latest  # For a list of available runner types, refer to
                              # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
@@ -87,9 +87,9 @@ jobs:
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
-    - name: installer xattr on Linux
-      if: runner.os == 'Linux'
-      run: sudo apt-get update -y && sudo apt-get install -y xattr
+#    - name: installer xattr on Linux
+#      if: runner.os == 'Linux'
+#      run: sudo apt-get update -y && sudo apt-get install -y xattr
 
     # Execute all unit tests in the solution
    # - name: Execute unit tests
@@ -103,7 +103,7 @@ jobs:
         Configuration: ${{ matrix.configuration }}
         
     - name: Restore *nix
-      if: runner.os == 'Linux'
+      if: runner.os == 'macOS'
       run: dotnet restore
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
@@ -113,14 +113,14 @@ jobs:
       run: |
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
         
-    - name: Publish the file *nix
-      if: runner.os == 'Linux'
+    - name: Publish the file Macx64
+      if: runner.os == 'macOS'
       run: |
         cd LaSSI
         dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
         
     - name: Fix Mac file attr
-      if: runner.os == 'Linux'
+      if: runner.os == 'macOS'
       run: |
         chmod -R +x ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64
         xattr -d "com.apple.quarantine" ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
@@ -136,7 +136,7 @@ jobs:
       
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     - name: Upload build artifact - Mac
-      if: runner.os == 'Linux'
+      if: runner.os == 'macOS'
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
