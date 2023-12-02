@@ -112,6 +112,7 @@ jobs:
     - name: Publish the file *nix
       if: runner.os == 'Linux'
       run: |
+        cd LaSSI
         dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
