@@ -112,8 +112,8 @@ jobs:
     - name: Publish the file *nix
       if: runner.os == 'Linux'
       run: |
-        pwd
-        ls
+        dotnet build --configuration Release --no-restore
+        dotnet publish -c Release --self-contained -r osx-x64 -p:PublishSingleFile=true
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     - name: Upload build artifact - Win
