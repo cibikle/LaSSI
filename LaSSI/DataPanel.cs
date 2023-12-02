@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reflection;
-using System.Security.Cryptography;
 
 namespace LaSSI
 {
@@ -29,7 +27,15 @@ namespace LaSSI
          Derelict,
          ForSale
       }
-
+      public enum DataState
+      {
+         Unchanged,
+         Unapplied,
+         Unsaved,
+         UnsavedAndUnapplied
+      }
+      public DataState dataState = DataState.Unchanged;
+      internal bool dirtyBit = false;
       private Dictionary<TreeGridItem, DetailsLayout> DetailPanelsCache = new();
       private Size DetailsPanelInitialSize = new(0, 0);
       private readonly List<InventoryGridItem>? InventoryMasterList;
@@ -48,7 +54,7 @@ namespace LaSSI
          ID = "DetailsRevertButton",
          Enabled = false
       };
-      private DetailsLayout? CurrentDetails;
+      //private DetailsLayout? CurrentDetails;
       private List<TreeGridItem>? systemsWithComets = null;
       private List<TreeGridItem>? crossSectorMissions = null;
       private List<TreeGridItem>? weatherReports = null;
@@ -799,11 +805,11 @@ namespace LaSSI
       }
       private TreeGridItem? GetSystemArchives()
       {
-         return GetChildNode(GetGalaxyNode(), "SystemArchives");
+         return GetChildNode(GetGalaxyNode()!, "SystemArchives");
       }
       private TreeGridItem? GetSystemArchive(string id)
       {
-         TreeGridItem systemArchives = GetSystemArchives();
+         TreeGridItem systemArchives = GetSystemArchives()!;
          foreach (TreeGridItem systemArchive in systemArchives.Children)
          {
             if (systemArchive.Tag.ToString()!.Contains(id)) return systemArchive;
@@ -959,8 +965,8 @@ namespace LaSSI
                // get each ID property
                if (TryGetProperty(systemWithComet, "Id", out string systemId))
                {
-                  TreeGridItem system = GetSystemArchive(systemId);
-                  List<TreeGridItem> comets = FindChildNodesWithProperty(GetChildNode(GetChildNode(system, "FreeSpace", true), "Objects"), "Type", "Comet");
+                  TreeGridItem system = GetSystemArchive(systemId)!;
+                  List<TreeGridItem> comets = FindChildNodesWithProperty(GetChildNode(GetChildNode(system, "FreeSpace", true)!, "Objects")!, "Type", "Comet");
                   //bool cometWasSelected = false;
                   foreach (var comet in comets)
                   {
@@ -1406,39 +1412,7 @@ namespace LaSSI
          }
          return false;
       }
-      public bool ReadyForSave()
-      {
-         if (ChangesAreUnapplied())
-         {
-            DialogResult result = MessageBox.Show($"There are unapplied changes!{Environment.NewLine}Apply before saving?"
-               , MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
-            switch (result)
-            {
-               case DialogResult.Yes:
-                  {
-                     ApplyAllChanges();
-                     return true;
-                  }
-               case DialogResult.No:
-                  {
-                     return true;
-                  }
-               case DialogResult.Cancel:
-                  {
-                     return false;
-                  }
-               default:
-                  {
-                     return false;
-                  }
-            }
-         }
-         else
-         {
-            return true;
-         }
-      }
-      private void ApplyAllChanges()
+      internal void ApplyAllChanges()
       {
          foreach (var v in DetailPanelsCache)
          {
@@ -1449,8 +1423,35 @@ namespace LaSSI
             }
          }
          UpdateApplyRevertButtons(DetailsLayout.State.Applied);
+         dataState = DataState.Unsaved;
       }
-      private int GetFirstEditableColumn(GridView grid)
+      internal void RevertAllUnappliedChanges()
+      {
+         List<KeyValuePair<TreeGridItem, DetailsLayout>> cachedPanels = DetailPanelsCache.ToList();
+         foreach (var panel in cachedPanels)
+         {
+            if (((DetailsLayout)panel.Value).Status == DetailsLayout.State.Modified)
+            {
+               UpdateDetailsPanel(panel.Key, true);
+            }
+         }
+         UpdateApplyRevertButtons(DetailsLayout.State.Unmodified);
+         if (dataState == DataState.Unapplied)
+         {
+            dataState = DataState.Unchanged;
+         }
+         else if (dataState == DataState.UnsavedAndUnapplied)
+         {
+            dataState = DataState.Unsaved;
+         }
+
+      }
+      /// <summary>
+      /// Returns -1 if no columns are editable
+      /// </summary>
+      /// <param name="grid"></param>
+      /// <returns></returns>
+      private static int GetFirstEditableColumn(GridView grid)
       {
          foreach (var column in grid.Columns)
          {
@@ -1469,6 +1470,15 @@ namespace LaSSI
             CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
 
             ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
+            DetailsModified();
+            if (dataState == DataState.Unchanged)
+            {
+               dataState = DataState.Unapplied;
+            }
+            else if (dataState == DataState.Unsaved)
+            {
+               dataState = DataState.UnsavedAndUnapplied;
+            }
          }
       }
 
@@ -1522,6 +1532,14 @@ namespace LaSSI
             //Changes.Add(new CollectionChange(CollectionChange.ActionType.Change, CurrentValues.deV));
             //state = DetailsModified();
             DetailsModified();
+            if (dataState == DataState.Unchanged)
+            {
+               dataState = DataState.Unapplied;
+            }
+            else if (dataState == DataState.Unsaved)
+            {
+               dataState = DataState.UnsavedAndUnapplied;
+            }
          }
          else
          {
@@ -1630,6 +1648,8 @@ namespace LaSSI
          Control detailControl = GetDetailsControl();
          if (detailControl is not null)
          {
+            dirtyBit = true;
+            dataState = DataState.Unsaved;
             ApplyChange(item, detailControl);
 
             UpdateApplyRevertButtons(DetailsLayout.State.Applied);
@@ -1729,20 +1749,20 @@ namespace LaSSI
       }
       public bool IsChanged(string value) // these don't work as intended--can't recognize when the value is set back to the initial value
       {
-         return !this.Value.Equals(value, StringComparison.CurrentCultureIgnoreCase);
+         return !this.Value!.Equals(value, StringComparison.CurrentCultureIgnoreCase);
       }
       public bool IsChanged(DictionaryEntry value) // these don't work as intended--can't recognize when the value is set back to the initial value
       {
          string x = string.Empty, y = string.Empty;
          if (Column == 0)
          {
-            x = deValue.Value.Key.ToString();
-            y = value.Key.ToString();
+            x = deValue!.Value.Key.ToString()!;
+            y = value.Key.ToString()!;
          }
          else if (Column == 1)
          {
-            x = deValue.Value.Value.ToString();
-            y = value.Value.ToString();
+            x = deValue!.Value.Value!.ToString()!;
+            y = value.Value!.ToString()!;
          }
 
          return x != y;

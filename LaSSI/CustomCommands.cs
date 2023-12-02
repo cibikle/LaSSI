@@ -20,7 +20,7 @@ namespace LaSSI
          MainForm = mainForm;
          FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
          FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
-         QuitCommand = CreateQuitCommand();
+         QuitCommand = CreateQuitCommand(QuitCommand_Executed);
          /*var prefsCommand = new Command(PrefsCommand_Executed);*/
          ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
          ToolsList.Add(CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
@@ -100,7 +100,7 @@ namespace LaSSI
       }
       #endregion tools
       #region commands
-      internal static Command CreateQuitCommand()
+      internal static Command CreateQuitCommand(EventHandler<EventArgs> QuitCommand_Executed)
       {
          var quitCommand = new Command
          {
@@ -108,7 +108,7 @@ namespace LaSSI
             Shortcut = Application.Instance.CommonModifier | Keys.Q,
             ID = "QuitCommand"
          };
-         quitCommand.Executed += (sender, e) => Application.Instance.Quit();
+         quitCommand.Executed += QuitCommand_Executed;
          return quitCommand;
       }
       internal static Command CreateOpenFileCommand(EventHandler<EventArgs> OpenFileCommand_Executed)
@@ -155,7 +155,7 @@ namespace LaSSI
 
          }
       }
-      internal static bool CheckEnablablility(MenuItem tool, DataPanel data)
+      internal static bool CheckEnablablility(MenuItem tool, DataPanel data) // probably ought to revise this
       {
          bool enablability = false;
          switch (tool.ID)
@@ -194,15 +194,100 @@ namespace LaSSI
 
          return enablability;
       }
+      internal bool ReadyForQuit()
+      {
+         if (MainForm.DataPanel.dataState == DataPanel.DataState.Unchanged)
+         {
+            return true;
+         }
+         else
+         {
+            return GetReadyForQuit();
+         }
+      }
+      internal bool ReadyForSave()
+      {
+         if (MainForm.DataPanel.ChangesAreUnapplied())
+         {
+            return GetReadyForSave();
+         }
+         else
+         {
+            return true;
+         }
+      }
+      internal bool GetReadyForQuit()
+      {
+         DialogResult result = PromptForSave("Unsaved", "Save", "closing");
+         switch (result)
+         {
+            case DialogResult.Yes:
+               {
+                  SaveFileAsCommand_Executed(null, null);
+                  return MainForm.DataPanel.dataState == DataPanel.DataState.Unchanged;
+               }
+            case DialogResult.No:
+               {
+                  return true;
+               }
+            case DialogResult.Cancel:
+               {
+                  return false;
+               }
+            default:
+               {
+                  return false;
+               }
+         }
+      }
+      internal bool GetReadyForSave()
+      {
+         DialogResult result = PromptForSave("Unapplied", "Apply", "saving");
+         switch (result)
+         {
+            case DialogResult.Yes:
+               {
+                  MainForm.DataPanel.ApplyAllChanges();
+                  return true;
+               }
+            case DialogResult.No:
+               {
+                  MainForm.DataPanel.RevertAllUnappliedChanges();
+                  return true;
+               }
+            case DialogResult.Cancel:
+               {
+                  return false;
+               }
+            default:
+               {
+                  return false;
+               }
+         }
+      }
+      internal DialogResult PromptForSave(string state, string action1, string action2)
+      {
+
+         return MessageBox.Show($"There are {state} changes!{Environment.NewLine}{action1} before {action2}?{Environment.NewLine}{state} changes will be discarded."
+               , MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
+
+      }
       #endregion utility
       //internal static void SetToolEnabled(MenuItem tool, bool enabled)
       //{
       //   tool.Enabled = enabled;
       //}
       #region event handlers
-      private void SaveFileAsCommand_Executed(object? sender, EventArgs e)
+      private void QuitCommand_Executed(object? sender, EventArgs e)
       {
-         if (!MainForm.DataPanel.ReadyForSave()) return;
+         if (ReadyForQuit())
+         {
+            Application.Instance.Quit();
+         }
+      }
+      private void SaveFileAsCommand_Executed(object? sender, EventArgs? e)
+      {
+         if (!ReadyForSave()) { return; }
          string barefilename = Path.GetFileNameWithoutExtension(MainForm.saveFilePath);
          string dateappend = @"-\d{8}-\d{4}";
          Match m = Regex.Match(barefilename, dateappend);
@@ -229,6 +314,8 @@ namespace LaSSI
             FileWriter writer = new FileWriter();
             bool success = writer.WriteFile(y, saveDialog.FileName);
             MainForm.LoadingBar.Visible = false;
+
+            MainForm.DataPanel.dataState = DataPanel.DataState.Unchanged;
          }
          else
          {
@@ -237,6 +324,10 @@ namespace LaSSI
       }
       private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
       {
+         if (!ReadyForQuit())
+         {
+            return;
+         }
          OpenFileDialog fileDialog = new()
          {
             Directory = MainForm.savesFolder
@@ -253,11 +344,24 @@ namespace LaSSI
             MainForm.UpdateUiAfterLoad();
             EnableSaveAs(MainForm.Menu);
             EnableTools(MainForm.Menu, MainForm.DataPanel);
+            MainForm.DataPanel.dataState = DataPanel.DataState.Unchanged;
          }
          else
          {
             MainForm.LoadingBar.Visible = false;
          }
+      }
+      internal void Apply_Click(object? sender, EventArgs e)
+      {
+         MessageBox.Show("Apply clicked");
+      }
+      internal void Discard_Click(object? sender, EventArgs e)
+      {
+         MessageBox.Show("Discard clicked");
+      }
+      internal void Cancel_Click(object? sender, EventArgs e)
+      {
+         MessageBox.Show("Cancel clicked");
       }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
@@ -267,7 +371,6 @@ namespace LaSSI
             c.Enabled = false;
          }
       }
-
       internal void CleanDerelicts_Executed(object? sender, EventArgs e)
       {
          //RadioInputDialog r = new RadioInputDialog("Clean derelicts", new string[] { "sector-wide", "current system(s)",  /*"specific system"*/ });
@@ -318,6 +421,7 @@ namespace LaSSI
       }
       internal void TurnOffMeteors_Executed(object? sender, EventArgs e)
       {
+         // todo: prompt for clarification if more than 1 system has meteors?
          if (sender is Command c and not null && MainForm.DataPanel.TurnOffMeteors())
          {
             _ = MessageBox.Show("Meteors turned off", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
@@ -332,7 +436,7 @@ namespace LaSSI
             c.Enabled = false;
          }
       }
-      private void PrefsCommand_Executed(Object? sender, EventArgs e)
+      private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
          var dlg = new Modal(new List<string> { "Preferences not implemented" });
          //dlg.Content.

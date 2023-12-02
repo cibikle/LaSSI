@@ -407,7 +407,7 @@ namespace LaSSI
          //int proposedWidth = WidthMultiplicand * WidthMultiplier;
          //if (proposedWidth > RightGridView.Columns[0].Width) RightGridView.Columns[0].Width = proposedWidth;
          //Dictionary<string, string> currentValues = (Dictionary<string, string>)RightList;
-         RightGridUpdated?.Invoke(RightList, null);
+         RightGridUpdated?.Invoke(RightList, e);
       }
       private static void RightListBox_CellEdited(object? sender, GridViewCellEventArgs e) //todo: finish this
       {

@@ -55,7 +55,7 @@ namespace LaSSI
 
       internal static CollectionChange FindInList(List<CollectionChange> changes, string key)
       {
-         return changes.Find(x => x.Data.Key == key);
+         return changes.Find(x => x.Data.Key == key)!;
       }
 
       public static void AddChange(List<CollectionChange> changes, Oncler newChange, CollectionChange.ActionType action)

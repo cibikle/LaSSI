@@ -25,7 +25,7 @@ namespace LaSSI
       internal readonly string FileFormat = "Last Starship save files|*.space";
       internal ProgressBar LoadingBar = new();
       internal DataPanel DataPanel;
-      internal CustomCommands CustomCommands;
+      internal CustomCommands? CustomCommands;
       void InitializeComponent()
       {
          //this.SizeChanged += MainForm_SizeChanged;
