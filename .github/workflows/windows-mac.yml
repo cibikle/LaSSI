@@ -87,6 +87,10 @@ jobs:
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
+    - name: installer xattr on Linux
+      if: runner.os == 'Linux'
+      run: sudo apt-get update -y && sudo apt-get install -y xattr
+
     # Execute all unit tests in the solution
    # - name: Execute unit tests
    #   run: dotnet test
