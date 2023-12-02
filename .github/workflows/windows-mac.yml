@@ -56,8 +56,9 @@ jobs:
     strategy:
       matrix:
         configuration: [Release]
-
-    runs-on: windows-latest  # For a list of available runner types, refer to
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    #runs-on: windows-latest  # For a list of available runner types, refer to
                              # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
     env:
@@ -69,18 +70,21 @@ jobs:
 
     steps:
     - name: Checkout
+      if: runner.os == 'Windows'
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     # Install the .NET Core workload
     - name: Install .NET Core
+      if: runner.os == 'Windows'
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
 
     # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
+      if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
     # Execute all unit tests in the solution
@@ -89,6 +93,7 @@ jobs:
 
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Restore the application
+      if: runner.os == 'Windows'
       run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
       env:
         Configuration: ${{ matrix.configuration }}
@@ -100,8 +105,22 @@ jobs:
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
-    - name: Upload build artifacts
+    - name: Upload build artifact - Win
+      if: runner.os == 'Windows'
       uses: actions/upload-artifact@v3
       with:
-        name: "LaSSI.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output
+        name: "LaSSI.win64.v0.${{ github.event.inputs.version }}"
+        path: ${{ env.Wap_Project_Directory }}\output\publish
+
+    - name: Fix Mac file attr
+      if: runner.os == 'Linux'
+      run: chmod -R +x ${{ env.Wap_Project_Directory }}\output\osx-x64 && xattr -c ${{ env.Wap_Project_Directory }}\output\osx-x64\LaSSI.app
+      shell: bash
+      
+    # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
+    - name: Upload build artifact - Mac
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v3
+      with:
+        name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
+        path: ${{ env.Wap_Project_Directory }}\output\osx-x64
