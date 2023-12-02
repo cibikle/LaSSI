@@ -123,7 +123,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         chmod -R +x ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64
-        xattr -d "com.apple.quarantine" ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
+        xattr ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
+        xattr -c ${{ env.Wap_Project_Directory }}/bin/Mac64/Release/net6.0/osx-x64/LaSSI.app
       shell: bash
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
