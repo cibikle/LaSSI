@@ -100,13 +100,13 @@ jobs:
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
     - name: Publish the file
-      if: runner-os == 'Windows'
+      if: runner.os == 'Windows'
       shell: pwsh
       run: |
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
         
     - name: Publish the file
-      if: runner-os == 'Linux'
+      if: runner.os == 'Linux'
       shell: pwsh
       run: |
         ls -al
