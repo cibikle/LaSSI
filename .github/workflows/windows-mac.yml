@@ -84,7 +84,7 @@ jobs:
 
     # Add  MSBuild to the PATH: https://github.com/microsoft/setup-msbuild
     - name: Setup MSBuild.exe
-     # if: runner.os == 'Windows'
+      if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
     # Execute all unit tests in the solution
@@ -93,10 +93,14 @@ jobs:
 
     # Restore the application to populate the obj folder with RuntimeIdentifiers
     - name: Restore the application
-   #   if: runner.os == 'Windows'
+      if: runner.os == 'Windows'
       run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
       env:
         Configuration: ${{ matrix.configuration }}
+        
+    - name: Restore *nix
+      if: runner.os == 'Linux'
+      run: dotnet restore
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
     - name: Publish the file
@@ -105,11 +109,11 @@ jobs:
       run: |
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
         
-    - name: Publish the file
+    - name: Publish the file *nix
       if: runner.os == 'Linux'
-      shell: pwsh
       run: |
-        ls -al
+        pwd
+        ls
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     - name: Upload build artifact - Win
@@ -119,15 +123,15 @@ jobs:
         name: "LaSSI.win64.v0.${{ github.event.inputs.version }}"
         path: ${{ env.Wap_Project_Directory }}\output\publish
 
-    - name: Fix Mac file attr
-      if: runner.os == 'Linux'
-      run: chmod -R +x ${{ env.Wap_Project_Directory }}\output\osx-x64 && xattr -c ${{ env.Wap_Project_Directory }}\output\osx-x64\LaSSI.app
-      shell: bash
+#    - name: Fix Mac file attr
+#      if: runner.os == 'Linux'
+#      run: chmod -R +x ${{ env.Wap_Project_Directory }}\output\osx-x64 && xattr -c ${{ env.Wap_Project_Directory }}\output\osx-x64\LaSSI.app
+#      shell: bash
       
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
-    - name: Upload build artifact - Mac
-      if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v3
-      with:
-        name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output\osx-x64
+#    - name: Upload build artifact - Mac
+#      if: runner.os == 'Linux'
+ #     uses: actions/upload-artifact@v3
+ #     with:
+ #       name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
+  #      path: ${{ env.Wap_Project_Directory }}\output\osx-x64
