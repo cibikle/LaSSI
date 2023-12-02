@@ -103,7 +103,7 @@ jobs:
       run: dotnet restore
 
     # Decode the base 64 encoded pfx and save the Signing_Certificate
-    - name: Publish the file
+    - name: Publish the file Winx64
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
@@ -114,6 +114,13 @@ jobs:
       run: |
         cd LaSSI
         dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
+        
+    - name: Fix Mac file attr
+      if: runner.os == 'Linux'
+      run: |
+        chmod -R +x ${{ env.Wap_Project_Directory }}\output\osx-x64
+        xattr -c ${{ env.Wap_Project_Directory }}\output\osx-x64\LaSSI.app
+      shell: bash
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     - name: Upload build artifact - Win
@@ -122,16 +129,11 @@ jobs:
       with:
         name: "LaSSI.win64.v0.${{ github.event.inputs.version }}"
         path: ${{ env.Wap_Project_Directory }}\output\publish
-
-#    - name: Fix Mac file attr
-#      if: runner.os == 'Linux'
-#      run: chmod -R +x ${{ env.Wap_Project_Directory }}\output\osx-x64 && xattr -c ${{ env.Wap_Project_Directory }}\output\osx-x64\LaSSI.app
-#      shell: bash
       
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
-#    - name: Upload build artifact - Mac
-#      if: runner.os == 'Linux'
- #     uses: actions/upload-artifact@v3
- #     with:
- #       name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
-  #      path: ${{ env.Wap_Project_Directory }}\output\osx-x64
+    - name: Upload build artifact - Mac
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v3
+      with:
+        name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
+        path: ${{ env.Wap_Project_Directory }}\output\osx-x64
