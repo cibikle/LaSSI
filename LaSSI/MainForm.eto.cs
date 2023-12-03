@@ -137,9 +137,30 @@ namespace LaSSI
       }
       internal void UpdateUiAfterLoad()
       {
-         UpdateTextbox("saveFileTextbox", saveFilePath);
+         UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
          DataPanel.Rebuild(saveFile.Root);
          LoadingBar.Visible = false;
+      }
+      internal string TrimFilePathForSafety(string filepath)
+      {
+         char pathSeparator = '/';
+         if (EtoEnvironment.Platform.IsWindows) pathSeparator = '\\';
+         int index = 0;
+         int count = 0;
+         int target = 3;
+         for (int i = 0; i < filepath.Length && count < target; i++)
+         {
+            if (filepath[i] == pathSeparator)
+            {
+               count++;
+               if (count == target)
+               {
+                  index = i;
+               }
+            }
+         }
+
+         return "~" + filepath[index..];
       }
       /// <summary>
       /// Updates the text of a textbox matching the given tag.
