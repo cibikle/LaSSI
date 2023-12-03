@@ -28,7 +28,7 @@ namespace LaSSI
       internal CustomCommands? CustomCommands;
       void InitializeComponent()
       {
-         //this.SizeChanged += MainForm_SizeChanged;
+         Closeable = false;
          Title = "LaSSI (the Last Starship Save Inspector)";
          MinimumSize = new Size(200, 200);
          Size = new Size(1024, 600);
@@ -207,6 +207,5 @@ namespace LaSSI
 
          return fileLayout;
       }
-
    }
 }
