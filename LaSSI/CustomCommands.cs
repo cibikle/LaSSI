@@ -196,7 +196,7 @@ namespace LaSSI
       }
       internal bool ReadyForQuit()
       {
-         if (MainForm.DataPanel.dataState == DataPanel.DataState.Unchanged)
+         if (MainForm.DataPanel.DataStateMatches(DataPanel.DataState.Unchanged))
          {
             return true;
          }
@@ -224,7 +224,7 @@ namespace LaSSI
             case DialogResult.Yes:
                {
                   SaveFileAsCommand_Executed(null, null);
-                  return MainForm.DataPanel.dataState == DataPanel.DataState.Unchanged;
+                  return MainForm.DataPanel.DataStateMatches(DataPanel.DataState.Unchanged);
                }
             case DialogResult.No:
                {
@@ -315,7 +315,7 @@ namespace LaSSI
             bool success = writer.WriteFile(y, saveDialog.FileName);
             MainForm.LoadingBar.Visible = false;
 
-            MainForm.DataPanel.dataState = DataPanel.DataState.Unchanged;
+            MainForm.DataPanel.ResetDataState();
          }
          else
          {
@@ -344,31 +344,40 @@ namespace LaSSI
             MainForm.UpdateUiAfterLoad();
             EnableSaveAs(MainForm.Menu);
             EnableTools(MainForm.Menu, MainForm.DataPanel);
-            MainForm.DataPanel.dataState = DataPanel.DataState.Unchanged;
+            MainForm.DataPanel.ResetDataState();
          }
          else
          {
             MainForm.LoadingBar.Visible = false;
          }
       }
-      internal void Apply_Click(object? sender, EventArgs e)
+      private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
-         MessageBox.Show("Apply clicked");
+         var dlg = new Modal(new List<string> { "Preferences not implemented" });
+         //dlg.Content.
+         dlg.ShowModal(Application.Instance.MainForm);
       }
-      internal void Discard_Click(object? sender, EventArgs e)
-      {
-         MessageBox.Show("Discard clicked");
-      }
-      internal void Cancel_Click(object? sender, EventArgs e)
-      {
-         MessageBox.Show("Cancel clicked");
-      }
+      //internal void Apply_Click(object? sender, EventArgs e)
+      //{
+      //   MessageBox.Show("Apply clicked");
+      //}
+      //internal void Discard_Click(object? sender, EventArgs e)
+      //{
+      //   MessageBox.Show("Discard clicked");
+      //}
+      //internal void Cancel_Click(object? sender, EventArgs e)
+      //{
+      //   MessageBox.Show("Cancel clicked");
+      //}
+      #endregion event handlers
+      #region tool event handlers
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
          if (sender is Command c and not null && MainForm.DataPanel.AssertionFailureConditionExists(true))
          {
             _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
       internal void CleanDerelicts_Executed(object? sender, EventArgs e)
@@ -382,7 +391,7 @@ namespace LaSSI
          MainForm.DataPanel.CleanDerelicts(DataPanel.DerelictsCleaningMode.SectorWide);
          _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
-         //todo: invalidate/refresh details if selected
+         MainForm.DataPanel.AddUnsavedToDataState();
          //}
       }
       internal void ResetCamera_Executed(object? sender, EventArgs e)
@@ -399,6 +408,7 @@ namespace LaSSI
          {
             _ = MessageBox.Show("Camera reset to system center, viewsize 100", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
       internal void ResetComet_Executed(object? sender, EventArgs e)
@@ -417,6 +427,7 @@ namespace LaSSI
          {
             _ = MessageBox.Show("Comet(s) reset to system center", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
       internal void TurnOffMeteors_Executed(object? sender, EventArgs e)
@@ -426,6 +437,7 @@ namespace LaSSI
          {
             _ = MessageBox.Show("Meteors turned off", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
       internal void CrossSectorMissionFix_Executed(object? sender, EventArgs e)
@@ -434,14 +446,9 @@ namespace LaSSI
          {
             _ = MessageBox.Show("Cross-sector passenger missions updated", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
-      private void PrefsCommand_Executed(object? sender, EventArgs e)
-      {
-         var dlg = new Modal(new List<string> { "Preferences not implemented" });
-         //dlg.Content.
-         dlg.ShowModal(Application.Instance.MainForm);
-      }
-      #endregion event handlers
+      #endregion tool event handlers
    }
 }

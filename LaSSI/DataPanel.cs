@@ -34,7 +34,7 @@ namespace LaSSI
          Unsaved,
          UnsavedAndUnapplied
       }
-      public DataState dataState = DataState.Unchanged;
+      private DataState dataState = DataState.Unchanged;
       internal bool dirtyBit = false;
       private Dictionary<TreeGridItem, DetailsLayout> DetailPanelsCache = new();
       private Size DetailsPanelInitialSize = new(0, 0);
@@ -1396,10 +1396,8 @@ namespace LaSSI
       }
       private void DetailsApplied()
       {
-         Apply.Enabled = Revert.Enabled = false;
-         //GridView grid = (GridView)sender;
-
          ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Applied;
+         UpdateApplyRevertButtons(DetailsLayout.State.Applied);
       }
       public bool ChangesAreUnapplied()
       {
@@ -1436,15 +1434,7 @@ namespace LaSSI
             }
          }
          UpdateApplyRevertButtons(DetailsLayout.State.Unmodified);
-         if (dataState == DataState.Unapplied)
-         {
-            dataState = DataState.Unchanged;
-         }
-         else if (dataState == DataState.UnsavedAndUnapplied)
-         {
-            dataState = DataState.Unsaved;
-         }
-
+         SubtractUnappliedFromDataState();
       }
       /// <summary>
       /// Returns -1 if no columns are editable
@@ -1460,6 +1450,58 @@ namespace LaSSI
 
          return -1;
       }
+      internal void ResetDataState()
+      {
+         dataState = DataState.Unchanged;
+      }
+      internal bool DataStateMatches(DataState state)
+      {
+         return dataState == state;
+      }
+      internal void AddUnappliedToDataState()
+      {
+         if (dataState == DataState.Unchanged)
+         {
+            dataState = DataState.Unapplied;
+         }
+         else if (dataState == DataState.Unsaved)
+         {
+            dataState = DataState.UnsavedAndUnapplied;
+         }
+      }
+      internal void AddUnsavedToDataState()
+      {
+         if (dataState == DataState.Unchanged)
+         {
+            dataState = DataState.Unsaved;
+         }
+         else if (dataState == DataState.Unapplied)
+         {
+            dataState = DataState.UnsavedAndUnapplied;
+         }
+      }
+      internal void SubtractUnappliedFromDataState()
+      {
+         if (dataState == DataState.Unapplied)
+         {
+            dataState = DataState.Unchanged;
+         }
+         else if (dataState == DataState.UnsavedAndUnapplied)
+         {
+            dataState = DataState.Unsaved;
+         }
+      }
+      internal void SubtractUnsavedFromDataState()
+      {
+         if (dataState == DataState.Unsaved)
+         {
+            dataState = DataState.Unchanged;
+         }
+         else if (dataState == DataState.UnsavedAndUnapplied)
+         {
+            dataState = DataState.Unapplied;
+         }
+      }
       #region event handlers
       private void DeleteRow_Executed(object? sender, EventArgs e)
       {
@@ -1471,14 +1513,7 @@ namespace LaSSI
 
             ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
             DetailsModified();
-            if (dataState == DataState.Unchanged)
-            {
-               dataState = DataState.Unapplied;
-            }
-            else if (dataState == DataState.Unsaved)
-            {
-               dataState = DataState.UnsavedAndUnapplied;
-            }
+            AddUnappliedToDataState();
          }
       }
 
@@ -1532,14 +1567,7 @@ namespace LaSSI
             //Changes.Add(new CollectionChange(CollectionChange.ActionType.Change, CurrentValues.deV));
             //state = DetailsModified();
             DetailsModified();
-            if (dataState == DataState.Unchanged)
-            {
-               dataState = DataState.Unapplied;
-            }
-            else if (dataState == DataState.Unsaved)
-            {
-               dataState = DataState.UnsavedAndUnapplied;
-            }
+            AddUnappliedToDataState();
          }
          else
          {
@@ -1652,7 +1680,6 @@ namespace LaSSI
             dataState = DataState.Unsaved;
             ApplyChange(item, detailControl);
 
-            UpdateApplyRevertButtons(DetailsLayout.State.Applied);
             DetailsApplied();
          }
       }
