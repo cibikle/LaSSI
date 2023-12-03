@@ -33,6 +33,7 @@ try {
     Move-Item -Path $builtFilePathMac -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $linux64Spec) -Destination "output";
     #Move-Item -Path ($compressedFilePath -f $macx64Spec) -Destination "output";
+    ls output
 }
 finally {
     #Set-Location $prevDirectory;
