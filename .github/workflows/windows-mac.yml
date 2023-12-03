@@ -110,4 +110,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\bin\Mac64\Release\net6.0\osx-x64\
+        path: ${{ env.Wap_Project_Directory }}\output\osx-x64
