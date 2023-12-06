@@ -818,13 +818,13 @@ namespace LaSSI
       }
       private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
       {
-         string[] propertyNames = new string[] { "Class", "Id", "Type" };
+         string[] propertyNames = new string[] { /*"Class",*/ "Id", "Type" };
          TreeGridItem root = GetRoot();
          foreach (TreeGridItem item in root.Children.Cast<TreeGridItem>())
          {
             TryGetProperties(item, propertyNames, out Dictionary<string, string> values);
-            if (values["Class"] == "Ship"
-               && values["Id"] == LayerId
+            if (values["Id"] == LayerId
+               //&& values["Class"] == "Ship"
                && values["Type"] == disposition.ToString())
             {
                return item;
@@ -834,12 +834,12 @@ namespace LaSSI
       }
       private TreeGridItem? FindShip(ShipDisposition disposition = ShipDisposition.Any)
       {
-         string[] propertyNames = new string[] { "Class", "Id", "Type" };
+         string[] propertyNames = new string[] { /*"Class",*/ "Id", "Type" };
          TreeGridItem root = GetRoot();
          foreach (TreeGridItem item in root.Children)
          {
             if (TryGetProperties(item, propertyNames, out Dictionary<string, string> values)
-               && values.ContainsKey("Class") && values["Class"] == "Ship"
+               //&& values.ContainsKey("Class") && values["Class"] == "Ship"
                && ShipDispositionMatches(disposition, StringDescToShipDisposition(values["Type"])))
             {
                return item;
@@ -858,7 +858,7 @@ namespace LaSSI
             return false;
          }
          OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         if (properties.Contains((object)"Type") && properties.Contains((object)"Class"))
+         if (properties.Contains((object)"Type") /*&& properties.Contains((object)"Class")*/)
          {
             var t = properties[(object)"Type"];
             if (t is not null && t.ToString() == "Derelict")
