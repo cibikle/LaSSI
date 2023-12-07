@@ -174,9 +174,10 @@ namespace LaSSI
          ListBuilder lb = new ListBuilder(RemainingItems, new List<string> { "Remaining items" }, InStock, new List<string> { "In stock", "Count" });
          lb.RightGridUpdated += RightGrid_Updated;
          lb.ID = "ListBuilder";
+         lb.Tag = "ListBuilder";
          return lb;
       }
-      private void ShuttleItems(ObservableCollection<InventoryGridItem> RemainingItems
+      private static void ShuttleItems(ObservableCollection<InventoryGridItem> RemainingItems
          , ObservableCollection<InventoryGridItem> InStock
          , DictionaryEntry entry)
       {
@@ -209,6 +210,11 @@ namespace LaSSI
                   detailsLayout.Add(CreateListBuilder(item));
                   break;
                }
+            case "Stock":
+               {
+                  detailsLayout.Add(CreateListBuilder(item));
+                  break;
+               }
             case "Cells":
                {
                   detailsLayout.Add(CreateShipCellsLayout(item));
@@ -218,9 +224,9 @@ namespace LaSSI
                {
                   Scrollable scrollable = new()
                   {
-                     ID = "DetailScrollable"
+                     ID = "DetailScrollable",
+                     Content = CreateDefaultFieldsGridView(item)
                   };
-                  scrollable.Content = CreateDefaultFieldsGridView(item);
                   //detailsLayout.Add(CreateDefaultFields(item));
                   detailsLayout.Add(scrollable);
                   break;
@@ -229,7 +235,7 @@ namespace LaSSI
 
          return detailsLayout;
       }
-      private List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
+      private static List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
       {
          List<TreeGridItem> toRemove = new List<TreeGridItem>();
          foreach (TreeGridItem item in items)
@@ -249,7 +255,6 @@ namespace LaSSI
          }
          return toRemove;
       }
-
       private static string GetNodePath(TreeGridItem item)
       {
          string path = item.Values[0].ToString()!;
@@ -331,7 +336,6 @@ namespace LaSSI
          deleteRow.Executed += DeleteRow_Executed;
          return deleteRow;
       }
-
       private GridView GetDefaultGridView()
       {
          return (GridView)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("DefaultGridView");
@@ -340,7 +344,6 @@ namespace LaSSI
       {
          return (ListBuilder)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("ListBuilder");
       }
-
       private void Bar_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
       {
          UpdateApplyRevertButtons(DetailsLayout.State.Modified);
@@ -364,7 +367,6 @@ namespace LaSSI
          //   }
          //}
       }
-
       private static Label CreateDetailLabel(string text)
       {
          return new Label
@@ -474,7 +476,6 @@ namespace LaSSI
          }
          return defaultLayout;
       }
-
       private static TextArea CreateShipCellsLayout(TreeGridItem item)
       {
          //string cells = string.Empty;
@@ -581,7 +582,7 @@ namespace LaSSI
          return (TreeGridView)this.Children.Where<Control>(x => x.ID == "DataTreeView").First();
          // pretty sure this blows up if the data tree isn't found
       }
-      private bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
+      private static bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
       {
          if (required == actual || required == ShipDisposition.Any)
          {
@@ -592,7 +593,7 @@ namespace LaSSI
             return false;
          }
       }
-      private ShipDisposition StringDescToShipDisposition(string desc)
+      private static ShipDisposition StringDescToShipDisposition(string desc)
       {
          switch (desc)
          {
@@ -693,8 +694,7 @@ namespace LaSSI
 
          return missions;
       }
-
-      private bool ContainsOneOf(string stringToCheck, string[] stringsToCheckAgainst)
+      private static bool ContainsOneOf(string stringToCheck, string[] stringsToCheckAgainst)
       {
          foreach (string stringToCheckAgainst in stringsToCheckAgainst)
          {
@@ -1690,7 +1690,7 @@ namespace LaSSI
          Control detailsControl = detailsLayout.FindChild("DefaultGridView");
          if (detailsControl is null)
          {
-            detailsControl = GetPanel2DetailsLayout().FindChild("ListBuilder");
+            detailsControl = detailsLayout.FindChild("ListBuilder");
          }
          return detailsControl;
       }
