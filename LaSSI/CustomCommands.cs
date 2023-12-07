@@ -272,6 +272,18 @@ namespace LaSSI
                , MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
 
       }
+      internal void LoadFile(string filename)
+      {
+         //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
+
+         MainForm.saveFilePath = filename;
+         MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
+         MainForm.saveFile.Load();
+         MainForm.UpdateUiAfterLoad();
+         EnableSaveAs(MainForm.Menu);
+         EnableTools(MainForm.Menu, MainForm.DataPanel);
+         MainForm.DataPanel.ResetDataState();
+      }
       #endregion utility
       //internal static void SetToolEnabled(MenuItem tool, bool enabled)
       //{
@@ -316,6 +328,9 @@ namespace LaSSI
             MainForm.LoadingBar.Visible = false;
 
             MainForm.DataPanel.ResetDataState();
+
+            // todo: attach pref
+            LoadFile(saveDialog.FileName);
          }
          else
          {
@@ -336,15 +351,7 @@ namespace LaSSI
          MainForm.LoadingBar.Visible = true;
          if (fileDialog.ShowDialog(MainForm) == DialogResult.Ok)
          {
-            //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-
-            MainForm.saveFilePath = fileDialog.FileName;
-            MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
-            MainForm.saveFile.Load();
-            MainForm.UpdateUiAfterLoad();
-            EnableSaveAs(MainForm.Menu);
-            EnableTools(MainForm.Menu, MainForm.DataPanel);
-            MainForm.DataPanel.ResetDataState();
+            LoadFile(fileDialog.FileName);
          }
          else
          {

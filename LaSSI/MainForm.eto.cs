@@ -118,7 +118,7 @@ namespace LaSSI
                , "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
          }
          savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
-         Uri SavesUri = new Uri(savesFolderPath);
+         Uri SavesUri = new(savesFolderPath);
          return SavesUri;
       }
       private static Point GetScreenCenter()
@@ -141,7 +141,7 @@ namespace LaSSI
          DataPanel.Rebuild(saveFile.Root);
          LoadingBar.Visible = false;
       }
-      internal string TrimFilePathForSafety(string filepath)
+      internal static string TrimFilePathForSafety(string filepath)
       {
          char pathSeparator = '/';
          if (EtoEnvironment.Platform.IsWindows) pathSeparator = '\\';
