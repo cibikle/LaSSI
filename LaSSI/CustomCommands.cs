@@ -14,6 +14,7 @@ namespace LaSSI
       internal Command QuitCommand { get; set; }
       internal List<Command> ToolsList { get; set; } = new List<Command>();
       internal MainForm MainForm;
+      internal Command prefsCommand { get; }
 
       public CustomCommands(MainForm mainForm)
       {
@@ -21,13 +22,13 @@ namespace LaSSI
          FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
          FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
          QuitCommand = CreateQuitCommand(QuitCommand_Executed);
-         /*var prefsCommand = new Command(PrefsCommand_Executed);*/
          ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
          ToolsList.Add(CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
          ToolsList.Add(CreateResetCameraCommand(ResetCamera_Executed));
          ToolsList.Add(CreateResetCometCommand(ResetComet_Executed));
          ToolsList.Add(CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
          ToolsList.Add(CreateCrossSectorMissionFixCommand(CrossSectorMissionFix_Executed));
+         prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
@@ -100,6 +101,17 @@ namespace LaSSI
       }
       #endregion tools
       #region commands
+      internal static Command CreatePrefsCommand(EventHandler<EventArgs> PrefsCommand_Executed)
+      {
+         var prefsCommand = new Command
+         {
+            MenuText = "&Preferences",
+            Shortcut = Application.Instance.CommonModifier | Keys.Comma,
+            ID = "PrefsCommand"
+         };
+         prefsCommand.Executed += PrefsCommand_Executed;
+         return prefsCommand;
+      }
       internal static Command CreateQuitCommand(EventHandler<EventArgs> QuitCommand_Executed)
       {
          var quitCommand = new Command
@@ -265,7 +277,7 @@ namespace LaSSI
                }
          }
       }
-      internal DialogResult PromptForSave(string state, string action1, string action2)
+      internal static DialogResult PromptForSave(string state, string action1, string action2)
       {
 
          return MessageBox.Show($"There are {state} changes!{Environment.NewLine}{action1} before {action2}?{Environment.NewLine}{state} changes will be discarded."
@@ -290,6 +302,15 @@ namespace LaSSI
       //   tool.Enabled = enabled;
       //}
       #region event handlers
+      private void PrefsCommand_Executed(object? sender, EventArgs e)
+      {
+         //var dlg = new Modal(new List<string> { "Preferences not implemented" });
+         //dlg.Content.
+         //dlg.ShowModal(Application.Instance.MainForm);
+         PrefsForm f = new PrefsForm(new Prefs());
+         f.Show();
+         f.BringToFront();
+      }
       private void QuitCommand_Executed(object? sender, EventArgs e)
       {
          if (ReadyForQuit())
@@ -357,12 +378,6 @@ namespace LaSSI
          {
             MainForm.LoadingBar.Visible = false;
          }
-      }
-      private void PrefsCommand_Executed(object? sender, EventArgs e)
-      {
-         var dlg = new Modal(new List<string> { "Preferences not implemented" });
-         //dlg.Content.
-         dlg.ShowModal(Application.Instance.MainForm);
       }
       //internal void Apply_Click(object? sender, EventArgs e)
       //{

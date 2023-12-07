@@ -50,11 +50,11 @@ namespace LaSSI
                toolsMenu
             // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
-            //ApplicationItems =
-            //{
-            //   // application (OS X) or file menu (others)
-            //   new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
-            //},
+            ApplicationItems =
+            {
+               // application (OS X) or file menu (others)
+               new ButtonMenuItem { Text = "&Preferences...", Command = CustomCommands.prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
+            },
             QuitItem = CustomCommands.QuitCommand,
             AboutItem = new AboutCommand(this)
 
