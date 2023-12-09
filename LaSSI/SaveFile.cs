@@ -31,7 +31,7 @@ namespace LaSSI
       };
       public SaveFilev2()
       {
-         
+
       }
       public SaveFilev2(string filename)
       {
@@ -164,6 +164,35 @@ namespace LaSSI
                               value = line[line.IndexOf("\"")..].Trim();
                            }
                         }
+                        //if (lineParts[0] == "SystemId")
+                        //{
+                        //   string systemId = lineParts[1];
+                        //   if (curNode.Parent is not null and Node parent)
+                        //   {
+                        //      if ((parent == saveFile.Root)
+                        //         || (parent.IsSystemNode()
+                        //         && parent.TryGetProperty("SystemId", out string currentSystemId)
+                        //         && currentSystemId != systemId))
+                        //      {
+                        //         //remove curNode from parent's children
+                        //         parent.RemoveChild(curNode);
+                        //         //try to find correct system node in root's children
+                        //         Node? systemNode = saveFile.Root.FindChild($"System {systemId}");
+                        //         //create new system node if needed and add to root's children
+                        //         if (systemNode is null)
+                        //         {
+                        //            OrderedDictionary d = new()
+                        //            {
+                        //               { lineParts[0], lineParts[1] }
+                        //            };
+                        //            systemNode = new Node($"System {systemId}", d);
+                        //            parent.AddChild(systemNode);
+                        //         }
+                        //         //add curNode to new system node's children
+                        //         systemNode.AddChild(curNode);
+                        //      }
+                        //   }
+                        //}
                      }
                      if (key != string.Empty && value != string.Empty) //unneccessary?
                      {
@@ -187,7 +216,7 @@ namespace LaSSI
          if (m.Success && lineParts.Length == 3) //we found an array line, multi-part
          {
             Node node = new Node(subnodeId);
-            nodeStack.Peek().Add(node);
+            nodeStack.Peek().AddChild(node);
             nodeStack.Push(node);
          }
          else //not an array line or a one-liner
@@ -268,7 +297,7 @@ namespace LaSSI
                properties.Add(lineParts[WorkersIndex], workers);
             }
             Node node = new Node(subnodeId, properties, currentNode);
-            currentNode.Add(node);
+            currentNode.AddChild(node);
          }
 
       }
@@ -400,7 +429,7 @@ namespace LaSSI
       private static void ProcessSimpleLineDefault(Stack<Node> nodeStack, string[] lineParts)
       {
          Node node = new Node(lineParts[1]);
-         nodeStack.Peek().Add(node);
+         nodeStack.Peek().AddChild(node);
          if (lineParts.Length == 2)
          {
             nodeStack.Push(node);

@@ -10,7 +10,7 @@ namespace LaSSI
       public string Name { get; set; } = string.Empty;
       public string Text { get; set; } = string.Empty;
       public int Id { get; set; }
-      public Node? Parent { get; set; }
+      public Node? Parent { get; private set; }
       public List<Node> Children { get; set; }
       public OrderedDictionary Properties { get; }
       public Node()
@@ -62,14 +62,23 @@ namespace LaSSI
          Children = new List<Node>();
          Properties = new OrderedDictionary();
       }
-      public void Add(Node node)
+      public void AddChild(Node node)
       {
          Children.Add(node);
          node.Parent = this;
       }
-      public void Remove(Node node)
+      public void RemoveChild(Node node)
       {
          Children.Remove(node);
+         node.Parent = null;
+      }
+      public void AddParent(Node parent)
+      {
+         parent.AddChild(this);
+      }
+      public void RemoveParent(Node parent)
+      {
+         parent.RemoveChild(this);
       }
       public Node GetRoot()
       {
@@ -98,6 +107,40 @@ namespace LaSSI
          if (this.Children.Count == 0) return false;
          return true;
       }
+      public Node? FindChild(string name, bool looseMatch = false) // todo: add recurse option
+      {
+         foreach (var child in Children)
+         {
+            if (child.Name.Equals(name) || (looseMatch && child.Name.Contains(name)))
+            {
+               return child;
+            }
+         }
+         return null;
+      }
+      public Node? FindChild(string propertyName, string propertyValue) // todo: add recurse option
+      {
+         foreach (var child in Children)
+         {
+            if (child.Properties.Contains(propertyName) && propertyValue.Equals(child.Properties[propertyName]))
+            {
+               return child;
+            }
+         }
+         return null;
+      }
+      public Node? FindChild(string name, string propertyName, string propertyValue, bool looseMatch = false) // todo: add recurse option
+      {
+         foreach (var child in Children)
+         {
+            if ((child.Name.Equals(name) || (looseMatch && child.Name.Contains(name)))
+               && child.Properties.Contains(propertyName) && propertyValue.Equals(child.Properties[propertyName]))
+            {
+               return child;
+            }
+         }
+         return null;
+      }
       public bool TryGetProperty(string propertyName, out string propertyValue)
       {
          if (Properties.Contains(propertyName))
@@ -122,43 +165,43 @@ namespace LaSSI
          }
          return (all && properyNamesAndValues.Keys.Count == properyNamesAndValues.Values.Count) || properyNamesAndValues.Values.Count > 0;
       }
-      private bool IsHazard()
+      internal bool IsHazard()
       {
          if (this.Parent != null && this.Parent.Name == "Hazards" && this.Properties.Contains("Type")) return true;
          return false;
       }
-      private bool IsStarSystem()
+      internal bool IsStarSystem()
       {
          if (this.Parent != null && this.Parent.Name == "Objects"
             && this.Parent.Parent != null && this.Parent.Parent.Name == "Galaxy"
             && this.Properties.Contains("Name")) return true;
          return false;
       }
-      public bool IsMission()
+      internal bool IsMission()
       {
          if (this.Parent != null && this.Parent.Name == "Missions"
             && this.Parent.Parent != null && this.Parent.Parent.Name == "Missions"
             && this.Properties.Contains("Type")) return true;
          return false;
       }
-      public bool IsMissionRequirement()
+      internal bool IsMissionRequirement()
       {
          if (this.Parent != null && this.Parent.Name == "Requirements"
             && this.Parent.Parent != null
             && this.Parent.Parent.Parent != null && this.Parent.Parent.Parent.Name == "Missions") return true;
          return false;
       }
-      public bool IsResearch()
+      internal bool IsResearch()
       {
          if (this.Name == "Research") return true;
          return false;
       }
-      public bool IsTradingPost()
+      internal bool IsTradingPost()
       {
          if (this.Name == "TradingPost") return true;
          return false;
       }
-      public bool IsFtlJourney()
+      internal bool IsFtlJourney()
       {
          if (Parent != null && this.Parent.Name == "Journeys") return true;
          return false;
@@ -166,11 +209,15 @@ namespace LaSSI
       /// <summary>
       /// Determines if the calling node is a layer or, optionally, the child of a Layer (free space/ship).
       /// </summary>
-      public bool IsLayer(bool DetermineIfChild = false)
+      internal bool IsLayer(bool DetermineIfChild = false)
       {
          if (this.Name == "Layer") return true;
          if (this.Parent != null && DetermineIfChild) return this.Parent.IsLayer(DetermineIfChild);
          return false;
+      }
+      internal bool IsSystemNode()
+      {
+         return Name.StartsWith("System");
       }
       internal bool IsLayerObject()
       {
@@ -228,14 +275,14 @@ namespace LaSSI
       {
          return Parent != null && Parent.Name == "Transfers" && Parent.Parent != null && Parent.Parent.Name == "Logistics";
       }
-      private static string GetHazardName(string id) //todo: replace with enum
+      internal static string GetHazardName(string id) //todo: replace with enum
       {
          string HazardName = String.Empty;
          if (id == "1") HazardName = "asteroid field";
          else if (id == "2") HazardName = "gas cloud";
          return HazardName;
       }
-      private static string GetStarSystemSummary(Node node)
+      internal static string GetStarSystemSummary(Node node)
       {
          string Summary = String.Empty;
          Summary += node.Properties["Name"];
@@ -246,7 +293,7 @@ namespace LaSSI
          if (node.Properties.Contains("Rescue")) Summary += ", Rescue";
          return Summary;
       }
-      public string GetMissionName()
+      internal string GetMissionName()
       {
          string details = Properties["Type"]!.ToString()!;
          string missionType = details;
@@ -280,7 +327,7 @@ namespace LaSSI
          }
          return details;
       }
-      private string GetProductionMissionDetails()
+      internal string GetProductionMissionDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -292,7 +339,7 @@ namespace LaSSI
          details += $", {propertyNamesAndValues["ItemCount"]}";
          return details;
       }
-      private string GetCombatMissionDetails()
+      internal string GetCombatMissionDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -306,22 +353,24 @@ namespace LaSSI
          details += $", System {propertyNamesAndValues["ToSystemId"]}";
          return details;
       }
-      public static string GetMissionRequirement(Node node)
+      internal static string GetMissionRequirement(Node node)
       {
          string details = node.Properties["Type"]!.ToString()!;
          if (node.Properties.Contains("ObjectType")) { details += $", {node.Properties["ObjectType"]}"; }
          if (node.Properties.Contains("Count")) { details += $", {node.Properties["Count"]}"; }
          return details;
       }
-      public static string GetLayerDetails(Node node)
+      internal static string GetLayerDetails(Node node)
       {
-         return $"{node.Properties["Id"]}, {node.Properties["Name"]}, {node.Properties["Type"]}";
+         string details = $"{node.Properties["Id"]}, {node.Properties["Name"]}, {node.Properties["Type"]}";
+         if (node.Properties.Contains("SystemId")) details += $", System {node.Properties["SystemId"]}";
+         return details;
       }
-      public static string GetTradingPostDetails(Node node)
+      internal static string GetTradingPostDetails(Node node)
       {
          return $"System {node.Properties["SystemId"]}";
       }
-      private static string GetFtlJourneyDetails(Node node)
+      internal static string GetFtlJourneyDetails(Node node)
       {
          return $"{node.Properties["State"]}: {node.Properties["Layers"]} from System {node.Properties["FromSystem"]} to {node.Properties["ToSystem"]}";
       }
