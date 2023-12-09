@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
@@ -51,7 +52,7 @@ namespace LaSSI
          Parent = parent;
          Children = new List<Node>();
          Properties = properties;
-         this.AddAddlNameDetails();
+         AddAddlNameDetails();
       }
       public Node(string name, Node? parent)
       {
@@ -96,6 +97,30 @@ namespace LaSSI
       {
          if (this.Children.Count == 0) return false;
          return true;
+      }
+      public bool TryGetProperty(string propertyName, out string propertyValue)
+      {
+         if (Properties.Contains(propertyName))
+         {
+            propertyValue = $"{Properties[propertyName]}";
+            return true;
+         }
+         else
+         {
+            propertyValue = string.Empty;
+            return false;
+         }
+      }
+      public bool TryGetProperties(Dictionary<string, string> properyNamesAndValues, bool all = false)
+      {
+         foreach (string name in properyNamesAndValues.Keys)
+         {
+            if (Properties.Contains(name))
+            {
+               properyNamesAndValues[name] = $"{Properties[name]}";
+            }
+         }
+         return (all && properyNamesAndValues.Keys.Count == properyNamesAndValues.Values.Count) || properyNamesAndValues.Values.Count > 0;
       }
       private bool IsHazard()
       {
@@ -167,6 +192,42 @@ namespace LaSSI
          if (this.Parent != null && DetermineIfChild) return this.Parent.IsEditor(DetermineIfChild);
          return false;
       }
+      internal bool IsPhysicsState()
+      {
+         return Parent != null && Parent.Name == "Physics" && Name == "State";
+      }
+      internal bool IsSystemArchive()
+      {
+         return Parent != null && Parent.Name == "SystemArchives";
+      }
+      internal bool IsLogisticsRequest()
+      {
+         return Parent != null && Parent.Name == "Requests" && Parent.Parent != null && Parent.Parent.Name == "Logistics";
+      }
+      internal bool IsWeather()
+      {
+         return Name == "Weather";
+      }
+      internal bool IsOrders()
+      {
+         return Name == "Orders";
+      }
+      internal bool IsNetwork()
+      {
+         return Name == "Network";
+      }
+      internal bool IsHabitationZone()
+      {
+         return Parent != null && Parent.Name == "Zones" && Parent.Parent != null && Parent.Parent.Name == "Habitation";
+      }
+      internal bool IsWorkQueueJob()
+      {
+         return Parent != null && Parent.Name == "Jobs" && Parent.Parent != null && Parent.Parent.Name == "WorkQueue";
+      }
+      internal bool IsLogisticsTransfer()
+      {
+         return Parent != null && Parent.Name == "Transfers" && Parent.Parent != null && Parent.Parent.Name == "Logistics";
+      }
       private static string GetHazardName(string id) //todo: replace with enum
       {
          string HazardName = String.Empty;
@@ -185,11 +246,64 @@ namespace LaSSI
          if (node.Properties.Contains("Rescue")) Summary += ", Rescue";
          return Summary;
       }
-      public static string GetMissionName(Node node)
+      public string GetMissionName()
       {
-         string details = node.Properties["Type"]!.ToString()!;
-         if (details == "Production" && node.Properties.Contains("Resource")) { details += $", {node.Properties["Resource"]}"; }
-         if (node.Properties.Contains("ItemCount")) { details += $", {node.Properties["ItemCount"]}"; }
+         string details = Properties["Type"]!.ToString()!;
+         string missionType = details;
+
+         if (missionType == "Combat")
+         {
+            details += GetCombatMissionDetails();
+         }
+         else if (missionType == "Production")
+         {
+            details += GetProductionMissionDetails();
+         }
+         else
+         {
+            if (Properties.Contains("ItemCount")) { details += $", {Properties["ItemCount"]}"; }
+            if (missionType == "Delivery")
+            {
+               details += " boxes";
+            }
+            else if (missionType == "Industry")
+            {
+               details += " tilium ore";
+            }
+            else if (missionType == "Passengers" || missionType == "Rescue")
+            {
+               details += " people";
+            }
+            if (Properties.Contains("FromSystemId")) { details += $", pick-up: System {Properties["FromSystemId"]}"; }
+            if (Properties.Contains("ToSystemId")) { details += $", drop-off: System {Properties["ToSystemId"]}"; }
+            if (Properties.Contains("ToSectorId") && int.Parse((string)Properties["ToSectorId"]!) != 0) { details += $", destination: Sector {Properties["ToSectorId"]}"; }
+         }
+         return details;
+      }
+      private string GetProductionMissionDetails()
+      {
+         Dictionary<string, string> propertyNamesAndValues = new()
+            {
+               { "Resource", "" },
+               { "ItemCount", "" }
+            };
+         TryGetProperties(propertyNamesAndValues);
+         string details = $", {propertyNamesAndValues["Resource"]}";
+         details += $", {propertyNamesAndValues["ItemCount"]}";
+         return details;
+      }
+      private string GetCombatMissionDetails()
+      {
+         Dictionary<string, string> propertyNamesAndValues = new()
+            {
+               { "EnemyType", "" },
+               { "ItemCount", "" },
+               { "ToSystemId", "" }
+            };
+         TryGetProperties(propertyNamesAndValues);
+         string details = $", {propertyNamesAndValues["EnemyType"]}";
+         details += $", {propertyNamesAndValues["ItemCount"]} vessels";
+         details += $", System {propertyNamesAndValues["ToSystemId"]}";
          return details;
       }
       public static string GetMissionRequirement(Node node)
@@ -209,11 +323,91 @@ namespace LaSSI
       }
       private static string GetFtlJourneyDetails(Node node)
       {
-         return $"System {node.Properties["FromSystem"]} to System {node.Properties["ToSystem"]}";
+         return $"{node.Properties["State"]}: {node.Properties["Layers"]} from System {node.Properties["FromSystem"]} to {node.Properties["ToSystem"]}";
       }
       internal string GetLayerObjectDetails()
       {
-         return $"{this.Properties["Type"]}";
+         string details = $"{Properties["Id"]}, {Properties["Type"]}";
+         if (Properties.Contains("State")) details += $", {Properties["State"]}";
+         if (Properties.Contains("CauseOfDeath")) details += $", Cause of death: {Properties["CauseOfDeath"]}";
+         if (Properties.Contains("HomeLayer")) details += $", Home layer: {Properties["HomeLayer"]}";
+         if (Properties.Contains("Resource")) details += $", {Properties["Resource"]}";
+         if (Properties.Contains("Quantity")) details += $", Qty: {Properties["Quantity"]}";
+         if (Properties.Contains("Capacity")) details += $", Cap.: {Properties["Capacity"]}";
+         if (Properties.Contains("Recipe")) details += $", Recipe: {Properties["Recipe"]}";
+         if (Properties.Contains("Contents")) details += $", Contents: {Properties["Contents"]}";
+         return details;
+      }
+      internal string GetPhysicsStateDetails()
+      {
+         return $"{this.Properties["Id"]}";
+      }
+      internal string GetSystemArchiveDetails()
+      {
+         return Regex.Replace(Name, @"^\""\[i\s", "NG").Replace("]\"", "");
+      }
+      internal string GetLogisticsRequestDetails()
+      {
+         Dictionary<string, string> propertyNamesAndValues = new()
+            {
+               { "Quantity", "" },
+               { "ItemType", "" },
+               { "FromLayer", "" },
+               { "ToLayer", "" }
+            };
+         if (TryGetProperties(propertyNamesAndValues, true))
+         {
+            string details = $"{propertyNamesAndValues["Quantity"]}";
+            details += $" {propertyNamesAndValues["ItemType"]}";
+            details += $" from {propertyNamesAndValues["FromLayer"]}";
+            details += $" to {propertyNamesAndValues["ToLayer"]}";
+            return details;
+         }
+         return string.Empty;
+      }
+      internal string GetLogisticsTransferDetails()
+      {
+         Dictionary<string, string> propertyNamesAndValues = new()
+            {
+               { "ItemId", "" },
+               { "FromLayer", "" },
+               { "ToLayer", "" },
+               { "JobId", "" }
+            };
+         if (TryGetProperties(propertyNamesAndValues))
+         {
+            string details = $" {propertyNamesAndValues["ItemId"]}";
+            details += $" from {propertyNamesAndValues["FromLayer"]}";
+            details += $" to {propertyNamesAndValues["ToLayer"]}";
+            if (propertyNamesAndValues["JobId"] != string.Empty)
+            {
+               details += $", JobId {propertyNamesAndValues["JobId"]}";
+            }
+
+            return details;
+         }
+         return string.Empty;
+      }
+      internal string GetSystemId()
+      {
+         TryGetProperty("SystemId", out string systemId);
+         return systemId;
+      }
+      internal string GetNetworkDetails()
+      {
+         return $"{Properties["Type"]}, {Properties["Id"]}";
+      }
+      internal string GetHabitationZoneDetails()
+      {
+         string entities = $"{Properties["Entities"]}";
+         int used = entities.Length - entities.Replace(",", "").Length + 1;
+         return $"ID {Properties["Id"]}, Capacity: {used}/{Properties["Capacity"]}";
+      }
+      internal string GetWorkQueueJobDetails()
+      {
+         string details = $"{Properties["Type"]}";
+         if (Properties.Contains("TargetType")) details += $" {Properties["TargetType"]}";
+         return details;
       }
       private string GetAddlNameDetails()
       {
@@ -229,9 +423,13 @@ namespace LaSSI
          {
             addlDetails = GetStarSystemSummary(this);
          }
+         else if (IsSystemArchive())
+         {
+            addlDetails = GetSystemArchiveDetails();
+         }
          else if (this.IsMission())
          {
-            addlDetails = Node.GetMissionName(this);
+            addlDetails = GetMissionName();
          }
          else if (this.IsLayer()) //remember, layers include both "FreeSpace" and all ships/stations!
          {
@@ -252,6 +450,36 @@ namespace LaSSI
          else if (this.IsLayerObject())
          {
             addlDetails = this.GetLayerObjectDetails();
+         }
+         else if (this.IsPhysicsState())
+         {
+            addlDetails = this.GetPhysicsStateDetails();
+         }
+         else if (IsLogisticsRequest())
+         {
+            addlDetails = GetLogisticsRequestDetails();
+         }
+         else if (IsWeather() || IsOrders())
+         {
+            string systemId = GetSystemId();
+
+            addlDetails = "System " + (systemId != string.Empty ? systemId : "?");
+         }
+         else if (IsNetwork())
+         {
+            addlDetails = GetNetworkDetails();
+         }
+         else if (IsHabitationZone())
+         {
+            addlDetails = GetHabitationZoneDetails();
+         }
+         else if (IsWorkQueueJob())
+         {
+            addlDetails = GetWorkQueueJobDetails();
+         }
+         else if (IsLogisticsTransfer())
+         {
+            addlDetails = GetLogisticsTransferDetails();
          }
          return addlDetails;
       }

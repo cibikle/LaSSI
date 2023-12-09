@@ -215,6 +215,24 @@ namespace LaSSI
                   detailsLayout.Add(CreateListBuilder(item));
                   break;
                }
+            case "Trade":
+               {
+                  if (((TreeGridItem)item.Parent).Tag.ToString() == "Deliveries")
+                  {
+                     detailsLayout.Add(CreateListBuilder(item));
+                  }
+                  else
+                  {
+                     Scrollable scrollable = new()
+                     {
+                        ID = "DetailScrollable",
+                        Content = CreateDefaultFieldsGridView(item)
+                     };
+                     //detailsLayout.Add(CreateDefaultFields(item));
+                     detailsLayout.Add(scrollable);
+                  }
+                  break;
+               }
             case "Cells":
                {
                   detailsLayout.Add(CreateShipCellsLayout(item));
