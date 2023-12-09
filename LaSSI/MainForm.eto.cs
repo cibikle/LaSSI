@@ -28,7 +28,6 @@ namespace LaSSI
       internal CustomCommands? CustomCommands;
       void InitializeComponent()
       {
-         Closeable = false;
          Title = "LaSSI (the Last Starship Save Inspector)";
          MinimumSize = new Size(200, 200);
          Size = new Size(1024, 600);
@@ -83,6 +82,7 @@ namespace LaSSI
 #if DEBUG
             BringToFront(); // this is useful for dev but causes a problem with release builds
 #endif
+            Closeable = false;
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
       }
