@@ -101,6 +101,10 @@ namespace LaSSI
       }
       #endregion tools
       #region commands
+      internal static ButtonMenuItem CreatePrefsMenuItem(Command prefsCommand)
+      {
+         return new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma };
+      }
       internal static Command CreatePrefsCommand(EventHandler<EventArgs> PrefsCommand_Executed)
       {
          var prefsCommand = new Command
@@ -147,6 +151,11 @@ namespace LaSSI
          return saveFileAsCommand;
       }
       #endregion commands
+      internal void OpenFileExecute()
+      {
+         Command openfile = FileCommands.First(x => x.ID == "OpenFileCommand");
+         openfile.Execute();
+      }
 
       #region utility
       internal static void EnableSaveAs(MenuBar menu)
@@ -208,6 +217,30 @@ namespace LaSSI
       }
       internal bool ReadyForQuit()
       {
+         // todo: add check to see if prefs need to be written to disk
+         // todo: also maybe figure out how to prevent all this from running on start-up if the behavior is set to load file/open file
+         switch ((StartupBehavior)MainForm.prefs.startupBehavior.value!)
+         {
+            case StartupBehavior.LoadLastFile:
+               {
+                  if (!string.IsNullOrEmpty(MainForm.saveFilePath))
+                  {
+                     MainForm.prefs.startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
+                  }
+                  break;
+               }
+            case StartupBehavior.Nothing:
+            case StartupBehavior.ShowFileChooser:
+               {
+                  MainForm.prefs.startupFile.SetValue(string.Empty);
+                  break;
+               }
+            default:
+               {
+                  break;
+               }
+         }
+         MainForm.prefs.SavePrefs();
          if (MainForm.DataPanel.DataStateMatches(DataPanel.DataState.Unchanged))
          {
             return true;
@@ -230,7 +263,8 @@ namespace LaSSI
       }
       internal bool GetReadyForQuit()
       {
-         DialogResult result = PromptForSave("Unsaved", "Save", "closing");
+         DialogResult result = GetPreferredAction((AlwaysNeverPrompt)MainForm.prefs.saveBeforeQuitting.value!, "Unsaved", "Save", "closing");
+
          switch (result)
          {
             case DialogResult.Yes:
@@ -242,10 +276,6 @@ namespace LaSSI
                {
                   return true;
                }
-            case DialogResult.Cancel:
-               {
-                  return false;
-               }
             default:
                {
                   return false;
@@ -254,7 +284,8 @@ namespace LaSSI
       }
       internal bool GetReadyForSave()
       {
-         DialogResult result = PromptForSave("Unapplied", "Apply", "saving");
+         DialogResult result = GetPreferredAction((AlwaysNeverPrompt)MainForm.prefs.applyBeforeSaving.value!, "Unapplied", "Apply", "saving");
+
          switch (result)
          {
             case DialogResult.Yes:
@@ -267,13 +298,31 @@ namespace LaSSI
                   MainForm.DataPanel.RevertAllUnappliedChanges();
                   return true;
                }
-            case DialogResult.Cancel:
-               {
-                  return false;
-               }
             default:
                {
                   return false;
+               }
+         }
+      }
+      internal static DialogResult GetPreferredAction(AlwaysNeverPrompt pref, string state, string action1, string action2)
+      {
+         switch (pref)
+         {
+            case AlwaysNeverPrompt.prompt:
+               {
+                  return PromptForSave(state, action1, action2);
+               }
+            case AlwaysNeverPrompt.always:
+               {
+                  return DialogResult.Yes;
+               }
+            case AlwaysNeverPrompt.never:
+               {
+                  return DialogResult.No;
+               }
+            default:
+               {
+                  return DialogResult.Cancel;
                }
          }
       }
@@ -304,12 +353,8 @@ namespace LaSSI
       #region event handlers
       private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
-         //var dlg = new Modal(new List<string> { "Preferences not implemented" });
-         //dlg.Content.
-         //dlg.ShowModal(Application.Instance.MainForm);
-         PrefsForm f = new PrefsForm(new Prefs());
-         f.Show();
-         f.BringToFront();
+         PrefsDialog f = new PrefsDialog(MainForm.prefs);
+         f.ShowModal(MainForm);
       }
       private void QuitCommand_Executed(object? sender, EventArgs e)
       {
@@ -350,7 +395,6 @@ namespace LaSSI
 
             MainForm.DataPanel.ResetDataState();
 
-            // todo: attach pref
             LoadFile(saveDialog.FileName);
          }
          else
@@ -358,7 +402,7 @@ namespace LaSSI
             MainForm.LoadingBar.Visible = false;
          }
       }
-      private void OpenFileCommand_Executed(object? sender, EventArgs e) //todo: make this not suck
+      private void OpenFileCommand_Executed(object? sender, EventArgs e)
       {
          if (!ReadyForQuit())
          {

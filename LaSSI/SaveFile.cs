@@ -96,7 +96,7 @@ namespace LaSSI
             return;//todo: uh, display a message? throw an exception?
          }
 
-         Stack<Node> nodeStack = new Stack<Node>();
+         Stack<Node> nodeStack = new();
          nodeStack.Push(saveFile.Root);
          Debug.WriteLine(filename);
          TextReader reader = new StreamReader(filename);

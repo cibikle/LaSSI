@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 namespace LaSSI
 {
@@ -26,6 +27,8 @@ namespace LaSSI
       internal ProgressBar LoadingBar = new();
       internal DataPanel DataPanel;
       internal CustomCommands? CustomCommands;
+      internal SubMenuItem fileMenu;
+      internal Prefs prefs;
       void InitializeComponent()
       {
          Title = "LaSSI (the Last Starship Save Inspector)";
@@ -35,8 +38,9 @@ namespace LaSSI
          Padding = 10;
          DataPanel = new DataPanel(InventoryMasterList, Width);
          CustomCommands = new CustomCommands(this);
+         prefs = new Prefs(this);
          // create menu
-         SubMenuItem fileMenu = new() { Text = "&File" };
+         fileMenu = new() { Text = "&File" };
          fileMenu.Items.AddRange(CustomCommands.FileCommands);
          SubMenuItem toolsMenu = new() { Text = "&Tools" };
          toolsMenu.Items.AddRange(CustomCommands.ToolsList);
@@ -52,7 +56,7 @@ namespace LaSSI
             ApplicationItems =
             {
                // application (OS X) or file menu (others)
-               new ButtonMenuItem { Text = "&Preferences...", Command = CustomCommands.prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma },
+               CustomCommands.CreatePrefsMenuItem(CustomCommands.prefsCommand),
             },
             QuitItem = CustomCommands.QuitCommand,
             AboutItem = new AboutCommand(this)
@@ -65,9 +69,32 @@ namespace LaSSI
          };
          Content = InitMainPanel();
          PlatformSpecificNonsense();
+         Startup();
       }
 
-
+      internal void Startup()
+      {
+         if (CustomCommands is not null)
+         {
+            switch (prefs.startupBehavior.value)
+            {
+               case StartupBehavior.ShowFileChooser:
+                  {
+                     CustomCommands.OpenFileExecute();
+                     break;
+                  }
+               case StartupBehavior.LoadFile:
+               case StartupBehavior.LoadLastFile:
+                  {
+                     if (prefs.startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
+                     {
+                        CustomCommands.LoadFile(Path.Combine(savesFolder.OriginalString, filename));
+                     }
+                     break;
+                  }
+            }
+         }
+      }
       /// <summary>
       /// This method takes care of any platform-specific setup/steps at the end of the mainform init phase
       /// </summary>
@@ -75,6 +102,10 @@ namespace LaSSI
       {
          if (EtoEnvironment.Platform.IsWindows)
          {
+            if (CustomCommands is not null)
+            {
+               fileMenu.Items.Add(CustomCommands.CreatePrefsMenuItem(CustomCommands.prefsCommand));
+            }
             Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
          }
          else if (EtoEnvironment.Platform.IsMac)

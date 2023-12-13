@@ -223,13 +223,7 @@ namespace LaSSI
                   }
                   else
                   {
-                     Scrollable scrollable = new()
-                     {
-                        ID = "DetailScrollable",
-                        Content = CreateDefaultFieldsGridView(item)
-                     };
-                     //detailsLayout.Add(CreateDefaultFields(item));
-                     detailsLayout.Add(scrollable);
+                     detailsLayout.Add(CreateDefaultPanel(item));
                   }
                   break;
                }
@@ -240,18 +234,21 @@ namespace LaSSI
                }
             default:
                {
-                  Scrollable scrollable = new()
-                  {
-                     ID = "DetailScrollable",
-                     Content = CreateDefaultFieldsGridView(item)
-                  };
-                  //detailsLayout.Add(CreateDefaultFields(item));
-                  detailsLayout.Add(scrollable);
+                  detailsLayout.Add(CreateDefaultPanel(item));
                   break;
                }
          }
 
          return detailsLayout;
+      }
+      internal Scrollable CreateDefaultPanel(TreeGridItem item)
+      {
+         Scrollable scrollable = new()
+         {
+            ID = "DetailScrollable",
+            Content = CreateDefaultFieldsGridView(item)
+         };
+         return scrollable;
       }
       private static List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
       {

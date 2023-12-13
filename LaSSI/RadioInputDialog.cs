@@ -53,12 +53,12 @@ namespace LaSSI
 
       private StackLayout ButtonsLayout()
       {
-         Button ok = new(OK_clicked)
+         OK = new(OK_clicked)
          {
             Text = "OK",
          };
-         OK = ok;
-         this.DefaultButton = ok; // this seems bad but I'm not fixing it now
+         //OK = ok;
+         DefaultButton = OK;
          Button cancel = new() { Text = "Cancel" };
          cancel.Click += delegate
          {
@@ -66,7 +66,7 @@ namespace LaSSI
             Close();
          };
          this.AbortButton = cancel;
-         return new StackLayout(ok, cancel) { Orientation = Orientation.Horizontal, Spacing = 5 };
+         return new StackLayout(OK, cancel) { Orientation = Orientation.Horizontal, Spacing = 5 };
       }
 
       private void OK_clicked(object? sender, EventArgs e)
@@ -78,9 +78,9 @@ namespace LaSSI
       //public string Hint { get; set; } = string.Empty;
       //private readonly TextBox TextBox = new();
       private DialogResult Result = DialogResult.None;
-      private string[] Options = new string[0];
+      private readonly string[] Options = Array.Empty<string>();
       private Button? OK;
-      RadioButtonList buttonList = new RadioButtonList();
+      readonly RadioButtonList buttonList = new();
    }
 }
 
