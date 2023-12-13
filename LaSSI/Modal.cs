@@ -1,7 +1,6 @@
 ﻿using System;
 using Eto.Forms;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LaSSI
 {
@@ -14,7 +13,7 @@ namespace LaSSI
          {
             layout.AddCentered(new Label { Text = s }, xscale: true, yscale: true);
          }
-         if(links is not null)
+         if (links is not null)
          {
             foreach (var l in links)
             {
@@ -23,7 +22,7 @@ namespace LaSSI
                layout.Add(linkButton);
             }
          }
-         
+
          AbortButton = CreateAbortButton();
          layout.BeginVertical();
          layout.AddRow(null, AbortButton);

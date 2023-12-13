@@ -101,11 +101,11 @@ namespace LaSSI
          using StreamWriter sw = new(PrefsFile);
          sw.Write(json);
       }
-      internal string GetPrefsFile()
+      internal static string GetPrefsFile()
       {
          return Path.Combine(GetAppSupportDirectory(), "Preferences.json");
       }
-      internal string GetAppSupportDirectory()
+      internal static string GetAppSupportDirectory()
       {
          string appSupport = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
          if (EtoEnvironment.Platform.IsMac)

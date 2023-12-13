@@ -21,6 +21,7 @@ namespace LaSSI
          MainForm = mainForm;
          FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
          FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
+         FileCommands.Add(CreateBrowseBackupsCommand(BrowseBackupsCommand_Executed));
          QuitCommand = CreateQuitCommand(QuitCommand_Executed);
          ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
          ToolsList.Add(CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
@@ -150,6 +151,18 @@ namespace LaSSI
          saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
          return saveFileAsCommand;
       }
+      internal static Command CreateBrowseBackupsCommand(EventHandler<EventArgs> BrowseBackupsCommand_Executed)
+      {
+         var browseBackupsCommand = new Command
+         {
+            MenuText = "Browse backups",
+            Shortcut = Application.Instance.CommonModifier | /*Keys.Shift |*/ Keys.B,
+            Enabled = true,
+            ID = "BrowseBackupsCommand"
+         };
+         browseBackupsCommand.Executed += BrowseBackupsCommand_Executed;
+         return browseBackupsCommand;
+      }
       #endregion commands
       internal void OpenFileExecute()
       {
@@ -241,14 +254,25 @@ namespace LaSSI
                }
          }
          MainForm.prefs.SavePrefs();
+         bool readyForQuit;
          if (MainForm.DataPanel.DataStateMatches(DataPanel.DataState.Unchanged))
          {
-            return true;
+            readyForQuit = true;
          }
          else
          {
-            return GetReadyForQuit();
+            readyForQuit = GetReadyForQuit();
          }
+
+         if (readyForQuit)
+         {
+            if (!string.IsNullOrEmpty(MainForm.backupDirectory))
+            {
+               CleanupBackup(MainForm.backupDirectory);
+            }
+         }
+
+         return readyForQuit;
       }
       internal bool ReadyForSave()
       {
@@ -345,11 +369,34 @@ namespace LaSSI
          EnableTools(MainForm.Menu, MainForm.DataPanel);
          MainForm.DataPanel.ResetDataState();
       }
+      internal static string StartBackup(string filename)
+      {
+         string date = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+         string appSupportDirectory = Path.Combine(Prefs.GetAppSupportDirectory(), $"backup_{date}");
+         Directory.CreateDirectory(appSupportDirectory);
+         File.Copy(filename, Path.Combine(appSupportDirectory, $"orig_{Path.GetFileName(filename)}"));
+         return appSupportDirectory;
+      }
+      internal static void AddToBackup(string backupDirectory, string filepath)
+      {
+         if (Directory.Exists(backupDirectory))
+         {
+            int numberOfFiles = Directory.GetFiles(backupDirectory).Length;
+
+            string filename = $"{numberOfFiles}_{Path.GetFileName(filepath)}";
+            string destination = Path.Combine(backupDirectory, filename);
+
+            File.Copy(filepath, destination);
+         }
+      }
+      internal static void CleanupBackup(string backupDirectory)
+      {
+         if (Directory.GetFiles(backupDirectory).Length < 2)
+         {
+            Directory.Delete(backupDirectory, true);
+         }
+      }
       #endregion utility
-      //internal static void SetToolEnabled(MenuItem tool, bool enabled)
-      //{
-      //   tool.Enabled = enabled;
-      //}
       #region event handlers
       private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
@@ -396,6 +443,7 @@ namespace LaSSI
             MainForm.DataPanel.ResetDataState();
 
             LoadFile(saveDialog.FileName);
+            AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
          }
          else
          {
@@ -408,33 +456,36 @@ namespace LaSSI
          {
             return;
          }
-         OpenFileDialog fileDialog = new()
+         OpenFileDialog openDialog = new()
          {
             Directory = MainForm.savesFolder
          };
-         fileDialog.Filters.Add(MainForm.FileFormat);
+         openDialog.Filters.Add(MainForm.FileFormat);
          MainForm.LoadingBar.Visible = true;
-         if (fileDialog.ShowDialog(MainForm) == DialogResult.Ok)
+         if (openDialog.ShowDialog(MainForm) == DialogResult.Ok)
          {
-            LoadFile(fileDialog.FileName);
+            LoadFile(openDialog.FileName);
+
+            MainForm.backupDirectory = StartBackup(openDialog.FileName);
+
+            Debug.WriteLine($"Backup started in {MainForm.backupDirectory}");
          }
          else
          {
             MainForm.LoadingBar.Visible = false;
          }
       }
-      //internal void Apply_Click(object? sender, EventArgs e)
-      //{
-      //   MessageBox.Show("Apply clicked");
-      //}
-      //internal void Discard_Click(object? sender, EventArgs e)
-      //{
-      //   MessageBox.Show("Discard clicked");
-      //}
-      //internal void Cancel_Click(object? sender, EventArgs e)
-      //{
-      //   MessageBox.Show("Cancel clicked");
-      //}
+      private void BrowseBackupsCommand_Executed(object? sender, EventArgs e)
+      {
+         string appSupportDirectory = Prefs.GetAppSupportDirectory();
+         if (Directory.Exists(appSupportDirectory))
+         {
+            Process p = new Process();
+            p.StartInfo.UseShellExecute = true;
+            p.StartInfo.FileName = appSupportDirectory;
+            p.Start();
+         }
+      }
       #endregion event handlers
       #region tool event handlers
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)

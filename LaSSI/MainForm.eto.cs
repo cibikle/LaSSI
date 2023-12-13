@@ -22,6 +22,7 @@ namespace LaSSI
       internal System.Uri savesFolder = GetSavesUri();
       internal string saveFilePath = string.Empty;
       internal SaveFilev2 saveFile = new();
+      internal string backupDirectory = string.Empty;
       internal List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
       internal readonly string FileFormat = "Last Starship save files|*.space";
       internal ProgressBar LoadingBar = new();
