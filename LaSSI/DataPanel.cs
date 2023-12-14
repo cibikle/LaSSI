@@ -58,6 +58,8 @@ namespace LaSSI
       private List<TreeGridItem>? systemsWithComets = null;
       private List<TreeGridItem>? crossSectorMissions = null;
       private List<TreeGridItem>? weatherReports = null;
+      private List<TreeGridItem>? deadCrew = null;
+      private List<TreeGridItem>? friendlyShips = null;
       public DataPanel()
       {
 
@@ -781,7 +783,7 @@ namespace LaSSI
          }
          return children;
       }
-      private List<TreeGridItem> FindChildNodesWithProperties(TreeGridItem item, string childname, bool looseMatch = false, List<string>? properties = null)
+      private List<TreeGridItem> FindChildNodesWithProperties(TreeGridItem item, string childname, bool looseMatch = false, List<string>? properties = null, bool all = false)
       {
          List<TreeGridItem> children = new();
          foreach (TreeGridItem child in item.Children)
@@ -790,7 +792,7 @@ namespace LaSSI
             {
                if (properties is not null)
                {
-                  if (HasProperties(child, properties.ToArray()))
+                  if (HasProperties(child, properties.ToArray(), all))
                   {
                      children.Add(child);
                   }
@@ -1181,6 +1183,45 @@ namespace LaSSI
       internal static double CalculateDistance(double point1X, double point1Y, double point2X, double point2Y)
       {
          return Math.Sqrt(Math.Pow(point2X - point1X, 2) + Math.Pow((point2Y - point1Y), 2));
+      }
+      internal bool FindDeadCrew()
+      {
+         if (friendlyShips is null)
+         {
+            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+         }
+
+         foreach (var layer in friendlyShips)
+         {
+            if (GetChildNode(layer, "Objects") is not null and TreeGridItem objects)
+            {
+               deadCrew = FindChildNodesWithProperties(objects, "\"[i ", true, new List<string> { "Type", "State", "CauseOfDeath" }, true);
+            }
+         }
+         return deadCrew is not null && deadCrew.Count > 0;
+      }
+      internal bool ClearDeadCrew()
+      {
+         //List<TreeGridItem> friendlyLayers = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+         if (friendlyShips is null)
+         {
+            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+         }
+         foreach (var layer in friendlyShips)
+         {
+            if (GetChildNode(layer, "Objects") is not null and TreeGridItem objects && deadCrew is not null)
+            {
+               foreach (var deadCrewmember in deadCrew)
+               {
+                  if (objects.Children.Contains(deadCrewmember))
+                  {
+                     objects.Children.Remove(deadCrewmember);
+                     ClearItemFromCache(deadCrewmember);
+                  }
+               }
+            }
+         }
+         return true; // todo: this should probably actually be tied to something succeeding
       }
       /// <summary>
       /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship

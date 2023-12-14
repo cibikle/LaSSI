@@ -29,6 +29,7 @@ namespace LaSSI
          ToolsList.Add(CreateResetCometCommand(ResetComet_Executed));
          ToolsList.Add(CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
          ToolsList.Add(CreateCrossSectorMissionFixCommand(CrossSectorMissionFix_Executed));
+         ToolsList.Add(CreateCleanupDeadCrew_Command(CleanupDeadCrew_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
@@ -99,6 +100,17 @@ namespace LaSSI
          crossSectorMissionFix.Executed += CrossSectorMissionFix_Executed;
          crossSectorMissionFix.Enabled = false;
          return crossSectorMissionFix;
+      }
+      internal static Command CreateCleanupDeadCrew_Command(EventHandler<EventArgs> CleanupDeadCrew_Executed)
+      {
+         var cleanupDeadCrewCommand = new Command
+         {
+            MenuText = "Clean up dead crew",
+            ID = "CleanupDeadCrewTool"
+         };
+         cleanupDeadCrewCommand.Executed += CleanupDeadCrew_Executed;
+         cleanupDeadCrewCommand.Enabled = false;
+         return cleanupDeadCrewCommand;
       }
       #endregion tools
       #region commands
@@ -222,6 +234,11 @@ namespace LaSSI
             case "CrossSectorMissionFixTool":
                {
                   enablability = data.CrossSectorMissionsExist();
+                  break;
+               }
+            case "CleanupDeadCrewTool":
+               {
+                  enablability = data.FindDeadCrew();
                   break;
                }
          }
@@ -562,6 +579,15 @@ namespace LaSSI
          if (sender is Command c and not null && MainForm.DataPanel.SetCrossSectorMissionsDestination())
          {
             _ = MessageBox.Show("Cross-sector passenger missions updated", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
+         }
+      }
+      internal void CleanupDeadCrew_Executed(object? sender, EventArgs e)
+      {
+         if (sender is Command c and not null && MainForm.DataPanel.ClearDeadCrew())
+         {
+            _ = MessageBox.Show("Dead crew cleaned up", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
