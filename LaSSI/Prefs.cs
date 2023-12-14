@@ -27,7 +27,7 @@ namespace LaSSI
       //[Description("Nothing")]
       Nothing,
       //[Description("Show file chooser")]
-      ShowFileChooser,
+      //ShowFileChooser,
       //[Description("Load last file")]
       LoadLastFile,
       LoadFile

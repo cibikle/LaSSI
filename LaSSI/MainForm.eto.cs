@@ -32,6 +32,7 @@ namespace LaSSI
       internal Prefs prefs;
       void InitializeComponent()
       {
+         Closing += MainForm_Closing;
          Title = "LaSSI (the Last Starship Save Inspector)";
          MinimumSize = new Size(200, 200);
          Size = new Size(1024, 600);
@@ -73,17 +74,25 @@ namespace LaSSI
          Startup();
       }
 
+      private void MainForm_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+      {
+         if (CustomCommands != null)
+         {
+            CustomCommands.ReadyForQuit();
+         }
+      }
+
       internal void Startup()
       {
          if (CustomCommands is not null)
          {
             switch (prefs.startupBehavior.value)
             {
-               case StartupBehavior.ShowFileChooser:
+               /*case StartupBehavior.ShowFileChooser:
                   {
                      CustomCommands.OpenFileExecute();
                      break;
-                  }
+                  }*/
                case StartupBehavior.LoadFile:
                case StartupBehavior.LoadLastFile:
                   {
@@ -103,10 +112,6 @@ namespace LaSSI
       {
          if (EtoEnvironment.Platform.IsWindows)
          {
-            if (CustomCommands is not null)
-            {
-               fileMenu.Items.Add(CustomCommands.CreatePrefsMenuItem(CustomCommands.prefsCommand));
-            }
             Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
          }
          else if (EtoEnvironment.Platform.IsMac)

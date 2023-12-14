@@ -12,8 +12,12 @@
 		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
 		<Company />
 		<Authors>CIBikle</Authors>
-		<FileVersion>0.9.5</FileVersion>
+		<FileVersion>0.9.6</FileVersion>
+		<ApplicationIcon>FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Content Include="FileMagnifyingGlassIcon24x24.ico" />
+	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />
 	</ItemGroup>

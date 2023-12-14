@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties;
 
 namespace LaSSI
 {
@@ -55,7 +56,7 @@ namespace LaSSI
          Enabled = false
       };
       //private DetailsLayout? CurrentDetails;
-      private List<TreeGridItem>? systemsWithComets = null;
+      private List<TreeGridItem>? freespaceObjectsWithComet = null;
       private List<TreeGridItem>? crossSectorMissions = null;
       private List<TreeGridItem>? weatherReports = null;
       private List<TreeGridItem>? deadCrew = null;
@@ -959,41 +960,77 @@ namespace LaSSI
       }
       public bool CometExists()
       {
-         TreeGridItem? galaxy = GetGalaxyNode();
-         if (galaxy is not null)
+         List<TreeGridItem> systemsWithComets = GetGalaxyObjects(false, new Dictionary<string, string> { { "Comet", "true" } });
+         foreach (var systemWithComet in systemsWithComets)
          {
-            TreeGridItem? galaxyObjects = GetChildNode(galaxy, "Objects");
-            if (galaxyObjects is not null)
+            TreeGridItem? systemFreeSpace = null;
+            TryGetProperty(systemWithComet, "Id", out string systemId);
+            if (GetSystemArchive(systemId) is not null and TreeGridItem system)
             {
-               systemsWithComets = FindChildNodesWithProperty(galaxyObjects, "Comet", "true");
-               if (systemsWithComets.Count > 0) return true;
+               if (GetChildNode(system, "FreeSpace", true) is not null and TreeGridItem freeSpaceLayer)
+               {
+                  systemFreeSpace = GetChildNode(freeSpaceLayer, "Objects");
+               }
+            }
+            else
+            {
+               if (FindCurrentSystemLayer("FreeSpace", systemId) is not null and TreeGridItem freeSpaceLayer)
+               {
+                  systemFreeSpace = GetChildNode(freeSpaceLayer, "Objects");
+               }
+            }
+            if (systemFreeSpace is not null)
+            {
+               if (this.freespaceObjectsWithComet is null)
+               {
+                  this.freespaceObjectsWithComet = new List<TreeGridItem>();
+               }
+               this.freespaceObjectsWithComet.Add(systemFreeSpace);
             }
          }
+         if (this.freespaceObjectsWithComet is not null && this.freespaceObjectsWithComet.Count > 0) return true;
+
+
 
          return false;
+      }
+      internal TreeGridItem? FindCurrentSystemLayer(string layerName, string systemId = "")
+      {
+         List<TreeGridItem> currentSystemLayers = FindChildNodesWithProperties(GetRoot(), layerName, true);
+         if (!string.IsNullOrEmpty(systemId))
+         {
+            foreach (var currentSystemLayer in currentSystemLayers)
+            {
+               if (TryGetProperty(currentSystemLayer, "SystemId", out string layerSystemId))
+               {
+                  if (systemId == layerSystemId)
+                  {
+                     return currentSystemLayer;
+                  }
+               }
+
+            }
+         }
+         return currentSystemLayers[0];
       }
       internal bool ResetComet()
       {
          bool success = true;
-         if (systemsWithComets is not null)
+         if (freespaceObjectsWithComet is not null)
          {
-            foreach (var systemWithComet in systemsWithComets)
+            foreach (var freespaceWithComet in freespaceObjectsWithComet)
             {
-               // get each ID property
-               if (TryGetProperty(systemWithComet, "Id", out string systemId))
+
+               List<TreeGridItem> comets = FindChildNodesWithProperty(freespaceWithComet, "Type", "Comet");
+               //bool cometWasSelected = false;
+               foreach (var comet in comets)
                {
-                  TreeGridItem system = GetSystemArchive(systemId)!;
-                  List<TreeGridItem> comets = FindChildNodesWithProperty(GetChildNode(GetChildNode(system, "FreeSpace", true)!, "Objects")!, "Type", "Comet");
-                  //bool cometWasSelected = false;
-                  foreach (var comet in comets)
+                  success = success && TrySetProperty(comet, "Position.x", "0");
+                  success = success && TrySetProperty(comet, "Position.y", "0");
+                  ClearItemFromCache(comet);
+                  if (comet == GetSelectedTreeGridItem())
                   {
-                     success = success && TrySetProperty(comet, "Position.x", "0");
-                     success = success && TrySetProperty(comet, "Position.y", "0");
-                     ClearItemFromCache(comet);
-                     if (comet == GetSelectedTreeGridItem())
-                     {
-                        UpdateDetailsPanel(comet);
-                     }
+                     UpdateDetailsPanel(comet);
                   }
                }
             }
@@ -1361,7 +1398,7 @@ namespace LaSSI
          Root = root;
          RebuildTreeView(Root);
          crossSectorMissions = null;
-         systemsWithComets = null;
+         freespaceObjectsWithComet = null;
       }
       private void ClearDetails()
       {

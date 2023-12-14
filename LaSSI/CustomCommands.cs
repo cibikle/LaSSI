@@ -1,4 +1,5 @@
-﻿using Eto.Forms;
+﻿using Eto;
+using Eto.Forms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -260,7 +261,7 @@ namespace LaSSI
                   break;
                }
             case StartupBehavior.Nothing:
-            case StartupBehavior.ShowFileChooser:
+            //case StartupBehavior.ShowFileChooser:
                {
                   MainForm.prefs.startupFile.SetValue(string.Empty);
                   break;
@@ -374,7 +375,7 @@ namespace LaSSI
                , MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
 
       }
-      internal void LoadFile(string filename)
+      internal void LoadFile(string filename, bool IsReloadAfterSave = false)
       {
          //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
 
@@ -385,13 +386,24 @@ namespace LaSSI
          EnableSaveAs(MainForm.Menu);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
          MainForm.DataPanel.ResetDataState();
+
+         if (!IsReloadAfterSave)
+         {
+            MainForm.backupDirectory = StartBackup(filename);
+            Debug.WriteLine($"Backup started in {MainForm.backupDirectory}");
+         }
       }
       internal static string StartBackup(string filename)
       {
          string date = DateTime.Now.ToString("yyyyMMdd-HHmmss");
          string appSupportDirectory = Path.Combine(Prefs.GetAppSupportDirectory(), $"backup_{date}");
          Directory.CreateDirectory(appSupportDirectory);
-         File.Copy(filename, Path.Combine(appSupportDirectory, $"orig_{Path.GetFileName(filename)}"));
+         string fileDestination = Path.Combine(appSupportDirectory, $"orig_{Path.GetFileName(filename)}");
+         if (!File.Exists(fileDestination))
+         {
+            File.Copy(filename, fileDestination);
+         }
+         
          return appSupportDirectory;
       }
       internal static void AddToBackup(string backupDirectory, string filepath)
@@ -408,7 +420,7 @@ namespace LaSSI
       }
       internal static void CleanupBackup(string backupDirectory)
       {
-         if (Directory.GetFiles(backupDirectory).Length < 2)
+         if (Directory.Exists(backupDirectory) && Directory.GetFiles(backupDirectory).Length < 2)
          {
             Directory.Delete(backupDirectory, true);
          }
@@ -422,7 +434,7 @@ namespace LaSSI
       }
       private void QuitCommand_Executed(object? sender, EventArgs e)
       {
-         if (ReadyForQuit())
+         if ((EtoEnvironment.Platform.IsMac && ReadyForQuit()) || !EtoEnvironment.Platform.IsMac)
          {
             Application.Instance.Quit();
          }
@@ -458,9 +470,9 @@ namespace LaSSI
             MainForm.LoadingBar.Visible = false;
 
             MainForm.DataPanel.ResetDataState();
-
-            LoadFile(saveDialog.FileName);
             AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
+
+            LoadFile(saveDialog.FileName, true);
          }
          else
          {
@@ -482,10 +494,6 @@ namespace LaSSI
          if (openDialog.ShowDialog(MainForm) == DialogResult.Ok)
          {
             LoadFile(openDialog.FileName);
-
-            MainForm.backupDirectory = StartBackup(openDialog.FileName);
-
-            Debug.WriteLine($"Backup started in {MainForm.backupDirectory}");
          }
          else
          {
