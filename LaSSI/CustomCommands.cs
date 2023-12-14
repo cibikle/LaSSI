@@ -22,6 +22,7 @@ namespace LaSSI
          MainForm = mainForm;
          FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
          FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
+         FileCommands.Add(CreateBrowseSavesCommand(BrowseSavesCommand_Executed));
          FileCommands.Add(CreateBrowseBackupsCommand(BrowseBackupsCommand_Executed));
          QuitCommand = CreateQuitCommand(QuitCommand_Executed);
          ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
@@ -164,12 +165,24 @@ namespace LaSSI
          saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
          return saveFileAsCommand;
       }
+      internal static Command CreateBrowseSavesCommand(EventHandler<EventArgs> BrowseSavesCommand_Executed)
+      {
+         var browseBackupsCommand = new Command
+         {
+            MenuText = "Browse saves",
+            Shortcut = Application.Instance.CommonModifier | Keys.B,
+            Enabled = true,
+            ID = "BrowseSavesCommand"
+         };
+         browseBackupsCommand.Executed += BrowseSavesCommand_Executed;
+         return browseBackupsCommand;
+      }
       internal static Command CreateBrowseBackupsCommand(EventHandler<EventArgs> BrowseBackupsCommand_Executed)
       {
          var browseBackupsCommand = new Command
          {
             MenuText = "Browse backups",
-            Shortcut = Application.Instance.CommonModifier | /*Keys.Shift |*/ Keys.B,
+            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.B,
             Enabled = true,
             ID = "BrowseBackupsCommand"
          };
@@ -261,7 +274,7 @@ namespace LaSSI
                   break;
                }
             case StartupBehavior.Nothing:
-            //case StartupBehavior.ShowFileChooser:
+               //case StartupBehavior.ShowFileChooser:
                {
                   MainForm.prefs.startupFile.SetValue(string.Empty);
                   break;
@@ -403,7 +416,7 @@ namespace LaSSI
          {
             File.Copy(filename, fileDestination);
          }
-         
+
          return appSupportDirectory;
       }
       internal static void AddToBackup(string backupDirectory, string filepath)
@@ -498,6 +511,17 @@ namespace LaSSI
          else
          {
             MainForm.LoadingBar.Visible = false;
+         }
+      }
+      private void BrowseSavesCommand_Executed(object? sender, EventArgs e)
+      {
+         string savesDirectory = MainForm.savesFolder.OriginalString;
+         if (Directory.Exists(savesDirectory))
+         {
+            Process p = new Process();
+            p.StartInfo.UseShellExecute = true;
+            p.StartInfo.FileName = savesDirectory;
+            p.Start();
          }
       }
       private void BrowseBackupsCommand_Executed(object? sender, EventArgs e)
