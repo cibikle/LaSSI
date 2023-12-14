@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties;
 
 namespace LaSSI
 {
