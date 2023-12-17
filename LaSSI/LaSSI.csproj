@@ -24,4 +24,10 @@
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="MacIcon.icns" />
+	</ItemGroup>
+	<ItemGroup>
+	  <BundleResource Include="MacIcon.icns" />
+	</ItemGroup>
 </Project>
