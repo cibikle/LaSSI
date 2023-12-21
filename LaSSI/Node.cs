@@ -120,13 +120,20 @@ namespace LaSSI
       {
          return Children.Count > 0;
       }
-      public Node? FindChild(string name, bool looseMatch = false) // todo: add recurse option
+      public Node? FindChild(string name, bool looseMatch = false, bool recurse = false)
       {
          foreach (Node child in Children)
          {
             if (child.Name.Equals(name) || (looseMatch && child.Name.Contains(name)))
             {
                return child;
+            }
+            else
+            {
+               if (recurse)
+               {
+                  return child.FindChild(name, looseMatch, recurse);
+               }
             }
          }
          return null;

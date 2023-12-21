@@ -32,6 +32,7 @@ namespace LaSSI
          ToolsList.Add(CreateTurnOffMeteorsCommand(TurnOffMeteors_Executed));
          ToolsList.Add(CreateCrossSectorMissionFixCommand(CrossSectorMissionFix_Executed));
          ToolsList.Add(CreateCleanupDeadCrew_Command(CleanupDeadCrew_Executed));
+         ToolsList.Add(CreateRemoveHab_Command(RemoveHab_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
@@ -111,6 +112,17 @@ namespace LaSSI
             ID = "CleanupDeadCrewTool"
          };
          cleanupDeadCrewCommand.Executed += CleanupDeadCrew_Executed;
+         cleanupDeadCrewCommand.Enabled = false;
+         return cleanupDeadCrewCommand;
+      }
+      internal static Command CreateRemoveHab_Command(EventHandler<EventArgs> RemoveHab_Executed)
+      {
+         var cleanupDeadCrewCommand = new Command
+         {
+            MenuText = "Remove Habitation from ship",
+            ID = "RemoveHabTool"
+         };
+         cleanupDeadCrewCommand.Executed += RemoveHab_Executed;
          cleanupDeadCrewCommand.Enabled = false;
          return cleanupDeadCrewCommand;
       }
@@ -253,6 +265,11 @@ namespace LaSSI
             case "CleanupDeadCrewTool":
                {
                   enablability = data.FindDeadCrew();
+                  break;
+               }
+            case "RemoveHabTool":
+               {
+                  enablability = true; // todo: probably expand this
                   break;
                }
          }
@@ -448,10 +465,10 @@ namespace LaSSI
       }
       private void QuitCommand_Executed(object? sender, EventArgs e)
       {
-         if ((EtoEnvironment.Platform.IsMac && ReadyForQuit()) || !EtoEnvironment.Platform.IsMac)
-         {
-            Application.Instance.Quit();
-         }
+         //   if ((EtoEnvironment.Platform.IsMac && ReadyForQuit()) || !EtoEnvironment.Platform.IsMac)
+         //   {
+         Application.Instance.Quit();
+         //}
       }
       private void SaveFileAsCommand_Executed(object? sender, EventArgs? e)
       {
@@ -621,6 +638,33 @@ namespace LaSSI
             _ = MessageBox.Show("Dead crew cleaned up", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
+         }
+      }
+      internal void RemoveHab_Executed(object? sender, EventArgs e)
+      {
+
+         if (sender is Command c and not null)
+         {
+            List<Node> friendlyShips = MainForm.DataPanel.GetFriendlyShips();
+            List<string> shipnames = friendlyShips.Select(x => x.Name).ToList();
+            CheckBoxListDialog dialog = new("Remove Habitation: select ships", shipnames);
+            dialog.ShowModal(MainForm);
+            if (dialog.GetDialogResult() == DialogResult.Ok)
+            {
+               IEnumerable<string> selectedItems = dialog.GetSelectedItems();
+               foreach (string item in selectedItems)
+               {
+                  int start = item.IndexOf("(") + 1;
+                  int length = item.IndexOf(",") - start;
+                  string shipId = item.Substring(start, length); //"1829";
+                  if (MainForm.DataPanel.RemoveHab(shipId))
+                  {
+                     _ = MessageBox.Show($"Removed Habitation from {shipId}", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+
+                     MainForm.DataPanel.AddUnsavedToDataState();
+                  }
+               }
+            }
          }
       }
       #endregion tool event handlers

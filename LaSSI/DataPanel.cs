@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Xml.Linq;
+using MonoMac.Foundation;
 
 namespace LaSSI
 {
@@ -851,7 +852,7 @@ namespace LaSSI
             if (item.TryGetProperties(properyNamesAndValues)
                && properyNamesAndValues["Id"] == LayerId
                //&& values["Class"] == "Ship"
-               && properyNamesAndValues["Type"] == disposition.ToString())
+               && (properyNamesAndValues["Type"] == disposition.ToString() || disposition == ShipDisposition.Any))
             {
                return item;
             }
@@ -1261,6 +1262,14 @@ namespace LaSSI
          }
          return deadCrew is not null && deadCrew.Count > 0;
       }
+      internal List<Node> GetFriendlyShips()
+      {
+         if (friendlyShips is null)
+         {
+            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+         }
+         return friendlyShips;
+      }
       internal bool ClearDeadCrew()
       {
          if (friendlyShips is null)
@@ -1282,6 +1291,25 @@ namespace LaSSI
             }
          }
          return true; // todo: this should probably actually be tied to something succeeding
+      }
+      internal bool RemoveHab(string shipId)
+      {
+         Node ship = FindShip(shipId)!;
+         Node? palette = ship.FindChild("Palette", false, true);
+         if (palette is not null)
+         {
+            string[] keys = new string[palette.Properties.Count];
+            palette.Properties.Keys.CopyTo(keys, 0);
+            foreach (string key in keys)
+            {
+               if (palette.Properties[key] is not null and string value)
+               {
+                  palette.Properties[key] = value.Replace("Habitation true", "");
+               }
+            }
+            return true;
+         }
+         return false;
       }
       /// <summary>
       /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship
