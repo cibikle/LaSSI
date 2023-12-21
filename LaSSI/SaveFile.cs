@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Eto.Forms;
 
 namespace LaSSI
 {
@@ -14,11 +15,12 @@ namespace LaSSI
       public Node HudNode { get; set; } = new Node("HUD");
       public Node GalaxyNode { get; set; } = new Node("Galaxy");
       public Node Root { get; set; } = new Node();
+      public TreeGridItemCollection root { get; set; } = new TreeGridItemCollection();
       public static readonly string NewLineUnix = "\n";
       public static readonly string NewLineRegexUnix = @"(?<!\r)\n";
       public static readonly string NewLineWindows = "\r\n";
       public static readonly string NewLineRegexWindows = @"\r\n";
-      private static readonly string subNodeRegex = @"""\[i \d+\]""";
+      private static readonly string subnodeRegex = @"""\[i \d+\]""";
       private static readonly List<string> RootPropertyNames = new()
       {
          "TimeIndex",
@@ -38,8 +40,9 @@ namespace LaSSI
          Filename = filename;
          //GameMode = string.Empty;
          Root = new Node($"{Path.GetFileName(filename)}");
-         Root.Children.Add(HudNode);
-         Root.Children.Add(GalaxyNode);
+         root.Add(Root);
+         Root.AddChild(HudNode);
+         Root.AddChild(GalaxyNode);
       }
       private static void LoadHUD(SaveFilev2 saveFile, string[] HudData)
       {
@@ -212,7 +215,7 @@ namespace LaSSI
       private static void ProcessComplexLine(Stack<Node> nodeStack, string[] lineParts, SaveFilev2 saveFile)
       {
          string subnodeId = $"{lineParts[1]} {lineParts[2]}";
-         Match m = Regex.Match(subnodeId, subNodeRegex);
+         Match m = Regex.Match(subnodeId, subnodeRegex);
          if (m.Success && lineParts.Length == 3) //we found an array line, multi-part
          {
             Node node = new Node(subnodeId);

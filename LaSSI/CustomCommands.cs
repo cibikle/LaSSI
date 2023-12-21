@@ -405,6 +405,7 @@ namespace LaSSI
             MainForm.backupDirectory = StartBackup(filename);
             Debug.WriteLine($"Backup started in {MainForm.backupDirectory}");
          }
+
       }
       internal static string StartBackup(string filename)
       {
@@ -476,10 +477,8 @@ namespace LaSSI
          {
             Debug.WriteLine($"{saveDialog.FileName}");
             DynamicLayout bar = (DynamicLayout)MainForm.Content;
-            TreeGridView x = (TreeGridView)bar.Children.Where<Control>(x => (string)x.Tag == "DataTreeView").First();
-            TreeGridItem y = (TreeGridItem)(x.DataStore as TreeGridItemCollection)![0];
             FileWriter writer = new FileWriter();
-            bool success = writer.WriteFile(y, saveDialog.FileName);
+            bool success = writer.WriteFile(MainForm.saveFile.Root, saveDialog.FileName);
             MainForm.LoadingBar.Visible = false;
 
             MainForm.DataPanel.ResetDataState();

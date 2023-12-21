@@ -14,11 +14,11 @@ namespace LaSSI
       {
 
       }
-      public bool WriteFile(TreeGridItem root, string Filename)
+      public bool WriteFile(Node root, string Filename)
       {
-         string rootdata = RenderRoot(root.Values);
+         string rootdata = RenderRoot(root.Properties);
          string text = string.Empty;
-         foreach (TreeGridItem child in root.Children)
+         foreach (Node child in root.Children)
          {
             text += foo(child);
          }
@@ -31,68 +31,19 @@ namespace LaSSI
 
          return false;
       }
-      private static bool IsOneliner(TreeGridItem item) // todo: this is a travesty
+      private static bool IsOneliner(Node item) // todo: this is a travesty
       {
          bool IsOneLiner;
-         if (((TreeGridItem)item.Parent).Tag.ToString() == "Zones")
+         if (item.GetParent().Name == "Zones")
          {
-            if (item.Values[1] is OrderedDictionary dic)
+            OrderedDictionary dic = item.Properties;
+            //if (item.Values[1] is OrderedDictionary dic)
+            //{
+            if (dic.Contains("Entities"))
             {
-               if (dic.Contains("Entities"))
-               {
-                  string bar = dic["Entities"]!.ToString()!;
-                  int baz = bar.Count(c => c == ',');
-                  if (baz < 5) // todo: get rid of the magic number!
-                  {
-                     IsOneLiner = true;
-                  }
-                  else
-                  {
-                     IsOneLiner = false;
-                  }
-               }
-               else
-               {
-                  IsOneLiner = true;
-               }
-            }
-            else
-            {
-               IsOneLiner = true;
-            }
-         }
-         else if (item.Tag is (object)"WorkQueue" && item.Children.Count == 0)
-         {
-            if (item.Values[1] is OrderedDictionary dic)
-            {
-               if (dic.Contains("Workers"))
-               {
-                  string bar = dic["Workers"]!.ToString()!;
-                  int baz = bar.Count(s => s == ',');
-                  if (baz < 5) // todo: get rid of the magic number!
-                  {
-                     IsOneLiner = true;
-                  }
-                  else
-                  {
-                     IsOneLiner = false;
-                  }
-               }
-               else
-               {
-                  IsOneLiner = true;
-               }
-            }
-            else
-            {
-               IsOneLiner = true;
-            }
-         }
-         else if (item.Tag is (object)"Cells")
-         {
-            if (item.Values[1] is OrderedDictionary dic)
-            {
-               if (dic.Count == 0)
+               string bar = dic["Entities"]!.ToString()!;
+               int baz = bar.Count(c => c == ',');
+               if (baz < 5) // todo: get rid of the magic number!
                {
                   IsOneLiner = true;
                }
@@ -105,18 +56,70 @@ namespace LaSSI
             {
                IsOneLiner = true;
             }
+            //}
+            //else
+            //{
+            //   IsOneLiner = true;
+            //}
+         }
+         else if (item.Name == "WorkQueue" && item.Children.Count == 0)
+         {
+            //if (item.Values[1] is OrderedDictionary dic)
+            //{
+            OrderedDictionary dic = item.Properties;
+            if (dic.Contains("Workers"))
+            {
+               string bar = dic["Workers"]!.ToString()!;
+               int baz = bar.Count(s => s == ',');
+               if (baz < 5) // todo: get rid of the magic number!
+               {
+                  IsOneLiner = true;
+               }
+               else
+               {
+                  IsOneLiner = false;
+               }
+            }
+            else
+            {
+               IsOneLiner = true;
+            }
+            //}
+            //else
+            //{
+            //   IsOneLiner = true;
+            //}
+         }
+         else if (item.Name == "Cells")
+         {
+            //if (item.Values[1] is OrderedDictionary dic)
+            //{
+            OrderedDictionary dic = item.Properties;
+            if (dic.Count == 0)
+            {
+               IsOneLiner = true;
+            }
+            else
+            {
+               IsOneLiner = false;
+            }
+            //}
+            //else
+            //{
+            //   IsOneLiner = true;
+            //}
 
          }
          else if (item.Children.Count == 0
-            && ((OrderedDictionary)item.Values[1]).Count <= 10
-            && item.Tag is not (object)"Palette"
-            && item.Tag is not (object)"OurStock"
-            && item.Tag is not (object)"TheirStock")
+            && item.Properties.Count <= 10
+            && item.Name != "Palette"
+            && item.Name != "OurStock"
+            && item.Name != "TheirStock")
          {
             IsOneLiner = true;
          }
-         else if ((item.Tag.ToString() == "Palette" || item.Tag.ToString() == "OurStock" || item.Tag.ToString() == "TheirStock")
-            && ((OrderedDictionary)item.Values[1]).Count == 0)
+         else if ((item.Name == "Palette" || item.Name == "OurStock" || item.Name == "TheirStock")
+            && item.Properties.Count == 0)
          {
             IsOneLiner = true;
          }
@@ -127,7 +130,7 @@ namespace LaSSI
 
          return IsOneLiner;
       }
-      private string foo(TreeGridItem item, int indentationLevel = 0)
+      private string foo(Node item, int indentationLevel = 0)
       {
          if (IsOneliner(item))
          {
@@ -138,9 +141,9 @@ namespace LaSSI
             return RenderMultiliner(item, indentationLevel);
          }
       }
-      private static string CleanName(TreeGridItem item)
+      private static string CleanName(Node item)
       {
-         string name = (string)item.Tag;
+         string name = item.Name;
          if (name.Contains('('))
          {
             name = name[..(name.IndexOf("("))];
@@ -151,7 +154,7 @@ namespace LaSSI
       {
          return new string(' ', indentationLevel * IndentationAmount);
       }
-      private string RenderOneLiner(TreeGridItem item, int indentationLevel = 0)
+      private string RenderOneLiner(Node item, int indentationLevel = 0)
       {
          string name = CleanName(item);
          string indent = GetIndentPad(indentationLevel);
@@ -159,7 +162,7 @@ namespace LaSSI
 
          return text;
       }
-      private string RenderMultiliner(TreeGridItem item, int indentationLevel = 0)
+      private string RenderMultiliner(Node item, int indentationLevel = 0)
       {
          string name = CleanName(item);
          string indent = GetIndentPad(indentationLevel);
@@ -168,7 +171,7 @@ namespace LaSSI
          if (name == "PowerGrid" || name == "Palette")
          {
             int index = 0;
-            if (name == "PowerGrid" && ((OrderedDictionary)item.Values[1]).Count == 12)
+            if (name == "PowerGrid" && item.Properties.Count == 12)
             {
                index = 1;
                text += RenderProperties(item, indentationLevel, true, index);
@@ -181,26 +184,21 @@ namespace LaSSI
             text += RenderProperties(item, indentationLevel, true);
          }
 
-         foreach (TreeGridItem child in item.Children)
+         foreach (Node child in item.Children)
          {
             text += foo(child, indentationLevel);
          }
          text += $"{indent}END{Environment.NewLine}";
          return text;
       }
-      private string RenderProperties(TreeGridItem item, int indentationLevel = 0, bool multiline = false, int truncateIndex = -1)
+      private string RenderProperties(Node item, int indentationLevel = 0, bool multiline = false, int truncateIndex = -1)
       {
          int counter = 0;
          string text = string.Empty;
          string indent = GetIndentPad(indentationLevel);
-         var dic = (OrderedDictionary)item.Values[1];
-         //if (dic.Contains("Entities"))
-         //{
-         //   multiline = true;
-         //}
-         foreach (DictionaryEntry entry in dic)
+         foreach (DictionaryEntry entry in item.Properties)
          {
-            if(IsPropertyArray(entry.Key))
+            if (IsPropertyArray(entry.Key))
             {
                if (entry.Value!.ToString()!.Contains(' '))
                {
@@ -235,16 +233,15 @@ namespace LaSSI
             or (object)"UnlockedRecipes"
             or (object)"SpecialUnlocks"
             or (object)"Items"
-            or (object)"Layers") ; // todo: clean this up
+            or (object)"Layers"); // todo: clean this up
       }
-      private string PropertiesToNodes(TreeGridItem item, int indentationLevel = 0, int startIndex = 0)
+      private string PropertiesToNodes(Node item, int indentationLevel = 0, int startIndex = 0)
       {
          string name = CleanName(item);
          string text = string.Empty;
          string indent = GetIndentPad(indentationLevel);
-         var dic = (OrderedDictionary)item.Values[1];
          int counter = 0;
-         foreach (DictionaryEntry entry in dic)
+         foreach (DictionaryEntry entry in item.Properties)
          {
             if (counter < startIndex)
             {
@@ -256,7 +253,7 @@ namespace LaSSI
             if (name == "PowerGrid")
             {
                key = key[..(key.IndexOf(' '))];
-               if(value == "Setting 0")
+               if (value == "Setting 0")
                {
                   value = string.Empty;
                }
@@ -266,30 +263,29 @@ namespace LaSSI
 
          return text;
       }
-      private static string RenderRoot(object[] RootValues)
+      private static string RenderRoot(OrderedDictionary dictionary)
       {
-         string foo = string.Empty;
-         var s = RootValues[1];
-         if (s is OrderedDictionary dictionary && dictionary.Count != 0)
+         string data = string.Empty;
+         if (dictionary.Count != 0)
          {
             foreach (DictionaryEntry p in dictionary)
             {
                int keylen = p.Key.ToString()!.Length;
                //string pad = new string(' ', (22 - keylen - 1)); //magic numbers screwed us again!
                string pad = " "; // less pretty, but future-proof
-               foo += $"{p.Key}{pad}{p.Value}  {Environment.NewLine}";
+               data += $"{p.Key}{pad}{p.Value}  {Environment.NewLine}";
             }
          }
 
-         return foo;
+         return data;
       }
-      private static string RenderHud(object[] HudValues)
+      private static string RenderHud(OrderedDictionary dictionary)
       {
          string foo = "BEGIN HUD";
          int keylen = foo.Length;
-         foo += new string(' ', (18 - keylen - 1));
-         var s = HudValues[1];
-         if (s is OrderedDictionary dictionary && dictionary.Count != 0)
+         foo += new string(' ', 18 - keylen - 1);
+         //var s = HudValues[1];
+         if (dictionary.Count != 0)
          {
             foreach (DictionaryEntry p in dictionary)
             {
@@ -298,28 +294,6 @@ namespace LaSSI
          }
          foo += "END" + Environment.NewLine;
          return foo;
-      }
-      private TreeGridItem WalkNodeTree(Node node)
-      {
-         if (!node.HasChildren())
-         {
-            return new TreeGridItem(node.Name, node.Properties)
-            {
-               Tag = node.Name
-            };
-         }
-         else
-         {
-            TreeGridItemCollection childItems = new TreeGridItemCollection();
-            foreach (var child in node.Children)
-            {
-               childItems.Add(WalkNodeTree(child));
-            }
-            return new TreeGridItem(childItems, node.Name, node.Properties)
-            {
-               Tag = node.Name
-            };
-         }
       }
    }
 }

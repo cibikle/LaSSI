@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace LaSSI
 {
@@ -36,7 +37,7 @@ namespace LaSSI
       }
       private DataState dataState = DataState.Unchanged;
       internal bool dirtyBit = false;
-      private Dictionary<TreeGridItem, DetailsLayout> DetailPanelsCache = new();
+      private Dictionary<Node, DetailsLayout> DetailPanelsCache = new();
       private Size DetailsPanelInitialSize = new(0, 0);
       private readonly List<InventoryGridItem>? InventoryMasterList;
       private Node? Root { get; set; }
@@ -55,11 +56,11 @@ namespace LaSSI
          Enabled = false
       };
       //private DetailsLayout? CurrentDetails;
-      private List<TreeGridItem>? freespaceObjectsWithComet = null;
-      private List<TreeGridItem>? crossSectorMissions = null;
-      private List<TreeGridItem>? weatherReports = null;
-      private List<TreeGridItem>? deadCrew = null;
-      private List<TreeGridItem>? friendlyShips = null;
+      private List<Node>? freespaceObjectsWithComet = null;
+      private List<Node>? crossSectorMissions = null;
+      private List<Node>? weatherReports = null;
+      private List<Node>? deadCrew = null;
+      private List<Node>? friendlyShips = null;
       public DataPanel()
       {
 
@@ -84,13 +85,10 @@ namespace LaSSI
          Apply.Click += ApplyButton_Click;
          Revert.Click += RevertButton_Click;
          Splitter sp = CreateSplitter();
-
-         //TreeGridView treeView = CreateTreeView();
-         sp.Panel1 = CreateTreeView();// treeView;
+         sp.Panel1 = CreateTreeView();
          sp.Panel1.Width = ParentWidth / 2;
 
-         //var Panel2Layout = InitPanel2Layout();
-         sp.Panel2 = CreatePanel2Layout();// Panel2Layout;
+         sp.Panel2 = CreatePanel2Layout();
 
          TableLayout dataLayout = new();
          dataLayout.Rows.Add(sp);
@@ -149,15 +147,15 @@ namespace LaSSI
 
          return ApplyRevertLayout;
       }
-      private ListBuilder CreateListBuilder(TreeGridItem item)
+      private ListBuilder CreateListBuilder(Node item)
       {
          ObservableCollection<InventoryGridItem> RemainingItems = new ObservableCollection<InventoryGridItem>();
          ObservableCollection<InventoryGridItem> InStock = new ObservableCollection<InventoryGridItem>();
          if (InventoryMasterList is not null)
          {
             RemainingItems = new ObservableCollection<InventoryGridItem>(InventoryMasterList);
-            var value = item.Values[1];
-            if (value is OrderedDictionary dictionary && dictionary.Count != 0)
+            OrderedDictionary dictionary = item.Properties;
+            if (dictionary.Count != 0)
             {
                foreach (DictionaryEntry entry in dictionary)
                {
@@ -188,7 +186,7 @@ namespace LaSSI
          InvItem.Count = int.Parse(entry.Value!.ToString()!);
          InStock.Add(InvItem);
       }
-      private DetailsLayout CreateDetailsLayout(TreeGridItem item)
+      private DetailsLayout CreateDetailsLayout(Node item)
       {
          DetailsLayout detailsLayout = new()
          {
@@ -196,7 +194,7 @@ namespace LaSSI
             Spacing = new Size(0, 5)
          };
          detailsLayout.Add(GetNodePathLabel(item));
-         switch (item.Tag)
+         switch (item.Name)
          {
             case "OurStock":
                {
@@ -219,7 +217,7 @@ namespace LaSSI
                }
             case "Trade":
                {
-                  if (((TreeGridItem)item.Parent).Tag.ToString() == "Deliveries")
+                  if (item.Parent is not null and Node parent && parent.Name == "Deliveries")
                   {
                      detailsLayout.Add(CreateListBuilder(item));
                   }
@@ -231,7 +229,7 @@ namespace LaSSI
                }
             case "Cells":
                {
-                  detailsLayout.Add(CreateShipCellsLayout(item));
+                  //detailsLayout.Add(CreateShipCellsLayout(item));
                   break;
                }
             default:
@@ -243,7 +241,7 @@ namespace LaSSI
 
          return detailsLayout;
       }
-      internal Scrollable CreateDefaultPanel(TreeGridItem item)
+      internal Scrollable CreateDefaultPanel(Node item)
       {
          Scrollable scrollable = new()
          {
@@ -252,17 +250,16 @@ namespace LaSSI
          };
          return scrollable;
       }
-      private static List<TreeGridItem> CompileDerelictList(TreeGridItemCollection items)
+      private static List<Node> CompileDerelictList(TreeGridItemCollection items)
       {
-         List<TreeGridItem> toRemove = new List<TreeGridItem>();
-         foreach (TreeGridItem item in items)
+         List<Node> toRemove = new List<Node>();
+         foreach (Node item in items)
          {
-            OrderedDictionary properties = (OrderedDictionary)item.Values[1];
             if (/*properties.Contains((object)"Class")
-               && */properties.Contains((object)"Type"))
+               && */item.Properties.Contains((object)"Type"))
             {
-               var s = properties[(object)"Name"];
-               var t = properties[(object)"Type"];
+               var s = item.Properties[(object)"Name"];
+               var t = item.Properties[(object)"Type"];
                if (s is not null && s.ToString() != "\"Stranded Ship\"" && t is not null && t.ToString() == "Derelict")
                {
                   toRemove.Add(item);
@@ -272,31 +269,32 @@ namespace LaSSI
          }
          return toRemove;
       }
-      private static string GetNodePath(TreeGridItem item)
+      private static string GetNodePath(Node item)
       {
-         string path = item.Values[0].ToString()!;
+         string path = item.Name;
          while (item.Parent != null && item.Parent.Parent != null)
          {
-            item = (TreeGridItem)item.Parent;
-            path = $"{item.Values[0]}/{path}";
+            item = (Node)item.Parent;
+            path = $"{item.Name}/{path}";
          }
          return path;
       }
-      private static Label GetNodePathLabel(TreeGridItem item)
+      private static Label GetNodePathLabel(Node item)
       {
          Label nodePathLabel = new Label { Text = GetNodePath(item), BackgroundColor = Colors.Silver, Font = new Font("Arial", 18, FontStyle.Bold) };
          return nodePathLabel;
       }
-      private static DynamicLayout CreateNodePathLayout(TreeGridItem item)
+      private static DynamicLayout CreateNodePathLayout(Node item)
       {
          DynamicLayout layout = new DynamicLayout();
          layout.Add(GetNodePathLabel(item));
          return layout;
       }
-      private GridView CreateDefaultFieldsGridView(TreeGridItem item)
+      private GridView CreateDefaultFieldsGridView(Node item)
       {
-         OrderedDictionary vals = (OrderedDictionary)item.Values[1];
-         ObservableCollection<Oncler> bar = new ObservableCollection<Oncler>();
+         OrderedDictionary vals = item.Properties;
+
+         ObservableCollection<Oncler> bar = new();
          foreach (DictionaryEntry val in vals)
          {
             bar.Add(new Oncler(val));
@@ -516,7 +514,7 @@ namespace LaSSI
          };
       }
 
-      private void UpdateDetailsPanel(TreeGridItem item, bool clearPreexisting = false)
+      private void UpdateDetailsPanel(Node item, bool clearPreexisting = false)
       {
          if (clearPreexisting)
          {
@@ -530,7 +528,7 @@ namespace LaSSI
          detailslayout.Content = DetailPanelsCache[item];
          UpdateApplyRevertButtons(DetailPanelsCache[item].Status);
       }
-      private void ClearItemFromCache(TreeGridItem item)
+      private void ClearItemFromCache(Node item)
       {
          if (DetailPanelsCache.ContainsKey(item))
          {
@@ -640,25 +638,25 @@ namespace LaSSI
                }
          }
       }
-      private TreeGridItem? GetHud()
+      private Node? GetHud()
       {
-         TreeGridItem root = GetRoot();
-         foreach (TreeGridItem item in root.Children)
+         Node root = GetRoot();
+         foreach (Node item in root.Children)
          {
-            if (item.Tag.ToString() == "HUD")
+            if (item.Name == "HUD")
             {
                return item;
             }
          }
          return null;
       }
-      private TreeGridItem? GetMissionsNode()
+      private Node? GetMissionsNode()
       {
-         TreeGridItem root = GetRoot();
-         TreeGridItem? MissionsSupernode = null;
-         foreach (TreeGridItem item in root.Children)
+         Node root = GetRoot();
+         Node? MissionsSupernode = null;
+         foreach (Node item in root.Children)
          {
-            if (item.Tag.ToString() == "Missions")
+            if (item.Name == "Missions")
             {
                MissionsSupernode = item;
                break;
@@ -666,23 +664,23 @@ namespace LaSSI
          }
          if (MissionsSupernode is not null)
          {
-            TreeGridItem? MissionsNode = (TreeGridItem)MissionsSupernode.Children[0];
-            if (MissionsNode.Tag.ToString() == "Missions")
+            Node? MissionsNode = (Node)MissionsSupernode.Children[0];
+            if (MissionsNode.Name == "Missions")
             {
                return MissionsNode;
             }
          }
          return null;
       }
-      private List<TreeGridItem> FindMissions(string[] tags)
+      private List<Node> FindMissions(string[] tags)
       {
-         TreeGridItem? MissionsNode = GetMissionsNode();
-         List<TreeGridItem> missions = new List<TreeGridItem>();
+         Node? MissionsNode = GetMissionsNode();
+         List<Node> missions = new List<Node>();
          if (MissionsNode is not null)
          {
-            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
+            foreach (Node mission in MissionsNode.Children)
             {
-               if (ContainsOneOf(mission.Tag.ToString()!, tags))
+               if (ContainsOneOf(mission.Name, tags))
                {
                   missions.Add(mission);
                }
@@ -691,14 +689,19 @@ namespace LaSSI
 
          return missions;
       }
-      private List<TreeGridItem> FindMissions(Dictionary<string, string> propertyKeysAndValues)
+      private List<Node> FindMissions(Dictionary<string, string> propertyKeysAndValues)
       {
-         List<TreeGridItem> missions = new();
-         if (GetMissionsNode() is not null and TreeGridItem MissionsNode)
+         List<Node> missions = new();
+         if (GetMissionsNode() is not null and Node MissionsNode)
          {
-            foreach (TreeGridItem mission in MissionsNode.Children.Cast<TreeGridItem>())
+            foreach (Node mission in MissionsNode.Children)
             {
-               TryGetProperties(mission, propertyKeysAndValues.Keys.ToArray(), out Dictionary<string, string> propertyValues);
+               Dictionary<string, string> propertyValues = new();
+               foreach (var key in propertyKeysAndValues.Keys)
+               {
+                  propertyValues.Add(key, "");
+               }
+               mission.TryGetProperties(propertyValues);
                foreach (var propertyValue in propertyValues)
                {
                   if (propertyValue.Value.Equals(propertyKeysAndValues[propertyValue.Key]))
@@ -719,22 +722,25 @@ namespace LaSSI
          }
          return false;
       }
-      private TreeGridItem? GetGalaxyNode()
+      private Node? GetGalaxyNode()
       {
          return GetChildNode(GetRoot(), "Galaxy");
       }
-      private List<TreeGridItem> GetGalaxyObjects(bool all = false, Dictionary<string, string>? filters = null)
+      private List<Node> GetGalaxyObjects(bool all = false, Dictionary<string, string>? filters = null)
       {
-         List<TreeGridItem> matchingGalaxyObjects = new List<TreeGridItem>();
-         if (GetChildNode(GetGalaxyNode()!, "Objects") is not null and TreeGridItem galaxyObjects)
+         List<Node> matchingGalaxyObjects = new List<Node>();
+         if (GetChildNode(GetGalaxyNode()!, "Objects") is not null and Node galaxyObjects)
          {
-            foreach (TreeGridItem galaxyObject in galaxyObjects.Children)
+            foreach (Node galaxyObject in galaxyObjects.Children)
             {
                if (filters is not null && filters.Count > 0)
                {
-                  //foreach (string filter in filters)
-                  //{
-                  if (TryGetProperties(galaxyObject, filters.Keys.ToArray(), out Dictionary<string, string> val))
+                  Dictionary<string, string> val = new();
+                  foreach (var key in filters.Keys)
+                  {
+                     val.Add(key, "");
+                  }
+                  if (galaxyObject.TryGetProperties(val))
                   {
                      int matchCount = 0;
                      foreach (var entry in val)
@@ -749,7 +755,6 @@ namespace LaSSI
                         matchingGalaxyObjects.Add(galaxyObject);
                      }
                   }
-                  //}
                }
                else
                {
@@ -760,39 +765,39 @@ namespace LaSSI
 
          return matchingGalaxyObjects;
       }
-      private TreeGridItem? GetChildNode(TreeGridItem item, string childname, bool looseMatch = false)
+      private static Node? GetChildNode(Node item, string childname, bool looseMatch = false)
       {
-         foreach (TreeGridItem child in item.Children)
+         foreach (Node child in item.Children)
          {
-            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
             {
                return child;
             }
          }
          return null;
       }
-      private List<TreeGridItem> GetChildNodes(TreeGridItem item, string childname, bool looseMatch = false)
+      private List<Node> GetChildNodes(Node item, string childname, bool looseMatch = false)
       {
-         List<TreeGridItem> children = new();
-         foreach (TreeGridItem child in item.Children)
+         List<Node> children = new();
+         foreach (Node child in item.Children)
          {
-            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
             {
                children.Add(child);
             }
          }
          return children;
       }
-      private List<TreeGridItem> FindChildNodesWithProperties(TreeGridItem item, string childname, bool looseMatch = false, List<string>? properties = null, bool all = false)
+      private List<Node> FindChildNodesWithProperties(Node item, string childname, bool looseMatch = false, List<string>? properties = null, bool all = false)
       {
-         List<TreeGridItem> children = new();
-         foreach (TreeGridItem child in item.Children)
+         List<Node> children = new();
+         foreach (Node child in item.Children)
          {
-            if (child.Tag.ToString() == childname || (looseMatch && child.Tag.ToString()!.Contains(childname)))
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
             {
                if (properties is not null)
                {
-                  if (HasProperties(child, properties.ToArray(), all))
+                  if (child.HasProperties(properties.ToArray(), all))
                   {
                      children.Add(child);
                   }
@@ -805,12 +810,12 @@ namespace LaSSI
          }
          return children;
       }
-      private List<TreeGridItem> FindChildNodesWithProperty(TreeGridItem item, string propertyName, string propertyValue = "")
+      private static List<Node> FindChildNodesWithProperty(Node item, string propertyName, string propertyValue = "")
       {// todo: do multiples
-         List<TreeGridItem> list = new();
-         foreach (TreeGridItem child in item.Children.Cast<TreeGridItem>())
+         List<Node> list = new();
+         foreach (Node child in item.Children)
          {
-            if (TryGetProperty(child, propertyName, out string value))
+            if (child.TryGetProperty(propertyName, out string value))
             {
                if ((propertyValue != "" && propertyValue == value) || propertyValue == "")
                {
@@ -820,44 +825,52 @@ namespace LaSSI
          }
          return list;
       }
-      private TreeGridItem? GetSystemArchives()
+      private Node? GetSystemArchives()
       {
          return GetChildNode(GetGalaxyNode()!, "SystemArchives");
       }
-      private TreeGridItem? GetSystemArchive(string id)
+      private Node? GetSystemArchive(string id)
       {
-         TreeGridItem systemArchives = GetSystemArchives()!;
-         foreach (TreeGridItem systemArchive in systemArchives.Children)
+         Node systemArchives = GetSystemArchives()!;
+         foreach (Node systemArchive in systemArchives.Children)
          {
-            if (systemArchive.Tag.ToString()!.Contains(id)) return systemArchive;
+            if (systemArchive.Name.Contains(id)) return systemArchive;
          }
          return null;
       }
-      private TreeGridItem? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
+      private Node? FindShip(string LayerId, ShipDisposition disposition = ShipDisposition.Any)
       {
-         string[] propertyNames = new string[] { /*"Class",*/ "Id", "Type" };
-         TreeGridItem root = GetRoot();
-         foreach (TreeGridItem item in root.Children.Cast<TreeGridItem>())
+         Dictionary<string, string> properyNamesAndValues = new()
          {
-            TryGetProperties(item, propertyNames, out Dictionary<string, string> values);
-            if (values["Id"] == LayerId
+            {"Id", "" },
+            { "Type", "" }
+         };
+         Node root = GetRoot();
+         foreach (Node item in root.Children)
+         {
+            if (item.TryGetProperties(properyNamesAndValues)
+               && properyNamesAndValues["Id"] == LayerId
                //&& values["Class"] == "Ship"
-               && values["Type"] == disposition.ToString())
+               && properyNamesAndValues["Type"] == disposition.ToString())
             {
                return item;
             }
          }
          return null;
       }
-      private TreeGridItem? FindShip(ShipDisposition disposition = ShipDisposition.Any)
+      private Node? FindShip(ShipDisposition disposition = ShipDisposition.Any)
       {
-         string[] propertyNames = new string[] { /*"Class",*/ "Id", "Type" };
-         TreeGridItem root = GetRoot();
-         foreach (TreeGridItem item in root.Children)
+         Dictionary<string, string> properyNamesAndValues = new()
          {
-            if (TryGetProperties(item, propertyNames, out Dictionary<string, string> values)
+            {"Id", "" },
+            { "Type", "" }
+         };
+         Node root = GetRoot();
+         foreach (Node item in root.Children)
+         {
+            if (item.TryGetProperties(properyNamesAndValues)
                //&& values.ContainsKey("Class") && values["Class"] == "Ship"
-               && ShipDispositionMatches(disposition, StringDescToShipDisposition(values["Type"])))
+               && ShipDispositionMatches(disposition, StringDescToShipDisposition(properyNamesAndValues["Type"])))
             {
                return item;
             }
@@ -868,23 +881,22 @@ namespace LaSSI
       {
          return DerelictsPresent(GetRoot());
       }
-      private bool DerelictsPresent(TreeGridItem item)
+      private bool DerelictsPresent(Node item)
       {
          if (item.Children.Count == 0)
          {
             return false;
          }
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         if (properties.Contains((object)"Type") /*&& properties.Contains((object)"Class")*/)
+         if (item.Properties.Contains((object)"Type") /*&& properties.Contains((object)"Class")*/)
          {
-            var t = properties[(object)"Type"];
+            var t = item.Properties[(object)"Type"];
             if (t is not null && t.ToString() == "Derelict")
             {
                return true;
             }
          }
 
-         foreach (TreeGridItem child in item.Children.Cast<TreeGridItem>())
+         foreach (Node child in item.Children)
          {
             if (DerelictsPresent(child)) return true;
          }
@@ -894,12 +906,12 @@ namespace LaSSI
       public bool ResetCamera()
       {
          bool success = false;
-         TreeGridItem? Hud = GetHud();
+         Node? Hud = GetHud();
          if (Hud is not null)
          {
-            TrySetProperty(Hud, "Camera.x", "0");
-            TrySetProperty(Hud, "Camera.y", "0");
-            success = TrySetProperty(Hud, "ViewSize", "100");
+            Hud.TrySetProperty("Camera.x", "0");
+            Hud.TrySetProperty("Camera.y", "0");
+            success = Hud.TrySetProperty("ViewSize", "100");
 
             if (success)
             {
@@ -910,11 +922,10 @@ namespace LaSSI
       }
       public void CleanDerelicts(DerelictsCleaningMode mode)  // todo: this whole thing kinda sucks. Works though!
       {
-         TreeGridView tree = GetTreeGridView();
-         TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
-         List<TreeGridItem> toRemove;
-         TreeGridItem root = (TreeGridItem)items.First();
-         TreeGridItemCollection sysArchChildren = ((TreeGridItem)((TreeGridItem)root[1])[2]).Children;
+         TreeGridItemCollection items = (TreeGridItemCollection)GetTreeGridView().DataStore;
+         List<Node> toRemove;
+         Node root = (Node)items.First();
+         TreeGridItemCollection sysArchChildren = root[1][2].Children;
          switch (mode)
          {
             case DerelictsCleaningMode.CurrentSystem:
@@ -954,26 +965,26 @@ namespace LaSSI
                //      break;
                //   }
          }
-         tree.DataStore = items;
+         GetTreeGridView().DataStore = items;
          ClearDetails();
       }
       public bool CometExists()
       {
-         List<TreeGridItem> systemsWithComets = GetGalaxyObjects(false, new Dictionary<string, string> { { "Comet", "true" } });
+         List<Node> systemsWithComets = GetGalaxyObjects(false, new Dictionary<string, string> { { "Comet", "true" } });
          foreach (var systemWithComet in systemsWithComets)
          {
-            TreeGridItem? systemFreeSpace = null;
-            TryGetProperty(systemWithComet, "Id", out string systemId);
-            if (GetSystemArchive(systemId) is not null and TreeGridItem system)
+            Node? systemFreeSpace = null;
+            systemWithComet.TryGetProperty("Id", out string systemId);
+            if (GetSystemArchive(systemId) is not null and Node system)
             {
-               if (GetChildNode(system, "FreeSpace", true) is not null and TreeGridItem freeSpaceLayer)
+               if (GetChildNode(system, "FreeSpace", true) is not null and Node freeSpaceLayer)
                {
                   systemFreeSpace = GetChildNode(freeSpaceLayer, "Objects");
                }
             }
             else
             {
-               if (FindCurrentSystemLayer("FreeSpace", systemId) is not null and TreeGridItem freeSpaceLayer)
+               if (FindCurrentSystemLayer("FreeSpace", systemId) is not null and Node freeSpaceLayer)
                {
                   systemFreeSpace = GetChildNode(freeSpaceLayer, "Objects");
                }
@@ -982,25 +993,23 @@ namespace LaSSI
             {
                if (this.freespaceObjectsWithComet is null)
                {
-                  this.freespaceObjectsWithComet = new List<TreeGridItem>();
+                  this.freespaceObjectsWithComet = new List<Node>();
                }
                this.freespaceObjectsWithComet.Add(systemFreeSpace);
             }
          }
          if (this.freespaceObjectsWithComet is not null && this.freespaceObjectsWithComet.Count > 0) return true;
 
-
-
          return false;
       }
-      internal TreeGridItem? FindCurrentSystemLayer(string layerName, string systemId = "")
+      internal Node? FindCurrentSystemLayer(string layerName, string systemId = "")
       {
-         List<TreeGridItem> currentSystemLayers = FindChildNodesWithProperties(GetRoot(), layerName, true);
+         List<Node> currentSystemLayers = FindChildNodesWithProperties(GetRoot(), layerName, true);
          if (!string.IsNullOrEmpty(systemId))
          {
             foreach (var currentSystemLayer in currentSystemLayers)
             {
-               if (TryGetProperty(currentSystemLayer, "SystemId", out string layerSystemId))
+               if (currentSystemLayer.TryGetProperty("SystemId", out string layerSystemId))
                {
                   if (systemId == layerSystemId)
                   {
@@ -1020,12 +1029,12 @@ namespace LaSSI
             foreach (var freespaceWithComet in freespaceObjectsWithComet)
             {
 
-               List<TreeGridItem> comets = FindChildNodesWithProperty(freespaceWithComet, "Type", "Comet");
+               List<Node> comets = FindChildNodesWithProperty(freespaceWithComet, "Type", "Comet");
                //bool cometWasSelected = false;
                foreach (var comet in comets)
                {
-                  success = success && TrySetProperty(comet, "Position.x", "0");
-                  success = success && TrySetProperty(comet, "Position.y", "0");
+                  success = success && comet.TrySetProperty("Position.x", "0");
+                  success = success && comet.TrySetProperty("Position.y", "0");
                   ClearItemFromCache(comet);
                   if (comet == GetSelectedTreeGridItem())
                   {
@@ -1043,8 +1052,7 @@ namespace LaSSI
       }
       internal bool DetectMeteors()
       {
-         TreeGridItem root = GetRoot();
-         weatherReports = FindChildNodesWithProperties(root, "Weather", false, new List<string> { "Meteors" });
+         weatherReports = FindChildNodesWithProperties(GetRoot(), "Weather", false, new List<string> { "Meteors" });
          return weatherReports.Count > 0;
       }
       internal bool TurnOffMeteors()
@@ -1054,7 +1062,7 @@ namespace LaSSI
             int count = 0;
             foreach (var weatherReport in weatherReports)
             {
-               if (TrySetProperty(weatherReport, "Meteors", "false"))
+               if (weatherReport.TrySetProperty("Meteors", "false"))
                {
                   count++;
                   UpdateDetailsPanel(weatherReport, true);
@@ -1069,14 +1077,14 @@ namespace LaSSI
       }
       public bool AssertionFailureConditionExists(bool justTakeCareOfIt = false)
       {
-         if (FindMissions(new string[] { "TutorialFlightReady" }) is not null and List<TreeGridItem> missions && missions.Count > 0)
+         if (FindMissions(new string[] { "TutorialFlightReady" }) is not null and List<Node> missions && missions.Count > 0)
          {
-            TreeGridItem mission = missions.ElementAt(0);
-            TryGetProperty(mission, "AssignedLayerId", out string LayerId);
+            Node mission = missions.ElementAt(0);
+            mission.TryGetProperty("AssignedLayerId", out string LayerId);
             Debug.WriteLine($"Mission is assigned to {LayerId}");
-            TreeGridItem? assignedShip = FindShip(LayerId);
+            Node? assignedShip = FindShip(LayerId);
             if (assignedShip is null
-               || (TryGetProperty(assignedShip, "Type", out string Disposition)
+               || (assignedShip.TryGetProperty("Type", out string Disposition)
                && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
             {
                if (justTakeCareOfIt)
@@ -1098,14 +1106,14 @@ namespace LaSSI
             return false;
          }
       }
-      private bool JustTakeCareOfIt(TreeGridItem mission)
+      private bool JustTakeCareOfIt(Node mission)
       {
          Debug.WriteLine("Could not find a friendly ship with that ID; finding any friendly ship");
-         TreeGridItem? assignedShip = FindShip(ShipDisposition.Friendly);
+         Node? assignedShip = FindShip(ShipDisposition.Friendly);
          if (assignedShip is not null)
          {
-            TryGetProperty(assignedShip, "Id", out string newShipID);
-            if (TrySetProperty(mission, "AssignedLayerId", newShipID))
+            assignedShip.TryGetProperty("Id", out string newShipID);
+            if (mission.TrySetProperty("AssignedLayerId", newShipID))
             {
                Debug.WriteLine($"successfully transferred mission to {newShipID}");
                UpdateDetailsPanel(mission, true);
@@ -1126,11 +1134,11 @@ namespace LaSSI
       internal bool CrossSectorMissionsExist()
       {
          var property = new Dictionary<string, string> { { "Title", "mission_passengers_titlefurther" } };
-         List<TreeGridItem> missions = FindMissions(property);
-         crossSectorMissions = new List<TreeGridItem>();
+         List<Node> missions = FindMissions(property);
+         crossSectorMissions = new List<Node>();
          foreach (var mission in missions)
          {
-            if (TryGetProperty(mission, "ToSectorId", out string toSectorId))
+            if (mission.TryGetProperty("ToSectorId", out string toSectorId))
             {
                crossSectorMissions.Add(mission);
             }
@@ -1158,23 +1166,40 @@ namespace LaSSI
          {
             // var d = Math.sqrt((x - h)^2+(y - k)^2);
             // if(d <= r) unreachable
-            TreeGridItem galaxy = GetGalaxyNode()!;
-            TreeGridItem currentSystem = GetChildNode(GetChildNode(galaxy, "Objects")!, currentSystemId, true)!;
-            TryGetProperties(currentSystem, new string[] { "Position.x", "Position.y" }, out Dictionary<string, string> currentSystemData);
+            Node galaxy = GetGalaxyNode()!;
+            Node currentSystem = GetChildNode(GetChildNode(galaxy, "Objects")!, currentSystemId, true)!;
+            Dictionary<string, string> currentSystemData = new()
+            {
+               {"Position.x","" },
+               { "Position.y",""}
+            };
+            currentSystem.TryGetProperties(currentSystemData);
             double currentSystemX = Double.Parse(currentSystemData["Position.x"]);
             double currentSystemY = Double.Parse(currentSystemData["Position.y"]);
-            TryGetProperties(galaxy, new string[] { "VoidPosition.x", "VoidPosition.y", "VoidRadius" }, out Dictionary<string, string> voidData);
+            Dictionary<string, string> voidData = new()
+            {
+               {"VoidPosition.x","" },
+               { "VoidPosition.y", "" },
+               { "VoidRadius","" }
+            };
+            galaxy.TryGetProperties(voidData);
             double voidX = Double.Parse(voidData["VoidPosition.x"]);
             double voidY = Double.Parse(voidData["VoidPosition.y"]);
             double voidR = Double.Parse(voidData["VoidRadius"]);
             // get galaxy.objects where colony is true or shipyard is true
-            List<TreeGridItem> habitableSystems = GetGalaxyObjects(false
+            List<Node> habitableSystems = GetGalaxyObjects(false
                , new Dictionary<string, string> { { "Colony", "true" }, { "Shipyard", "true" } });//the "true" is not, strictly speaking, necessary, but it fits the paradigm I devised
 
             // loop, run the math
             foreach (var habitableSystem in habitableSystems)
             {
-               TryGetProperties(habitableSystem, new string[] { "Position.x", "Position.y", "Id" }, out Dictionary<string, string> vals);
+               Dictionary<string, string> vals = new()
+               {
+                  { "Position.x", "" },
+                  { "Position.y", "" },
+                  { "Id", "" }
+               };
+               habitableSystem.TryGetProperties(vals);
                double habitableSystemX = Double.Parse(vals["Position.x"]);
                double habitableSystemY = Double.Parse(vals["Position.y"]);
                string habitableSystemId = vals["Id"];
@@ -1200,7 +1225,7 @@ namespace LaSSI
             foreach (var mission in crossSectorMissions)
             {
                int randomIndex = rand.Next(reachableSystems.Count);
-               ReplaceProperty(mission, "ToSectorId", "ToSystemId", reachableSystems[randomIndex]);
+               mission.ReplaceProperty("ToSectorId", "ToSystemId", reachableSystems[randomIndex]);
                ClearItemFromCache(mission);
                if (mission == GetSelectedTreeGridItem())
                {
@@ -1229,7 +1254,7 @@ namespace LaSSI
 
          foreach (var layer in friendlyShips)
          {
-            if (GetChildNode(layer, "Objects") is not null and TreeGridItem objects)
+            if (GetChildNode(layer, "Objects") is not null and Node objects)
             {
                deadCrew = FindChildNodesWithProperties(objects, "\"[i ", true, new List<string> { "Type", "State", "CauseOfDeath" }, true);
             }
@@ -1238,14 +1263,13 @@ namespace LaSSI
       }
       internal bool ClearDeadCrew()
       {
-         //List<TreeGridItem> friendlyLayers = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
          if (friendlyShips is null)
          {
             friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
          }
          foreach (var layer in friendlyShips)
          {
-            if (GetChildNode(layer, "Objects") is not null and TreeGridItem objects && deadCrew is not null)
+            if (GetChildNode(layer, "Objects") is not null and Node objects && deadCrew is not null)
             {
                foreach (var deadCrewmember in deadCrew)
                {
@@ -1269,11 +1293,11 @@ namespace LaSSI
          string sysId = string.Empty;
          if (shipId == string.Empty)
          {
-            TryGetProperty(GetGalaxyNode()!, "CurrentSystem", out sysId);
+            GetGalaxyNode()!.TryGetProperty("CurrentSystem", out sysId);
          }
          else
          {
-            TreeGridItem ship;
+            Node ship;
             if (shipId is not null)
             {
                ship = FindShip(shipId, ShipDisposition.Friendly)!;
@@ -1282,112 +1306,13 @@ namespace LaSSI
             {
                ship = FindShip(ShipDisposition.Friendly)!;
             }
-            TryGetProperty(ship, "SystemId", out sysId);
+            ship.TryGetProperty("SystemId", out sysId);
          }
          return sysId;
       }
-      private bool PropertiesContains(TreeGridItem item, string propertyname) // todo: figure out how to do multiples
+      private Node GetRoot()
       {
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         if (properties.Contains((object)propertyname))
-         {
-            return true;
-         }
-         return false;
-      }
-      internal void RemoveProperty(TreeGridItem item, string propertyName)
-      {
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         properties.Remove(propertyName);
-      }
-      internal void AddProperty(TreeGridItem item, string propertyName, string propertyValue = "")
-      {
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         properties.Add(propertyName, propertyValue);
-      }
-      internal void ReplaceProperty(TreeGridItem item, string oldPropertyName, string newPropertyName, string newPropertyValue = "")
-      {
-         RemoveProperty(item, oldPropertyName);
-         AddProperty(item, newPropertyName, newPropertyValue);
-      }
-      private static bool HasProperties(TreeGridItem item, string[] propertyNames, bool all = false)
-      {
-         int matchCount = -1;
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         foreach (var name in propertyNames)
-         {
-            if (properties.Contains((object)name))
-            {
-               if (all)
-               {
-                  if (matchCount < 0) matchCount = 0;
-                  matchCount++;
-               }
-               else
-               {
-                  return true;
-               }
-            }
-         }
-
-         return matchCount == propertyNames.Length;
-      }
-      private static bool TryGetProperties(TreeGridItem item, string[] propertyNames, out Dictionary<string, string> propertyValues) // add switch for any vs all?
-      {
-         propertyValues = new();
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         foreach (var name in propertyNames)
-         {
-            if (properties.Contains((object)name))
-            {
-               string t = properties[(object)name]!.ToString()!;
-               if (t is not null)
-               {
-                  propertyValues.Add(name, t);
-               }
-            }
-         }
-         return propertyValues.Count > 0;
-      }
-      private bool TryGetProperty(TreeGridItem item, string propertyName, out string propertyValue)
-      {
-         propertyValue = string.Empty;
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         //foreach (var name in propertyNames)
-         //{
-         if (properties.Contains((object)propertyName))
-         {
-            string t = properties[(object)propertyName]!.ToString()!;
-            if (t is not null)
-            {
-               propertyValue = t;
-               return true;
-            }
-         }
-         //}
-         return false;
-      }
-      private bool TrySetProperty(TreeGridItem item, string propertyName, string propertyValue)
-      {
-         OrderedDictionary properties = (OrderedDictionary)item.Values[1];
-         if (properties.Contains((object)propertyName))
-         {
-            properties[(object)propertyName] = propertyValue;
-            //string t = properties[(object)propertyname]!.ToString()!;
-            //if (t is not null)
-            //{
-            //   propertyvalue = t;
-            return true;
-            //}
-         }
-         //propertyvalue = string.Empty;
-         return false;
-      }
-      private TreeGridItem GetRoot()
-      {
-         TreeGridView tree = GetTreeGridView();
-         TreeGridItemCollection items = (TreeGridItemCollection)tree.DataStore;
-         TreeGridItem root = (TreeGridItem)items[0];
+         Node root = (Node)GetTreeGridView().DataStore[0];
          return root;
       }
       public void Rebuild(Node root)
@@ -1407,48 +1332,24 @@ namespace LaSSI
       }
       private void RebuildTreeView(Node root)
       {
-         TreeGridView x = (TreeGridView)this.Children.Where<Control>(x => x.ID == "DataTreeView").First();
-         x.DataStore = SaveFile2TreeGridItems(root);
-         if (x.Columns.Count == 0)
+         TreeGridView treeView = GetTreeGridView();
+         TreeGridItemCollection collection = new()
          {
-            x.Columns.Add(new GridColumn
+            root
+         };
+         collection[0].Expanded = true;
+         treeView.DataStore = collection;
+
+         if (treeView.Columns.Count == 0)
+         {
+            GridColumn column = new()
             {
                AutoSize = true,
-               DataCell = new TextBoxCell(0)
-            });
+               DataCell = new TextBoxCell("Name")
+            };
+            treeView.Columns.Add(column);
          }
          //x.CellFormatting += X_CellFormatting;
-      }
-      private TreeGridItemCollection SaveFile2TreeGridItems(Node root)
-      {
-         TreeGridItemCollection treeGridItems = new()
-         {
-            WalkNodeTree(root)
-         };
-         treeGridItems[0].Expanded = true;
-         return treeGridItems;
-      }
-      private TreeGridItem WalkNodeTree(Node node)
-      {
-         if (!node.HasChildren())
-         {
-            return new TreeGridItem(node.Name, node.Properties, NodeStatus.Default)
-            {
-               Tag = node.Name
-            };
-         }
-         else
-         {
-            TreeGridItemCollection childItems = new();
-            foreach (var child in node.Children)
-            {
-               childItems.Add(WalkNodeTree(child));
-            }
-            return new TreeGridItem(childItems, node.Name, node.Properties, NodeStatus.Default)
-            {
-               Tag = node.Name
-            };
-         }
       }
       private Size GetTheSizeUnderControl(Control control, GridView gridView) // I don't love this, but it _frelling_ works
       {
@@ -1517,7 +1418,7 @@ namespace LaSSI
       }
       internal void RevertAllUnappliedChanges()
       {
-         List<KeyValuePair<TreeGridItem, DetailsLayout>> cachedPanels = DetailPanelsCache.ToList();
+         List<KeyValuePair<Node, DetailsLayout>> cachedPanels = DetailPanelsCache.ToList();
          foreach (var panel in cachedPanels)
          {
             if (((DetailsLayout)panel.Value).Status == DetailsLayout.State.Modified)
@@ -1697,7 +1598,7 @@ namespace LaSSI
       {
          if (sender is not null and TreeGridView view)
          {
-            TreeGridItem item = (TreeGridItem)view.SelectedItem;
+            Node item = (Node)view.SelectedItem;
             //item.SetValue(2, Colors.Magenta);
             if (item is not null)
             {
@@ -1709,41 +1610,41 @@ namespace LaSSI
             //}
          }
       }
-      private void X_CellFormatting(object? sender, GridCellFormatEventArgs e)
-      {
-         //e.BackgroundColor = e.Row % 2 == 0 ? Colors.Blue : Colors.LightBlue;
-         if (e.Item is not null and TreeGridItem item && item.Values.Length > 2
-            && item == ((TreeGridView)sender!).SelectedItem && (NodeStatus)item.Values[2] != NodeStatus.Default)
-         {
-            Color? newColor = null;
-            NodeStatus s = (NodeStatus)item.Values[2];
-            switch (s)
-            {
-               case NodeStatus.Edited:
-                  {
-                     newColor = Colors.Orange;
-                     break;
-                  }
-               case NodeStatus.ChildEdited:
-                  {
-                     newColor = Colors.Peru;
-                     break;
-                  }
-               case NodeStatus.Deleted:
-                  {
-                     newColor = Colors.OrangeRed;
-                     break;
-                  }
-            }
-            if (newColor is not null)
-            {
-               e.BackgroundColor = (Color)newColor;
-            }
+      //private void X_CellFormatting(object? sender, GridCellFormatEventArgs e)
+      //{
+      //   //e.BackgroundColor = e.Row % 2 == 0 ? Colors.Blue : Colors.LightBlue;
+      //   if (e.Item is not null and TreeGridItem item && item.Values.Length > 2
+      //      && item == ((TreeGridView)sender!).SelectedItem && (NodeStatus)item.Values[2] != NodeStatus.Default)
+      //   {
+      //      Color? newColor = null;
+      //      NodeStatus s = (NodeStatus)item.Values[2];
+      //      switch (s)
+      //      {
+      //         case NodeStatus.Edited:
+      //            {
+      //               newColor = Colors.Orange;
+      //               break;
+      //            }
+      //         case NodeStatus.ChildEdited:
+      //            {
+      //               newColor = Colors.Peru;
+      //               break;
+      //            }
+      //         case NodeStatus.Deleted:
+      //            {
+      //               newColor = Colors.OrangeRed;
+      //               break;
+      //            }
+      //      }
+      //      if (newColor is not null)
+      //      {
+      //         e.BackgroundColor = (Color)newColor;
+      //      }
 
-         }
+      //   }
 
-         //Colors.
-      }
+      //   //Colors.
+      //}
       private void DefaultGridView_Shown(object? sender, EventArgs e)
       {
          if ((DetailsPanelInitialSize.Height == 0 || DetailsPanelInitialSize.Width == 0) && sender is GridView and not null)
@@ -1758,13 +1659,13 @@ namespace LaSSI
 
       private void RevertButton_Click(object? sender, EventArgs e)
       {
-         TreeGridItem item = GetSelectedTreeGridItem();
+         Node item = GetSelectedTreeGridItem();
          UpdateDetailsPanel(item, true);
       }
 
       private void ApplyButton_Click(object? sender, EventArgs e) // todo: generic way to get ahold of the current details-details panel (damn, I've really screwed up the nomenclature...)
       {
-         TreeGridItem item = GetSelectedTreeGridItem();
+         Node item = GetSelectedTreeGridItem();
          Control detailControl = GetDetailsControl();
          if (detailControl is not null)
          {
@@ -1787,7 +1688,7 @@ namespace LaSSI
          return detailsControl;
       }
 
-      private static void ApplyChange(TreeGridItem item, Control detailControl)
+      private static void ApplyChange(Node item, Control detailControl)
       {
          OrderedDictionary itemDictionary = new OrderedDictionary();
 
@@ -1809,13 +1710,13 @@ namespace LaSSI
                   itemDictionary.Add(entry.Name, entry.Count);
                }
             }
-            item.Values[1] = itemDictionary;
+            item.Properties = itemDictionary;
          }
       }
 
-      private TreeGridItem GetSelectedTreeGridItem()
+      private Node GetSelectedTreeGridItem()
       {
-         return (TreeGridItem)GetTreeGridView().SelectedItem;
+         return (Node)GetTreeGridView().SelectedItem;
       }
       private void RightGrid_Updated(object? sender, EventArgs? e)
       {
@@ -1823,14 +1724,14 @@ namespace LaSSI
          {
             if (GetTreeGridView() is not null and TreeGridView treeGrid)
             {
-               if (treeGrid.SelectedItem is TreeGridItem item && item.Values[1] is OrderedDictionary initialData)
+               if (treeGrid.SelectedItem is Node item)
                {
                   Dictionary<string, string> currentData = new Dictionary<string, string>();
                   foreach (var entry in RightList)
                   {
                      currentData.Add(entry.Name, entry.Count.ToString());
                   }
-                  var dict = initialData.Cast<DictionaryEntry>().ToDictionary(k => (string)k.Key, v => v.Value!.ToString());
+                  var dict = item.Properties.Cast<DictionaryEntry>().ToDictionary(k => (string)k.Key, v => v.Value!.ToString());
                   if (ListBuilder.IsGridModified(dict!, currentData))
                   {
                      DetailsModified();
