@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 
 namespace LaSSI
 {
@@ -38,9 +37,10 @@ namespace LaSSI
          Size = new Size(1024, 600);
          Location = AdjustForFormSize(GetScreenCenter(), Size);
          Padding = 10;
-         DataPanel = new DataPanel(InventoryMasterList, Width);
+         DataPanel = new DataPanel(this, InventoryMasterList, Width);
          CustomCommands = new CustomCommands(this);
          prefs = new Prefs(this);
+         //prefs.PrefsDialog.UiRefreshRequired += PrefsDialog_UiRefreshRequired;
          // create menu
          fileMenu = new() { Text = "&File" };
          fileMenu.Items.AddRange(CustomCommands.FileCommands);
@@ -73,6 +73,11 @@ namespace LaSSI
          PlatformSpecificNonsense();
          Startup();
       }
+
+      //private void PrefsDialog_UiRefreshRequired(object? sender, EventArgs e)
+      //{
+      //   DataPanel.RefreshTree();
+      //}
 
       private void MainForm_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
       {
@@ -174,7 +179,7 @@ namespace LaSSI
       }
       internal void UpdateUiAfterLoad()
       {
-         UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
+         _ = UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
          DataPanel.Rebuild(saveFile.Root);
          LoadingBar.Visible = false;
       }

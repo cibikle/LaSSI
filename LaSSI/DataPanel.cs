@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Xml.Linq;
-using MonoMac.Foundation;
 
 namespace LaSSI
 {
@@ -36,6 +34,7 @@ namespace LaSSI
          Unsaved,
          UnsavedAndUnapplied
       }
+      private MainForm? mainForm;
       private DataState dataState = DataState.Unchanged;
       internal bool dirtyBit = false;
       private Dictionary<Node, DetailsLayout> DetailPanelsCache = new();
@@ -66,16 +65,18 @@ namespace LaSSI
       {
 
       }
-      public DataPanel(Node root, List<InventoryGridItem> inventoryMasterList, int parentWidth)
+      public DataPanel(MainForm mainform, Node root, List<InventoryGridItem> inventoryMasterList, int parentWidth)
       {
+         mainForm = mainform;
          InventoryMasterList = inventoryMasterList;
          ParentWidth = parentWidth;
          TableLayout primaryLayout = InitPrimaryPanel();
          Root = root;
          Content = primaryLayout;
       }
-      public DataPanel(List<InventoryGridItem> inventoryMasterList, int parentWidth)
+      public DataPanel(MainForm mainform, List<InventoryGridItem> inventoryMasterList, int parentWidth)
       {
+         mainForm = mainform;
          InventoryMasterList = inventoryMasterList;
          ParentWidth = parentWidth;
          TableLayout primaryLayout = InitPrimaryPanel();
@@ -106,6 +107,7 @@ namespace LaSSI
             //AllowMultipleSelection = true
          };
          treeView.SelectedItemChanged += TreeView_SelectedItemChanged;
+         treeView.CellFormatting += TreeView_CellFormatting;
          return treeView;
       }
       private static Splitter CreateSplitter()
@@ -1377,8 +1379,45 @@ namespace LaSSI
             };
             treeView.Columns.Add(column);
          }
-         //x.CellFormatting += X_CellFormatting;
       }
+      public void RefreshTree()
+      {
+         TreeGridView treeView = GetTreeGridView();
+         treeView.DataStore = (TreeGridItemCollection)treeView.DataStore; // I hate this
+      }
+      private void TreeView_CellFormatting(object? sender, GridCellFormatEventArgs e)
+      {
+         if (sender is not null and TreeGridView tree)
+         {
+            if (mainForm is not null)
+            {
+               e.ForegroundColor = Colors.Black;
+               if ((yesno)mainForm.prefs.holidayFun.value == yesno.yes)
+               {
+                  var today = DateTime.Today;
+
+                  DateTime ChristmasDay = new(DateTime.Now.Year, 12, 25, 0, 0, 0);
+                  DateTime NewYearDay = new(DateTime.Now.Year, 1, 1, 0, 0, 0);
+
+                  //today = ChristmasDay.AddDays(8);
+                  if ((today >= ChristmasDay.AddDays(-5)) && (today <= ChristmasDay.AddDays(7)))
+                  {
+                     if (e.Item is not null /*and Node item*/)
+                     {
+                        e.ForegroundColor = e.Row % 2 == 0 ? Colors.Green : Colors.Red;
+                        //e.BackgroundColor = (Color)newColor;
+                     }
+                  }
+                  else if (today >= NewYearDay && today < NewYearDay.AddDays(3))
+                  {
+                     e.ForegroundColor = Colors.SaddleBrown;
+                  }
+               }
+            }
+
+         }
+      }
+
       private Size GetTheSizeUnderControl(Control control, GridView gridView) // I don't love this, but it _frelling_ works
       {
          if (control.Height < control.ParentWindow.Height)
@@ -1403,15 +1442,12 @@ namespace LaSSI
       private void DetailsModified()
       {
          Apply.Enabled = Revert.Enabled = true;
-         //GridView grid = (GridView)sender;
 
          ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Modified;
-         //return DetailsLayout.State.Modified;
       }
       private void DetailsUnmodified()
       {
          Apply.Enabled = Revert.Enabled = false;
-         //GridView grid = (GridView)sender;
 
          ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Unmodified;
       }
@@ -1670,7 +1706,6 @@ namespace LaSSI
       //      }
 
       //   }
-
       //   //Colors.
       //}
       private void DefaultGridView_Shown(object? sender, EventArgs e)

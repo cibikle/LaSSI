@@ -1,5 +1,4 @@
-﻿using Eto;
-using Eto.Forms;
+﻿using Eto.Forms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -462,11 +461,12 @@ namespace LaSSI
       {
          PrefsDialog f = new PrefsDialog(MainForm.prefs);
          f.ShowModal(MainForm);
+         MainForm.DataPanel.RefreshTree(); // todo: this should only trigger if the user made a change that requires it
       }
       private void QuitCommand_Executed(object? sender, EventArgs e)
       {
-         //   if ((EtoEnvironment.Platform.IsMac && ReadyForQuit()) || !EtoEnvironment.Platform.IsMac)
-         //   {
+         //if ((EtoEnvironment.Platform.IsMac && ReadyForQuit()) || !EtoEnvironment.Platform.IsMac)
+         //{
          Application.Instance.Quit();
          //}
       }

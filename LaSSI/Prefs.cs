@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-//using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using Eto;
@@ -53,6 +52,7 @@ namespace LaSSI
       internal Pref startupFile = new Pref("Startup file", "", PrefType.file);
       //internal Pref autoLoad = new Pref("Auto-load last file on start", yesno.no, PrefType.checkbox);
       public Pref startupBehavior = new("Startup behavior", StartupBehavior.Nothing, PrefType.startupbehavior);
+      internal Pref holidayFun = new("Holiday fun", yesno.yes, PrefType.checkbox, true);
       //Pref backup = new Pref("Backup", "Yes", PrefType.checkbox);
       //Pref backupRetention = new Pref("Backup retention (days)", "30", PrefType.number);
       //Pref retainPositionAndSize = new Pref("Remember window size and position", yesno.no, PrefType.checkbox);
@@ -71,6 +71,7 @@ namespace LaSSI
          //defaultPrefs.Add(retainPositionAndSize);
          defaultPrefs.Add(startupBehavior);
          defaultPrefs.Add(startupFile);
+         defaultPrefs.Add(holidayFun);
          if (LoadPrefs())
          {
             Debug.WriteLine("Loaded prefs");
@@ -79,7 +80,6 @@ namespace LaSSI
          {
             Debug.WriteLine("Using default prefs");
          }
-
          MainForm = mainForm;
       }
       public void SavePrefs()
@@ -160,6 +160,8 @@ namespace LaSSI
 
    internal class PrefsDialog : Dialog
    {
+      public event EventHandler? UiRefreshRequired;
+
       private Prefs Prefs;
       private Button? OKButton;
       private Button? CancelButton;
@@ -231,7 +233,7 @@ namespace LaSSI
                      checkBox.Checked = value == yesno.yes;
                   }
 
-                  //checkBox.CheckedChanged += CheckBox_CheckedChanged;
+                  checkBox.CheckedChanged += CheckBox_CheckedChanged;
                   control = checkBox;
                   break;
                }
@@ -301,6 +303,23 @@ namespace LaSSI
          }
 
          return new Control[] { prefLabel, control!, null! };
+      }
+
+      private void CheckBox_CheckedChanged(object? sender, EventArgs e)
+      {
+         if (sender is not null and Control c)
+         {
+            PrefsDialog prefsDialog = (PrefsDialog)c.FindParent("PrefsDialog");
+            if (Prefs.FindPref(c.ID) is not null and Pref pref && pref.prefType == PrefType.checkbox)
+            {
+               if (pref.uiRefresh)
+               {
+                  //UiRefreshRequired?.Invoke(this, null);
+
+               }
+            }
+
+         }
       }
 
       private void PickStartingSave_Click(object? sender, EventArgs e)
@@ -397,26 +416,37 @@ namespace LaSSI
 
       private void OK_clicked(object? sender, EventArgs e)
       {
-         if (sender is not null and Button c)
+         if (sender is not null and Button b)
          {
-            PrefsDialog prefsDialog = (PrefsDialog)c.FindParent("PrefsDialog");
+            PrefsDialog prefsDialog = (PrefsDialog)b.FindParent("PrefsDialog");
             foreach (var control in prefsDialog.Children)
             {
                if (Prefs.FindPref(control.ID) is not null and Pref pref)
                {
+                  object value = null;
                   switch (pref.prefType)
                   {
+                     case PrefType.alwaysneverprompt:
                      case PrefType.startupbehavior:
                         {
-                           pref.value = Enum.GetValues(typeof(StartupBehavior)).GetValue(((DropDown)control).SelectedIndex);
+                           //value = Enum.GetValues(typeof(StartupBehavior)).GetValue(((DropDown)control).SelectedIndex);
+                           value = ((DropDown)control).SelectedIndex;
                            break;
                         }
-                     case PrefType.alwaysneverprompt:
+                     case PrefType.checkbox:
                         {
-                           pref.value = Enum.GetValues(typeof(AlwaysNeverPrompt)).GetValue(((DropDown)control).SelectedIndex);
+                           if (control is CheckBox c)
+                           {
+                              value = (bool)c.Checked ? 1 : 0;
+                           }
                            break;
                         }
                   }
+                  if (value is not null)
+                  {
+                     pref.SetValue(value);
+                  }
+
                }
             }
          }
@@ -435,6 +465,7 @@ namespace LaSSI
       public object? value = null;
       public PrefType prefType = PrefType.freetext;
       public string defaultValue = string.Empty;
+      public bool uiRefresh = false;
 
       public Pref()
       {
@@ -444,16 +475,17 @@ namespace LaSSI
       {
          this.name = name;
       }
-      public Pref(string name, object value)
+      public Pref(string name, object value) : this(name)
       {
-         this.name = name;
          this.value = value;
       }
-      public Pref(string name, object value, PrefType prefType)
+      public Pref(string name, object value, PrefType prefType) : this(name, value)
       {
-         this.name = name;
-         this.value = value;
          this.prefType = prefType;
+      }
+      public Pref(string name, object value, PrefType prefType, bool uiRefresh) : this(name, value, prefType)
+      {
+         this.uiRefresh = uiRefresh;
       }
       internal void SetValue(object value)
       {
@@ -472,6 +504,12 @@ namespace LaSSI
             case PrefType.file:
                {
                   this.value = (string)value;
+                  break;
+               }
+            case PrefType.checkbox:
+            case PrefType.yesno:
+               {
+                  this.value = (yesno)Convert.ToInt32(value);
                   break;
                }
          }
