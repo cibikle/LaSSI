@@ -12,11 +12,11 @@
 		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
 		<Company />
 		<Authors>CIBikle</Authors>
-		<FileVersion>0.9.6</FileVersion>
+		<FileVersion>0.9.7</FileVersion>
 		<ApplicationIcon>FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Content Include="FileMagnifyingGlassIcon24x24.ico" />
+		<Content Include="FileMagnifyingGlassIcon24x24.ico" />
 	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />
@@ -25,9 +25,9 @@
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Remove="MacIcon.icns" />
+		<None Remove="MacIcon.icns" />
 	</ItemGroup>
 	<ItemGroup>
-	  <BundleResource Include="MacIcon.icns" />
+		<BundleResource Include="MacIcon.icns" />
 	</ItemGroup>
 </Project>
