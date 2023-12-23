@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace LaSSI
 {
-   public class DataPanel : Panel
+    public class DataPanel : Panel
    {
       public enum DerelictsCleaningMode
       {
@@ -944,7 +944,7 @@ namespace LaSSI
             case DerelictsCleaningMode.SectorWide:
                {
 
-                  foreach (TreeGridItem sys in sysArchChildren)
+                  foreach (Node sys in sysArchChildren)
                   {
                      toRemove = CompileDerelictList(sys.Children);
                      foreach (var v in toRemove)
@@ -1039,7 +1039,7 @@ namespace LaSSI
                   success = success && comet.TrySetProperty("Position.x", "0");
                   success = success && comet.TrySetProperty("Position.y", "0");
                   ClearItemFromCache(comet);
-                  if (comet == GetSelectedTreeGridItem())
+                  if (comet == GetSelectedNode())
                   {
                      UpdateDetailsPanel(comet);
                   }
@@ -1230,7 +1230,7 @@ namespace LaSSI
                int randomIndex = rand.Next(reachableSystems.Count);
                mission.ReplaceProperty("ToSectorId", "ToSystemId", reachableSystems[randomIndex]);
                ClearItemFromCache(mission);
-               if (mission == GetSelectedTreeGridItem())
+               if (mission == GetSelectedNode())
                {
                   UpdateDetailsPanel(mission);
                }
@@ -1603,7 +1603,7 @@ namespace LaSSI
             }
             if (alreadyInUse)
             {
-               MessageBox.Show("That key is already in use", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
+               MessageBox.Show("That key is already in use","Error", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
             }
             else
             {
@@ -1722,13 +1722,13 @@ namespace LaSSI
 
       private void RevertButton_Click(object? sender, EventArgs e)
       {
-         Node item = GetSelectedTreeGridItem();
+         Node item = GetSelectedNode();
          UpdateDetailsPanel(item, true);
       }
 
       private void ApplyButton_Click(object? sender, EventArgs e) // todo: generic way to get ahold of the current details-details panel (damn, I've really screwed up the nomenclature...)
       {
-         Node item = GetSelectedTreeGridItem();
+         Node item = GetSelectedNode();
          Control detailControl = GetDetailsControl();
          if (detailControl is not null)
          {
@@ -1777,7 +1777,7 @@ namespace LaSSI
          }
       }
 
-      private Node GetSelectedTreeGridItem()
+      private Node GetSelectedNode()
       {
          return (Node)GetTreeGridView().SelectedItem;
       }

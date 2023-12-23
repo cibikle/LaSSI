@@ -401,7 +401,7 @@ namespace LaSSI
       {
 
          return MessageBox.Show($"There are {state} changes!{Environment.NewLine}{action1} before {action2}?{Environment.NewLine}{state} changes will be discarded."
-               , MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
+               , "Warning", MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
 
       }
       internal void LoadFile(string filename, bool IsReloadAfterSave = false)
@@ -557,7 +557,7 @@ namespace LaSSI
       {
          if (sender is Command c and not null && MainForm.DataPanel.AssertionFailureConditionExists(true))
          {
-            _ = MessageBox.Show("Mission reassigned successfully", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Mission reassigned successfully", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -571,7 +571,7 @@ namespace LaSSI
          //{
          //Debug.WriteLine(r.GetSelectedIndex());
          MainForm.DataPanel.CleanDerelicts(DataPanel.DerelictsCleaningMode.SectorWide);
-         _ = MessageBox.Show("Derelict ships removed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         _ = MessageBox.Show("Derelict ships removed", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
          MainForm.DataPanel.AddUnsavedToDataState();
          //}
@@ -588,7 +588,7 @@ namespace LaSSI
          //}
          if (sender is Command c and not null && MainForm.DataPanel.ResetCamera())
          {
-            _ = MessageBox.Show("Camera reset to system center, viewsize 100", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Camera reset to system center, viewsize 100", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -607,7 +607,7 @@ namespace LaSSI
 
          if (sender is Command c and not null && MainForm.DataPanel.ResetComet())
          {
-            _ = MessageBox.Show("Comet(s) reset to system center", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Comet(s) reset to system center", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -617,7 +617,7 @@ namespace LaSSI
          // todo: prompt for clarification if more than 1 system has meteors?
          if (sender is Command c and not null && MainForm.DataPanel.TurnOffMeteors())
          {
-            _ = MessageBox.Show("Meteors turned off", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Meteors turned off", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -626,7 +626,7 @@ namespace LaSSI
       {
          if (sender is Command c and not null && MainForm.DataPanel.SetCrossSectorMissionsDestination())
          {
-            _ = MessageBox.Show("Cross-sector passenger missions updated", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Cross-sector passenger missions updated", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -635,7 +635,7 @@ namespace LaSSI
       {
          if (sender is Command c and not null && MainForm.DataPanel.ClearDeadCrew())
          {
-            _ = MessageBox.Show("Dead crew cleaned up", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Dead crew cleaned up", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
@@ -659,7 +659,7 @@ namespace LaSSI
                   string shipId = item.Substring(start, length); //"1829";
                   if (MainForm.DataPanel.RemoveHab(shipId))
                   {
-                     _ = MessageBox.Show($"Removed Habitation from {shipId}", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+                     _ = MessageBox.Show($"Removed Habitation from {shipId}","Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
 
                      MainForm.DataPanel.AddUnsavedToDataState();
                   }
