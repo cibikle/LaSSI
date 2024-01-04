@@ -182,6 +182,7 @@ namespace LaSSI
          _ = UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
          DataPanel.Rebuild(saveFile.Root);
          LoadingBar.Visible = false;
+         DataPanel.GetSearchBox().Text = string.Empty;
       }
       internal static string TrimFilePathForSafety(string filepath)
       {

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using Eto.Forms;
 
 namespace LaSSI
 {
@@ -34,7 +33,7 @@ namespace LaSSI
       private static bool IsOneliner(Node item) // todo: this is a travesty
       {
          bool IsOneLiner;
-         if (item.GetParent().Name == "Zones")
+         if (item.GetParent() is not null and Node p && p.Name == "Zones")
          {
             OrderedDictionary dic = item.Properties;
             //if (item.Values[1] is OrderedDictionary dic)

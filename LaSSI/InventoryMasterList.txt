@@ -86,6 +86,7 @@ SewagePipe
 Shuttle
 SmallTank
 Smelter
+SolarPanel
 SpaceSuit
 SpaceSuitPod
 StargateActuator

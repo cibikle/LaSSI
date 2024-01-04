@@ -88,6 +88,73 @@ namespace LaSSI
       {
          return RootPropertyNames.Contains(name);
       }
+      internal TreeGridItemCollection FindNodes(Node node, string[] searchTerms)
+      {
+         TreeGridItemCollection nodes = new();
+         bool match = false;
+         int matches = 0;
+         foreach (string term in searchTerms)
+         {
+            if (term.EndsWith(':'))//if term is property name
+            {
+               match = node.HasProperties(new string[] { term.TrimEnd(':') });
+            }
+            else if (term.Contains(':'))//if term is property name/value pair
+            {
+               string[] keyValue = term.Split(':');
+               match = node.TryGetProperty(keyValue[0], out string value) && Regex.IsMatch(value, keyValue[1], RegexOptions.IgnoreCase);
+            }
+            else//if term is name ~~or property name~~
+            {
+               match = /*node.HasProperties(new string[] { term }) ||*/ node.NameMatches(new string[] { term });
+            }
+            if (match)
+            {
+               matches++;
+            }
+         }
+
+         //if (match)
+         if (matches == searchTerms.Length)
+         {
+            nodes.Add(node);
+         }
+         foreach (Node child in node.Children)
+         {
+            nodes.AddRange(FindNodes(child, searchTerms));
+         }
+         return nodes;
+      }
+      //internal TreeGridItemCollection FindNodes(Dictionary<string, string> searchTerms)
+      //{
+
+      //}
+      public TreeGridItemCollection Search(string searchtext)
+      {
+         TreeGridItemCollection searchCollection;
+         //Dictionary<string, string> properties = new();
+         string[] searchTokens = searchtext.Split(" ");
+         List<string> searchTerms = new();
+         bool quote = false;
+         foreach (var token in searchTokens)
+         {
+            if (quote)
+            {
+               searchTerms[^1] += ' ' + token;
+            }
+            else
+            {
+               searchTerms.Add(token);
+            }
+
+            if (token.Contains('"'))
+            {
+               quote = !quote;
+            }
+         }
+         searchCollection = FindNodes(Root, searchTerms.ToArray());
+         return searchCollection;
+      }
       public void Load()
       {
          LoadFile(this, this.Filename);
@@ -384,11 +451,11 @@ namespace LaSSI
                   CatName = "Science";
                   break;
                }
-            //case 10:
-            //   {
-
-            //      break;
-            //   }
+            case 10:
+               {
+                  CatName = "Other"; //applies to the Generator; not sure what else
+                  break;
+               }
             default:
                {
                   CatName = n.ToString();

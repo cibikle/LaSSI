@@ -659,7 +659,7 @@ namespace LaSSI
                   string shipId = item.Substring(start, length); //"1829";
                   if (MainForm.DataPanel.RemoveHab(shipId))
                   {
-                     _ = MessageBox.Show($"Removed Habitation from {shipId}","Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+                     _ = MessageBox.Show($"Removed Habitation from {shipId}", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
 
                      MainForm.DataPanel.AddUnsavedToDataState();
                   }

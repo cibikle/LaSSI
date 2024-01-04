@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace LaSSI
 {
-    public class DataPanel : Panel
+   public class DataPanel : Panel
    {
       public enum DerelictsCleaningMode
       {
@@ -86,30 +86,103 @@ namespace LaSSI
       {
          Apply.Click += ApplyButton_Click;
          Revert.Click += RevertButton_Click;
-         Splitter sp = CreateSplitter();
-         sp.Panel1 = CreateTreeView();
-         sp.Panel1.Width = ParentWidth / 2;
 
+         Splitter sp = CreateSplitter();
+         sp.Panel1 = CreateTreeView(ParentWidth / 2);
+         sp.Panel1.Width = ParentWidth / 2;
          sp.Panel2 = CreatePanel2Layout();
 
+         GroupBox box = new();
+         box.Content = sp;
+
          TableLayout dataLayout = new();
-         dataLayout.Rows.Add(sp);
+         dataLayout.Rows.Add(box);
 
          return dataLayout;
       }
-      private TreeGridView CreateTreeView()
+      internal TextBox GetSearchBox()
       {
+         TableLayout lefthandLayout = (TableLayout)GetTreeGridView().Parent;
+         return (TextBox)lefthandLayout.FindChild("searchTextbox");
+         //return GetTreeGridView().Parent.Children.Where(x => x.ID == "searchTextBox");
+         //return null;
+      }
+      private TableLayout CreateTreeView(int width)
+      {
+         TableLayout lefthandLayout = new()
+         {
+            Spacing = new Size(5, 5),
+            Size = new Size(-1, -1)
+         };
+         DynamicLayout searchLayout = new()
+         {
+            Spacing = new Size(5, 5),
+            Padding = new Padding(2, 0)
+         };
+         TextBox search = new()
+         {
+            ID = "searchTextbox",
+            Enabled = true,
+            PlaceholderText = "Search...",
+         };
+         search.TextChanged += Search_TextChanged;
+
+         Button clearSearch = new()
+         {
+            Text = "Clear"
+         };
+         clearSearch.Click += ClearSearch_Click;
+         searchLayout.BeginHorizontal();
+         searchLayout.Add(search, true);
+         searchLayout.Add(clearSearch, false);
+         searchLayout.EndHorizontal();
+         lefthandLayout.Rows.Add(searchLayout);
+
          TreeGridView treeView = new()
          {
             Tag = "DataTreeView",
             ID = "DataTreeView",
-            //AllowEmptySelection = true,
+            ShowHeader = false,
+            AllowEmptySelection = true,
+            //Width = width
             //AllowMultipleSelection = true
          };
          treeView.SelectedItemChanged += TreeView_SelectedItemChanged;
          treeView.CellFormatting += TreeView_CellFormatting;
-         return treeView;
+
+         lefthandLayout.Rows.Add(treeView);
+
+         //stack.Width = width;
+         //stack.Size = new Size(-1, -1);
+         //stack.Items.Add(search);
+         //stack.Items.Add(treeView);
+         return lefthandLayout;
       }
+
+      private void ClearSearch_Click(object? sender, EventArgs e)
+      {
+         if (sender is not null and Button clear && clear.Parent.FindChild("searchTextbox") is TextBox searchBox)
+         {
+            searchBox.Text = string.Empty;
+         }
+      }
+
+      private void Search_TextChanged(object? sender, EventArgs e)
+      {
+         if (sender is not null and TextBox textBox)
+         {
+            string searchtext = textBox.Text;
+            if (searchtext != string.Empty && mainForm is not null)
+            {
+               GetTreeGridView().DataStore = mainForm.saveFile.Search(searchtext.Trim());
+            }
+            else
+            {
+               GetTreeGridView().DataStore = new TreeGridItemCollection() { GetRoot() };
+            }
+         }
+      }
+
       private static Splitter CreateSplitter()
       {
          Splitter sp = new()
@@ -141,7 +214,7 @@ namespace LaSSI
          StackLayout ApplyRevertLayout = new()
          {
             Orientation = Orientation.Horizontal,
-            Padding = 5,
+            //Padding = 5,
             Spacing = 5
          };
 
@@ -196,7 +269,13 @@ namespace LaSSI
             //Padding = new Padding(5, 0),
             Spacing = new Size(0, 5)
          };
-         detailsLayout.Add(GetNodePathLabel(item));
+         //detailsLayout.Add(GetNodePathLabel(item));
+         Scrollable s = new Scrollable();
+         s.Content = GetNodePathButtons(item);
+
+         //s.Shown += (sender, e) => s.ScrollPosition = new Point(s.Width / 2, 0);
+         detailsLayout.Add(s);
+         // right here pal
          switch (item.Name)
          {
             case "OurStock":
@@ -226,7 +305,7 @@ namespace LaSSI
                   }
                   else
                   {
-                     detailsLayout.Add(CreateDefaultPanel(item));
+                     detailsLayout.Add(CreateDefaultFieldsGridView(item));
                   }
                   break;
                }
@@ -237,29 +316,28 @@ namespace LaSSI
                }
             default:
                {
-                  detailsLayout.Add(CreateDefaultPanel(item));
+                  detailsLayout.Add(CreateDefaultFieldsGridView(item));
                   break;
                }
          }
 
          return detailsLayout;
       }
-      internal Scrollable CreateDefaultPanel(Node item)
-      {
-         Scrollable scrollable = new()
-         {
-            ID = "DetailScrollable",
-            Content = CreateDefaultFieldsGridView(item)
-         };
-         return scrollable;
-      }
+      //internal Scrollable CreateDefaultPanel(Node item)
+      //{
+      //   Scrollable scrollable = new()
+      //   {
+      //      ID = "DetailScrollable",
+      //      Content = CreateDefaultFieldsGridView(item)
+      //   };
+      //   return scrollable;
+      //}
       private static List<Node> CompileDerelictList(TreeGridItemCollection items)
       {
          List<Node> toRemove = new List<Node>();
          foreach (Node item in items)
          {
-            if (/*properties.Contains((object)"Class")
-               && */item.Properties.Contains((object)"Type"))
+            if (item.Properties.Contains((object)"Type"))
             {
                var s = item.Properties[(object)"Name"];
                var t = item.Properties[(object)"Type"];
@@ -287,12 +365,65 @@ namespace LaSSI
          Label nodePathLabel = new Label { Text = GetNodePath(item), BackgroundColor = Colors.Silver, Font = new Font("Arial", 18, FontStyle.Bold) };
          return nodePathLabel;
       }
-      private static DynamicLayout CreateNodePathLayout(Node item)
+      private DynamicLayout GetNodePathButtons(Node item)
       {
-         DynamicLayout layout = new DynamicLayout();
-         layout.Add(GetNodePathLabel(item));
-         return layout;
+         List<Button> buttonList = new();
+         DynamicLayout pathButtonLayout = new();
+         pathButtonLayout.BeginHorizontal();
+         Button b = new()
+         {
+            Tag = item,
+            Text = item.Name
+         };
+         buttonList.Add(b);
+         while (item.Parent != null && item.Parent.Parent != null)
+         {
+            item = (Node)item.Parent;
+            b = new()
+            {
+               Tag = item,
+               Text = item.Name
+            };
+            buttonList.Add(b);
+         }
+         for (int i = buttonList.Count - 1; i >= 0; i--)
+         {
+            pathButtonLayout.Add(buttonList[i]);
+            if (i > 0)
+            {
+               pathButtonLayout.Add(new Label() { Text = "/" });
+            }
+            buttonList[i].Click += NodePathNavClick;
+         }
+         pathButtonLayout.AddSpace();
+         pathButtonLayout.EndHorizontal();
+         return pathButtonLayout;
       }
+
+      private void NodePathNavClick(object? sender, EventArgs e)
+      {
+         if (sender is not null and Button navButton && navButton.Tag is not null and Node ancester)
+         {
+            ExpandBranch(ancester);
+            GetSearchBox().Text = string.Empty;
+            GetTreeGridView().SelectedItem = ancester;
+         }
+      }
+      private void ExpandBranch(Node node)
+      {
+         if (node.GetParent() is not null and Node p)
+         {
+            ExpandBranch(p);
+         }
+         node.Expanded = true;
+      }
+
+      //private static DynamicLayout CreateNodePathLayout(Node item)
+      //{
+      //   DynamicLayout layout = new DynamicLayout();
+      //   layout.Add(GetNodePathLabel(item));
+      //   return layout;
+      //}
       private GridView CreateDefaultFieldsGridView(Node item)
       {
          OrderedDictionary vals = item.Properties;
@@ -307,10 +438,9 @@ namespace LaSSI
             DataStore = bar,
             AllowMultipleSelection = false,
             GridLines = GridLines.Both,
-            ID = "DefaultGridView"
-
+            ID = "DefaultGridView",
+            ContextMenu = new ContextMenu(EditGridViewRow(), AddGridViewRow(), DeleteGridViewRow())
          };
-         defaultGridView.ContextMenu = new ContextMenu(EditGridViewRow(), AddGridViewRow(), DeleteGridViewRow());
          defaultGridView.Columns.Add(new GridColumn
          {
             HeaderText = "Key",
@@ -643,36 +773,26 @@ namespace LaSSI
       }
       private Node? GetHud()
       {
-         Node root = GetRoot();
-         foreach (Node item in root.Children)
+         if (GetRoot() is not null and Node root)
          {
-            if (item.Name == "HUD")
+            foreach (Node item in root.Children)
             {
-               return item;
+               if (item.Name == "HUD")
+               {
+                  return item;
+               }
             }
          }
          return null;
       }
       private Node? GetMissionsNode()
       {
-         Node root = GetRoot();
-         Node? MissionsSupernode = null;
-         foreach (Node item in root.Children)
+         if (GetRoot() is not null and Node root && root.FindChild("Missions", false, true) is not null and Node MissionsSupernode)
          {
-            if (item.Name == "Missions")
-            {
-               MissionsSupernode = item;
-               break;
-            }
+            Node? MissionsNode = MissionsSupernode.FindChild("Missions");
+            return MissionsNode;
          }
-         if (MissionsSupernode is not null)
-         {
-            Node? MissionsNode = (Node)MissionsSupernode.Children[0];
-            if (MissionsNode.Name == "Missions")
-            {
-               return MissionsNode;
-            }
-         }
+         //}
          return null;
       }
       private List<Node> FindMissions(string[] tags)
@@ -727,7 +847,11 @@ namespace LaSSI
       }
       private Node? GetGalaxyNode()
       {
-         return GetChildNode(GetRoot(), "Galaxy");
+         if (GetRoot() is not null and Node root)
+         {
+            return GetChildNode(root, "Galaxy");
+         }
+         return null;
       }
       private List<Node> GetGalaxyObjects(bool all = false, Dictionary<string, string>? filters = null)
       {
@@ -848,15 +972,17 @@ namespace LaSSI
             {"Id", "" },
             { "Type", "" }
          };
-         Node root = GetRoot();
-         foreach (Node item in root.Children)
+         if (GetRoot() is not null and Node root)
          {
-            if (item.TryGetProperties(properyNamesAndValues)
-               && properyNamesAndValues["Id"] == LayerId
-               //&& values["Class"] == "Ship"
-               && (properyNamesAndValues["Type"] == disposition.ToString() || disposition == ShipDisposition.Any))
+            foreach (Node item in root.Children)
             {
-               return item;
+               if (item.TryGetProperties(properyNamesAndValues)
+                  && properyNamesAndValues["Id"] == LayerId
+                  //&& values["Class"] == "Ship"
+                  && (properyNamesAndValues["Type"] == disposition.ToString() || disposition == ShipDisposition.Any))
+               {
+                  return item;
+               }
             }
          }
          return null;
@@ -868,21 +994,27 @@ namespace LaSSI
             {"Id", "" },
             { "Type", "" }
          };
-         Node root = GetRoot();
-         foreach (Node item in root.Children)
+         if (GetRoot() is not null and Node root)
          {
-            if (item.TryGetProperties(properyNamesAndValues)
-               //&& values.ContainsKey("Class") && values["Class"] == "Ship"
-               && ShipDispositionMatches(disposition, StringDescToShipDisposition(properyNamesAndValues["Type"])))
+            foreach (Node item in root.Children)
             {
-               return item;
+               if (item.TryGetProperties(properyNamesAndValues)
+                  //&& values.ContainsKey("Class") && values["Class"] == "Ship"
+                  && ShipDispositionMatches(disposition, StringDescToShipDisposition(properyNamesAndValues["Type"])))
+               {
+                  return item;
+               }
             }
          }
          return null;
       }
       public bool DerelictsPresent()
       {
-         return DerelictsPresent(GetRoot());
+         if (GetRoot() is not null and Node root)
+         {
+            return DerelictsPresent(root);
+         }
+         return false;
       }
       private bool DerelictsPresent(Node item)
       {
@@ -1007,22 +1139,26 @@ namespace LaSSI
       }
       internal Node? FindCurrentSystemLayer(string layerName, string systemId = "")
       {
-         List<Node> currentSystemLayers = FindChildNodesWithProperties(GetRoot(), layerName, true);
-         if (!string.IsNullOrEmpty(systemId))
+         if (GetRoot() is not null and Node root)
          {
-            foreach (var currentSystemLayer in currentSystemLayers)
+            List<Node> currentSystemLayers = FindChildNodesWithProperties(root, layerName, true);
+            if (!string.IsNullOrEmpty(systemId))
             {
-               if (currentSystemLayer.TryGetProperty("SystemId", out string layerSystemId))
+               foreach (var currentSystemLayer in currentSystemLayers)
                {
-                  if (systemId == layerSystemId)
+                  if (currentSystemLayer.TryGetProperty("SystemId", out string layerSystemId))
                   {
-                     return currentSystemLayer;
+                     if (systemId == layerSystemId)
+                     {
+                        return currentSystemLayer;
+                     }
                   }
-               }
 
+               }
             }
+            return currentSystemLayers[0];
          }
-         return currentSystemLayers[0];
+         return null;
       }
       internal bool ResetComet()
       {
@@ -1055,8 +1191,12 @@ namespace LaSSI
       }
       internal bool DetectMeteors()
       {
-         weatherReports = FindChildNodesWithProperties(GetRoot(), "Weather", false, new List<string> { "Meteors" });
-         return weatherReports.Count > 0;
+         if (GetRoot() is not null and Node root)
+         {
+            weatherReports = FindChildNodesWithProperties(root, "Weather", false, new List<string> { "Meteors" });
+            return weatherReports.Count > 0;
+         }
+         return false;
       }
       internal bool TurnOffMeteors()
       {
@@ -1250,12 +1390,11 @@ namespace LaSSI
       }
       internal bool FindDeadCrew()
       {
-         if (friendlyShips is null)
+         if (friendlyShips is null && GetRoot() is not null and Node root)
          {
-            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+            friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
          }
-
-         foreach (var layer in friendlyShips)
+         foreach (var layer in friendlyShips!)
          {
             if (GetChildNode(layer, "Objects") is not null and Node objects)
             {
@@ -1263,22 +1402,23 @@ namespace LaSSI
             }
          }
          return deadCrew is not null && deadCrew.Count > 0;
+         //return false;
       }
       internal List<Node> GetFriendlyShips()
       {
-         if (friendlyShips is null)
+         if (friendlyShips is null && GetRoot() is not null and Node root)
          {
-            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+            friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
          }
-         return friendlyShips;
+         return friendlyShips!;
       }
       internal bool ClearDeadCrew()
       {
-         if (friendlyShips is null)
+         if (friendlyShips is null && GetRoot() is not null and Node root)
          {
-            friendlyShips = FindChildNodesWithProperty(GetRoot(), "Type", "FriendlyShip");
+            friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
          }
-         foreach (var layer in friendlyShips)
+         foreach (var layer in friendlyShips!)
          {
             if (GetChildNode(layer, "Objects") is not null and Node objects && deadCrew is not null)
             {
@@ -1340,10 +1480,13 @@ namespace LaSSI
          }
          return sysId;
       }
-      private Node GetRoot()
+      private Node? GetRoot()
       {
-         Node root = (Node)GetTreeGridView().DataStore[0];
-         return root;
+         if (mainForm is not null)
+         {
+            return mainForm.saveFile.Root;
+         }
+         return null;
       }
       public void Rebuild(Node root)
       {
@@ -1383,7 +1526,7 @@ namespace LaSSI
       public void RefreshTree()
       {
          TreeGridView treeView = GetTreeGridView();
-         treeView.DataStore = (TreeGridItemCollection)treeView.DataStore; // I hate this
+         treeView.DataStore = (TreeGridItemCollection)treeView.DataStore;
       }
       private void TreeView_CellFormatting(object? sender, GridCellFormatEventArgs e)
       {
@@ -1392,7 +1535,7 @@ namespace LaSSI
             if (mainForm is not null)
             {
                e.ForegroundColor = Colors.Black;
-               if ((yesno)mainForm.prefs.holidayFun.value == yesno.yes)
+               if (mainForm.prefs.holidayFun.value is not null and yesno holidayfun && holidayfun == yesno.yes)
                {
                   var today = DateTime.Today;
 
@@ -1603,7 +1746,7 @@ namespace LaSSI
             }
             if (alreadyInUse)
             {
-               MessageBox.Show("That key is already in use","Error", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
+               MessageBox.Show("That key is already in use", "Error", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
             }
             else
             {

@@ -423,7 +423,7 @@ namespace LaSSI
             {
                if (Prefs.FindPref(control.ID) is not null and Pref pref)
                {
-                  object value = null;
+                  object? value = null;
                   switch (pref.prefType)
                   {
                      case PrefType.alwaysneverprompt:
@@ -435,9 +435,9 @@ namespace LaSSI
                         }
                      case PrefType.checkbox:
                         {
-                           if (control is CheckBox c)
+                           if (control is not null and CheckBox c)
                            {
-                              value = (bool)c.Checked ? 1 : 0;
+                              value = (bool)c.Checked! ? 1 : 0;
                            }
                            break;
                         }

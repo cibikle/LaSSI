@@ -19,7 +19,7 @@ namespace LaSSI
 
       public bool Expandable => Children.Count > 0;
 
-      public ITreeGridItem Parent { get; set; }
+      public ITreeGridItem? Parent { get; set; }
 
       public Node this[int index] => GetChild(index);
 
@@ -28,9 +28,13 @@ namespace LaSSI
       {
          return Children[index] is Node node ? node : null;
       }
-      public Node GetParent()
+      public Node? GetParent()
       {
-         return (Node)Parent;
+         if (Parent is not null and Node p)
+         {
+            return p;
+         }
+         return null;
       }
       public Node()
       {
@@ -97,9 +101,9 @@ namespace LaSSI
       public Node GetRoot()
       {
          Node node = this;
-         while (node.Parent is not null)
+         while (node.GetParent() is not null and Node p)
          {
-            node = node.GetParent();
+            node = p;
          }
          return node;
       }
@@ -138,6 +142,25 @@ namespace LaSSI
          }
          return null;
       }
+      public TreeGridItemCollection FindChildren(string searchName, bool recurse = false)
+      {
+         TreeGridItemCollection nodes = new();
+         foreach (Node child in Children)
+         {
+            if ( /*child.Name.Equals(name) || (looseMatch && child.Name.StartsWith(name))*/ Regex.IsMatch(child.Name, searchName, RegexOptions.IgnoreCase))
+            {
+               nodes.Add(child);
+            }
+            else
+            {
+               if (recurse)
+               {
+                  nodes.AddRange(child.FindChildren(searchName, recurse));
+               }
+            }
+         }
+         return nodes;
+      }
       public Node? FindChild(string propertyName, string propertyValue) // todo: add recurse option
       {
          foreach (Node child in Children)
@@ -148,6 +171,44 @@ namespace LaSSI
             }
          }
          return null;
+      }
+      public TreeGridItemCollection FindChildren(string propertyName, string propertyValue = "", bool recurse = false)
+      {
+         TreeGridItemCollection nodes = new();
+         foreach (Node child in Children)
+         {
+            if (child.TryGetProperty(propertyName, out string propValue) && propValue.Equals(propertyValue, StringComparison.OrdinalIgnoreCase))
+            {
+               nodes.Add(child);
+            }
+            else
+            {
+               if (recurse)
+               {
+                  nodes.AddRange(child.FindChildren(propertyName, propertyValue, recurse));
+               }
+            }
+         }
+         return nodes;
+      }
+      public TreeGridItemCollection FindChildrenWithProperty(string propertyName, bool recurse = false)
+      {
+         TreeGridItemCollection nodes = new();
+         foreach (Node child in Children)
+         {
+            if (child.HasProperties(new string[] { propertyName }))
+            {
+               nodes.Add(child);
+            }
+            else
+            {
+               if (recurse)
+               {
+                  nodes.AddRange(child.FindChildrenWithProperty(propertyName, recurse));
+               }
+            }
+         }
+         return nodes;
       }
       public Node? FindChild(string name, string propertyName, string propertyValue, bool looseMatch = false) // todo: add recurse option
       {
@@ -161,11 +222,14 @@ namespace LaSSI
          }
          return null;
       }
+
       public bool TryGetProperty(string propertyName, out string propertyValue)
       {
-         if (Properties.Contains(propertyName))
+         if (MatchProperty(propertyName, out string matchingPropertyName))
+         //if (HasProperties(new string[] { propertyName }))
          {
-            propertyValue = $"{Properties[propertyName]}";
+            propertyValue = $"{Properties[matchingPropertyName]}";
+            //propertyValue = $"{Properties[propertyName]}";
             return true;
          }
          else
@@ -190,7 +254,7 @@ namespace LaSSI
          int matchCount = -1;
          foreach (var name in propertyNames)
          {
-            if (Properties.Contains((object)name))
+            if (PropertiesContains(name))
             {
                if (all)
                {
@@ -206,6 +270,40 @@ namespace LaSSI
 
          return matchCount == propertyNames.Length;
       }
+      internal bool MatchProperty(string propertyName, out string matchingPropertyName)
+      {
+         foreach (string propertyKey in Properties.Keys)
+         {
+            if (Regex.IsMatch(propertyKey, propertyName, RegexOptions.IgnoreCase))
+            {
+               matchingPropertyName = propertyKey;
+               return true;
+            }
+         }
+
+         matchingPropertyName = string.Empty;
+         return false;
+      }
+      internal bool NameMatches(string[] names)
+      {
+         foreach (string name in names)
+         {
+            if (Regex.IsMatch(Name, name, RegexOptions.IgnoreCase)) return true;
+         }
+         return false;
+      }
+      private bool PropertiesContains(string name)
+      {
+         foreach (string propertyKey in Properties.Keys)
+         {
+            if (Regex.IsMatch(propertyKey, name, RegexOptions.IgnoreCase))
+            {
+               return true;
+            }
+            //return propertyKey.Equals(name, StringComparison.OrdinalIgnoreCase);
+         }
+         return false;
+      }
       internal void ReplaceProperty(string oldPropertyName, string newPropertyName, string newValue)
       {
          Properties.Remove(oldPropertyName);
@@ -220,6 +318,7 @@ namespace LaSSI
          }
          return false;
       }
+
       internal bool IsHazard()
       {
          if (this.Parent != null && ((Node)Parent).Name == "Hazards" && this.Properties.Contains("Type")) return true;
@@ -227,23 +326,23 @@ namespace LaSSI
       }
       internal bool IsStarSystem()
       {
-         if (this.Parent != null && this.GetParent().Name == "Objects"
-            && this.Parent.Parent != null && this.GetParent().GetParent().Name == "Galaxy"
+         if (GetParent() is not null and Node p && p.Name == "Objects"
+            && p.GetParent() is not null and Node gp && gp.Name == "Galaxy"
             && this.Properties.Contains("Name")) return true;
          return false;
       }
       internal bool IsMission()
       {
-         if (this.Parent != null && this.GetParent().Name == "Missions"
-            && this.Parent.Parent != null && GetParent().GetParent().Name == "Missions"
+         if (GetParent() is not null and Node p && p.Name == "Missions"
+            && p.GetParent() is not null and Node gp && gp.Name == "Missions"
             && this.Properties.Contains("Type")) return true;
          return false;
       }
       internal bool IsMissionRequirement()
       {
-         if (this.Parent != null && this.GetParent().Name == "Requirements"
-            && this.Parent.Parent != null
-            && this.Parent.Parent.Parent != null && this.GetParent().GetParent().GetParent().Name == "Missions") return true;
+         if (GetParent() is not null and Node p && p.Name == "Requirements"
+            && p.GetParent() is not null and Node gp
+            && gp.GetParent() is not null and Node ggp && ggp.Name == "Missions") return true;
          return false;
       }
       internal bool IsResearch()
@@ -258,7 +357,7 @@ namespace LaSSI
       }
       internal bool IsFtlJourney()
       {
-         if (Parent != null && GetParent().Name == "Journeys") return true;
+         if (GetParent() is not null and Node p && p.Name == "Journeys") return true;
          return false;
       }
       /// <summary>
@@ -267,7 +366,7 @@ namespace LaSSI
       internal bool IsLayer(bool DetermineIfChild = false)
       {
          if (this.Name == "Layer") return true;
-         if (this.Parent != null && DetermineIfChild) return this.GetParent().IsLayer(DetermineIfChild);
+         if (GetParent() is not null and Node p && DetermineIfChild) return p.IsLayer(DetermineIfChild);
          return false;
       }
       internal bool IsSystemNode()
@@ -276,13 +375,12 @@ namespace LaSSI
       }
       internal bool IsLayerObject()
       {
-         return this.IsLayer(true) && this.Parent != null && GetParent().Name == "Objects";
+         return IsLayer(true) && GetParent() is not null and Node p && p.Name == "Objects";
       }
       internal bool IsPalette(bool DetermineIfChild = false)
       {
          if (this.Name == "Palette") return true;
-         if (this.Parent != null && DetermineIfChild) return GetParent().IsPalette(DetermineIfChild);
-         return false;
+         return GetParent() is not null and Node p && DetermineIfChild ? p.IsPalette(DetermineIfChild) : false;
       }
       internal bool IsPowerGrid()
       {
@@ -291,20 +389,19 @@ namespace LaSSI
       internal bool IsEditor(bool DetermineIfChild = false)
       {
          if (this.Name == "Editor") return true;
-         if (this.Parent != null && DetermineIfChild) return GetParent().IsEditor(DetermineIfChild);
-         return false;
+         return GetParent() is not null and Node p && DetermineIfChild ? p.IsEditor(DetermineIfChild) : false;
       }
       internal bool IsPhysicsState()
       {
-         return Parent != null && GetParent().Name == "Physics" && Name == "State";
+         return GetParent() is not null and Node p && p.Name == "Physics" && Name == "State";
       }
       internal bool IsSystemArchive()
       {
-         return Parent != null && GetParent().Name == "SystemArchives";
+         return GetParent() is not null and Node p && p.Name == "SystemArchives";
       }
       internal bool IsLogisticsRequest()
       {
-         return Parent != null && GetParent().Name == "Requests" && Parent.Parent != null && GetParent().GetParent().Name == "Logistics";
+         return GetParent() is not null and Node p && p.Name == "Requests" && p.GetParent() is not null and Node gp && gp.Name == "Logistics";
       }
       internal bool IsWeather()
       {
@@ -320,15 +417,15 @@ namespace LaSSI
       }
       internal bool IsHabitationZone()
       {
-         return Parent != null && GetParent().Name == "Zones" && Parent.Parent != null && GetParent().GetParent().Name == "Habitation";
+         return GetParent() is not null and Node p && p.Name == "Zones" && p.GetParent() is not null and Node gp && gp.Name == "Habitation";
       }
       internal bool IsWorkQueueJob()
       {
-         return Parent != null && GetParent().Name == "Jobs" && Parent.Parent != null && GetParent().GetParent().Name == "WorkQueue";
+         return GetParent() is not null and Node p && p.Name == "Jobs" && p.GetParent() is not null and Node gp && gp.Name == "WorkQueue";
       }
       internal bool IsLogisticsTransfer()
       {
-         return Parent != null && GetParent().Name == "Transfers" && Parent.Parent != null && GetParent().GetParent().Name == "Logistics";
+         return GetParent() is not null and Node p && p.Name == "Transfers" && p.GetParent() is not null and Node gp && gp.Name == "Logistics";
       }
       internal static string GetHazardName(string id) //todo: replace with enum
       {

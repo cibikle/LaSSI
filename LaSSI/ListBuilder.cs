@@ -62,22 +62,24 @@ namespace LaSSI
          {
             Spacing = new Size(20, 0)
          };
-         Scrollable leftScrollable = new Scrollable
-         {
-            Tag = "LeftListBuilderScroller",
-            ID = "LeftListBuilderScroller",
-            Content = LeftGridView,
-         };
-         Scrollable rightScrollable = new Scrollable
-         {
-            Tag = "RightListBuilderScroller",
-            ID = "RightListBuilderScroller",
-            Content = RightGridView,
-         };
+         //Scrollable leftScrollable = new Scrollable
+         //{
+         //   Tag = "LeftListBuilderScroller",
+         //   ID = "LeftListBuilderScroller",
+         //   Content = LeftGridView,
+         //};
+         //Scrollable rightScrollable = new Scrollable
+         //{
+         //   Tag = "RightListBuilderScroller",
+         //   ID = "RightListBuilderScroller",
+         //   Content = RightGridView,
+         //};
          dynamicLayout.BeginHorizontal();
-         dynamicLayout.Add(leftScrollable);
+         //dynamicLayout.Add(leftScrollable);
+         dynamicLayout.Add(LeftGridView);
          dynamicLayout.Add(CreateButtonsLayout());
-         dynamicLayout.Add(rightScrollable);
+         //dynamicLayout.Add(rightScrollable);
+         dynamicLayout.Add(RightGridView);
          dynamicLayout.AddSpace();
          dynamicLayout.EndHorizontal();
          return dynamicLayout;
