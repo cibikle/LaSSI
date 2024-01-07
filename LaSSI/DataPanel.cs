@@ -1534,7 +1534,6 @@ namespace LaSSI
          {
             if (mainForm is not null)
             {
-               e.ForegroundColor = Colors.Black;
                if (mainForm.prefs.holidayFun.value is not null and yesno holidayfun && holidayfun == yesno.yes)
                {
                   var today = DateTime.Today;
@@ -1553,7 +1552,7 @@ namespace LaSSI
                   }
                   else if (today >= NewYearDay && today < NewYearDay.AddDays(3))
                   {
-                     e.ForegroundColor = Colors.SaddleBrown;
+                     e.ForegroundColor = Colors.HotPink;
                   }
                }
             }
