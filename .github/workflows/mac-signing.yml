@@ -64,17 +64,11 @@ jobs:
       run: |
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
 
-    - name: Upload build artifact - Win
-      uses: actions/upload-artifact@v3
-      with:
-        name: "LaSSI.win64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output\publish
-
-#    - name: Fix Mac file permission
-#      run: |
-#        chmod +x ${{ env.Wap_Project_Directory }}/output/osx-x64/LaSSI.app/Contents/MacOS/LaSSI
-#        ls -al ${{ env.Wap_Project_Directory }}/output/osx-x64/LaSSI.app/Contents/MacOS/LaSSI
-#      shell: bash
+    - name: Fix Mac file permission
+      run: |
+        chmod +x ${{ env.Wap_Project_Directory }}/output/osx-x64/LaSSI.app/Contents/MacOS/LaSSI
+        ls -al ${{ env.Wap_Project_Directory }}/output/osx-x64/LaSSI.app/Contents/MacOS/LaSSI
+      shell: bash
 
     # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
     - name: Upload build artifact - Mac
