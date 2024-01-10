@@ -51,8 +51,12 @@ jobs:
 
     - name: Publish the file
       shell: pwsh
+      working-directory: LaSSI
       run: |
-        ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
+        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
+        New-Item "output" -ItemType Directory;
+        $builtFilePathMac = "bin/Mac64/Release/net6.0/osx-x64/"
+        Move-Item -Path $builtFilePathMac -Destination "output";
 
     - name: Fix Mac file permission
       run: |
