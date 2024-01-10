@@ -15,6 +15,11 @@
 		<FileVersion>0.9.7</FileVersion>
 		<ApplicationIcon>FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
 	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
+		<EnableCodeSigning>True</EnableCodeSigning>
+		<EnableNotarization>True</EnableNotarization>
+		<EnableDmgBuild>True</EnableDmgBuild>
+	</PropertyGroup>
 	<ItemGroup>
 		<Content Include="FileMagnifyingGlassIcon24x24.ico" />
 	</ItemGroup>
