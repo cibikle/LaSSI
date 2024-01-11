@@ -17,7 +17,7 @@
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
 		<EnableCodeSigning>True</EnableCodeSigning>
-		<EnableNotarization>False</EnableNotarization>
+		<EnableNotarization>True</EnableNotarization>
 		<EnableDmgBuild>True</EnableDmgBuild>
 	</PropertyGroup>
 	<ItemGroup>
