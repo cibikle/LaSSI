@@ -1,0 +1,69 @@
+name: Build And Sign macOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Minor version number'
+        required: true
+#  push:
+#    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    strategy:
+      matrix:
+        configuration: [Release]
+    runs-on: macos-latest  # For a list of available runner types, refer to https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+
+    env:
+      Solution_Name: LaSSI.sln                         # Replace with your solution name, i.e. MyWpfApp.sln.
+      Wap_Project_Directory: LaSSI    # Replace with the Wap project directory relative to the solution, i.e. MyWpfApp.Package.
+      Wap_Project_Path: LaSSI/LaSSI.cspoj                   # Replace with the path to your Wap project, i.e. MyWpf.App.Package\MyWpfApp.Package.wapproj.
+      Publish_Script: LaSSI/publish.ps1
+
+    steps:
+    - name: Import Code-Signing Certificates
+      uses: Apple-Actions/import-codesign-certs@v1
+      with:
+        p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+        p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT_BASE64 }}
+
+    - name: Set Notarization Password
+      shell: bash
+      run: |
+        xcrun altool --store-password-in-keychain-item "AC_PASSWORD" -u "${{ secrets.APPLE_DEVELOPER_USERNAME }}" -p "${{ secrets.APPLE_DEVELOPER_NOTARIZATION_PASSWORD }}"
+
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    # Install the .NET Core workload
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Publish the file
+      shell: pwsh
+      working-directory: LaSSI
+      run: |
+        New-Item "output" -ItemType Directory;
+        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/'
+
+    - name: Fix Mac file permission
+      run: |
+        chmod -R +x ${{ env.Wap_Project_Directory }}/output/LaSSI.app
+        ls -al ${{ env.Wap_Project_Directory }}/output/LaSSI.app
+      shell: bash
+
+    - name: Upload build artifact - Mac
+      uses: actions/upload-artifact@v3
+      with:
+        name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
+        path: ${{ env.Wap_Project_Directory }}/output/LaSSI.dmg
