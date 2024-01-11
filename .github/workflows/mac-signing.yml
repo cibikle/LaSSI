@@ -54,7 +54,7 @@ jobs:
       working-directory: LaSSI
       run: |
         New-Item "output" -ItemType Directory;
-        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/' --verbosity diagnostic
+        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/'
 
     - name: Fix Mac file permission
       run: |
