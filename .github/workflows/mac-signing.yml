@@ -53,10 +53,8 @@ jobs:
       shell: pwsh
       working-directory: LaSSI
       run: |
-        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true
         New-Item "output" -ItemType Directory;
-        $builtFilePathMac = "bin/Mac64/Release/net6.0/osx-x64/"
-        Move-Item -Path $builtFilePathMac -Destination "output";
+        dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output'
 
     - name: Fix Mac file permission
       run: |
