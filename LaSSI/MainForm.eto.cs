@@ -83,15 +83,15 @@ namespace LaSSI
       {
          if (CustomCommands != null)
          {
-            CustomCommands.ReadyForQuit();
+            e.Cancel = !CustomCommands.ReadyForQuit();
          }
       }
 
       internal void Startup()
       {
-         if (CustomCommands is not null)
+         if (CustomCommands is not null && prefs.FindPref("Startup behavior") is not null and Pref startupBehavior)
          {
-            switch (prefs.startupBehavior.value)
+            switch (startupBehavior.value)
             {
                /*case StartupBehavior.ShowFileChooser:
                   {
@@ -101,7 +101,7 @@ namespace LaSSI
                case StartupBehavior.LoadFile:
                case StartupBehavior.LoadLastFile:
                   {
-                     if (prefs.startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
+                     if (prefs.FindPref("Startup file") is not null and Pref startupFile && startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
                      {
                         CustomCommands.LoadFile(Path.Combine(savesFolder.OriginalString, filename));
                      }

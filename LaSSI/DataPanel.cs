@@ -145,9 +145,11 @@ namespace LaSSI
             ShowHeader = false,
             AllowEmptySelection = true,
             //Width = width
-            //AllowMultipleSelection = true
+            AllowMultipleSelection = true,
+            ContextMenu = new ContextMenu(DeleteNode())
          };
          treeView.SelectedItemChanged += TreeView_SelectedItemChanged;
+         treeView.SelectedItemsChanged += TreeView_SelectedItemsChanged;
          treeView.CellFormatting += TreeView_CellFormatting;
 
          lefthandLayout.Rows.Add(treeView);
@@ -484,6 +486,29 @@ namespace LaSSI
          deleteRow.Executed += DeleteRow_Executed;
          return deleteRow;
       }
+      private Command DeleteNode()
+      {
+         var deleteNode = new Command { MenuText = "Delete node" };
+         deleteNode.Executed += DeleteNode_Executed;
+         return deleteNode;
+      }
+
+      private void DeleteNode_Executed(object? sender, EventArgs e)
+      {
+         List<Node> nodesToDelete = GetTreeGridView().SelectedItems.Cast<Node>().ToList();
+         ClearDetails();
+         foreach (Node node in nodesToDelete)
+         {
+            if (node.GetParent() is not null and Node parent)
+            {
+               parent.RemoveChild(node);
+               ClearItemFromCache(node);
+            }
+         }
+         AddUnsavedToDataState();
+         RebuildTreeView(Root!);
+      }
+
       private GridView GetDefaultGridView()
       {
          return (GridView)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("DefaultGridView");
@@ -663,7 +688,7 @@ namespace LaSSI
       }
       private void ClearItemFromCache(Node item)
       {
-         if (DetailPanelsCache.ContainsKey(item))
+         if (item is not null && DetailPanelsCache.ContainsKey(item))
          {
             DetailPanelsCache.Remove(item);
          }
@@ -1534,7 +1559,7 @@ namespace LaSSI
          {
             if (mainForm is not null)
             {
-               if (mainForm.prefs.holidayFun.value is not null and yesno holidayfun && holidayfun == yesno.yes)
+               if (mainForm.prefs.FindPref("Holiday fun") is not null and Pref pref && pref.value is not null and yesno holidayfun && holidayfun == yesno.yes)
                {
                   var today = DateTime.Today;
 
@@ -1556,7 +1581,6 @@ namespace LaSSI
                   }
                }
             }
-
          }
       }
 
@@ -1804,16 +1828,28 @@ namespace LaSSI
       {
          if (sender is not null and TreeGridView view)
          {
-            Node item = (Node)view.SelectedItem;
-            //item.SetValue(2, Colors.Magenta);
-            if (item is not null)
-            {
-               UpdateDetailsPanel(item);
-            }
+            UpdateDetailsPanel((Node)view.SelectedItem);
+
+            /* Node item = (Node)view.SelectedItem;
+             //item.SetValue(2, Colors.Magenta);
+             if (item is not null)
+             {
+
+             }*/
             //else
             //{
             //   ClearDetailsPanel();
             //}
+         }
+      }
+      private void TreeView_SelectedItemsChanged(object? sender, EventArgs e)
+      {
+         if (sender is not null and TreeGridView view)
+         {
+            if (view.SelectedItems.Count() > 1)
+            {
+               ClearDetails();
+            }
          }
       }
       //private void X_CellFormatting(object? sender, GridCellFormatEventArgs e)

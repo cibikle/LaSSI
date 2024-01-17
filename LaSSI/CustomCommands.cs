@@ -279,28 +279,37 @@ namespace LaSSI
       {
          // todo: add check to see if prefs need to be written to disk
          // todo: also maybe figure out how to prevent all this from running on start-up if the behavior is set to load file/open file
-         switch ((StartupBehavior)MainForm.prefs.startupBehavior.value!)
-         {
-            case StartupBehavior.LoadLastFile:
-               {
-                  if (!string.IsNullOrEmpty(MainForm.saveFilePath))
+         if (MainForm.prefs.FindPref("Startup behavior") is not null and Pref startupBehavior){
+            switch ((StartupBehavior)startupBehavior.value!)
+            {
+               case StartupBehavior.LoadLastFile:
                   {
-                     MainForm.prefs.startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
+                     if (!string.IsNullOrEmpty(MainForm.saveFilePath))
+                     {
+                        if(MainForm.prefs.FindPref("Startup file") is not null and Pref startupFile)
+                        {
+                           startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
+                        }
+                     }
+                     break;
                   }
-                  break;
-               }
-            case StartupBehavior.Nothing:
-               //case StartupBehavior.ShowFileChooser:
-               {
-                  MainForm.prefs.startupFile.SetValue(string.Empty);
-                  break;
-               }
-            default:
-               {
-                  break;
-               }
+               case StartupBehavior.Nothing:
+                  //case StartupBehavior.ShowFileChooser:
+                  {
+                     if (MainForm.prefs.FindPref("Startup file") is not null and Pref startupFile)
+                     {
+                        startupFile.SetValue(string.Empty);
+                     }
+                     break;
+                  }
+               default:
+                  {
+                     break;
+                  }
+            }
+            MainForm.prefs.SavePrefs();
          }
-         MainForm.prefs.SavePrefs();
+
          bool readyForQuit;
          if (MainForm.DataPanel.DataStateMatches(DataPanel.DataState.Unchanged))
          {
@@ -334,8 +343,8 @@ namespace LaSSI
       }
       internal bool GetReadyForQuit()
       {
-         DialogResult result = GetPreferredAction((AlwaysNeverPrompt)MainForm.prefs.saveBeforeQuitting.value!, "Unsaved", "Save", "closing");
-
+         DialogResult result = MainForm.prefs.FindPref("Save before quitting") is not null and Pref saveBeforeQuitting
+                     ? GetPreferredAction((AlwaysNeverPrompt)saveBeforeQuitting.value!, "Unsaved", "Save", "closing") : DialogResult.Yes;
          switch (result)
          {
             case DialogResult.Yes:
@@ -355,7 +364,8 @@ namespace LaSSI
       }
       internal bool GetReadyForSave()
       {
-         DialogResult result = GetPreferredAction((AlwaysNeverPrompt)MainForm.prefs.applyBeforeSaving.value!, "Unapplied", "Apply", "saving");
+         DialogResult result = MainForm.prefs.FindPref("Apply before saving") is not null and Pref applyBeforeSaving 
+            ? GetPreferredAction((AlwaysNeverPrompt)applyBeforeSaving.value!, "Unapplied", "Apply", "saving") : DialogResult.Yes;
 
          switch (result)
          {
