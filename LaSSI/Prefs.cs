@@ -129,6 +129,10 @@ namespace LaSSI
 
          return appSupport;
       }
+      internal static string GetBackupsDirectory()
+      {
+         return Path.Combine(GetAppSupportDirectory(), "backups");
+      }
       public bool LoadPrefs()
       {
          string prefsFile = GetPrefsFile();

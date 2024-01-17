@@ -279,14 +279,15 @@ namespace LaSSI
       {
          // todo: add check to see if prefs need to be written to disk
          // todo: also maybe figure out how to prevent all this from running on start-up if the behavior is set to load file/open file
-         if (MainForm.prefs.FindPref("Startup behavior") is not null and Pref startupBehavior){
+         if (MainForm.prefs.FindPref("Startup behavior") is not null and Pref startupBehavior)
+         {
             switch ((StartupBehavior)startupBehavior.value!)
             {
                case StartupBehavior.LoadLastFile:
                   {
                      if (!string.IsNullOrEmpty(MainForm.saveFilePath))
                      {
-                        if(MainForm.prefs.FindPref("Startup file") is not null and Pref startupFile)
+                        if (MainForm.prefs.FindPref("Startup file") is not null and Pref startupFile)
                         {
                            startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
                         }
@@ -364,7 +365,7 @@ namespace LaSSI
       }
       internal bool GetReadyForSave()
       {
-         DialogResult result = MainForm.prefs.FindPref("Apply before saving") is not null and Pref applyBeforeSaving 
+         DialogResult result = MainForm.prefs.FindPref("Apply before saving") is not null and Pref applyBeforeSaving
             ? GetPreferredAction((AlwaysNeverPrompt)applyBeforeSaving.value!, "Unapplied", "Apply", "saving") : DialogResult.Yes;
 
          switch (result)
@@ -436,15 +437,15 @@ namespace LaSSI
       internal static string StartBackup(string filename)
       {
          string date = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-         string appSupportDirectory = Path.Combine(Prefs.GetAppSupportDirectory(), $"backup_{date}");
-         Directory.CreateDirectory(appSupportDirectory);
-         string fileDestination = Path.Combine(appSupportDirectory, $"orig_{Path.GetFileName(filename)}");
+         string newBackupDirectory = Path.Combine(Prefs.GetBackupsDirectory(), $"backup_{date}");
+         Directory.CreateDirectory(newBackupDirectory);
+         string fileDestination = Path.Combine(newBackupDirectory, $"orig_{Path.GetFileName(filename)}");
          if (!File.Exists(fileDestination))
          {
             File.Copy(filename, fileDestination);
          }
 
-         return appSupportDirectory;
+         return newBackupDirectory;
       }
       internal static void AddToBackup(string backupDirectory, string filepath)
       {
@@ -460,9 +461,23 @@ namespace LaSSI
       }
       internal static void CleanupBackup(string backupDirectory)
       {
-         if (Directory.Exists(backupDirectory) && Directory.GetFiles(backupDirectory).Length < 2)
+         if (Directory.Exists(backupDirectory))
          {
-            Directory.Delete(backupDirectory, true);
+            if (Directory.GetFiles(backupDirectory).Length < 2)
+            {
+               Directory.Delete(backupDirectory, true);
+            }
+            if (Directory.GetParent(backupDirectory) is not null and DirectoryInfo backupsDirectory
+               && Directory.GetParent(backupsDirectory.FullName) is not null and DirectoryInfo backupsParentDirectory
+               && backupsParentDirectory.GetDirectories("backup_*") is not null and DirectoryInfo[] oldBackupDirectories)
+            {
+               foreach (var oldbackup in oldBackupDirectories)
+               {
+                  string oldpath = oldbackup.FullName;
+                  string newpath = Path.Combine(backupsDirectory.FullName, oldbackup.Name);
+                  Directory.Move(oldpath, newpath);
+               }
+            }
          }
       }
       #endregion utility
@@ -552,12 +567,12 @@ namespace LaSSI
       }
       private void BrowseBackupsCommand_Executed(object? sender, EventArgs e)
       {
-         string appSupportDirectory = Prefs.GetAppSupportDirectory();
-         if (Directory.Exists(appSupportDirectory))
+         string backupsDirectory = Prefs.GetBackupsDirectory();
+         if (Directory.Exists(backupsDirectory))
          {
             Process p = new Process();
             p.StartInfo.UseShellExecute = true;
-            p.StartInfo.FileName = appSupportDirectory;
+            p.StartInfo.FileName = backupsDirectory;
             p.Start();
          }
       }
