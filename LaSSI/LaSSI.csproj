@@ -13,7 +13,7 @@
 		<Company />
 		<Authors>CIBikle</Authors>
 		<FileVersion>0.9.7</FileVersion>
-		<ApplicationIcon>FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
+		<ApplicationIcon>FileMagnifyingGlassIcon256x256.ico</ApplicationIcon>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
 		<EnableCodeSigning>True</EnableCodeSigning>
@@ -21,7 +21,7 @@
 		<EnableDmgBuild>True</EnableDmgBuild>
 	</PropertyGroup>
 	<ItemGroup>
-		<Content Include="FileMagnifyingGlassIcon24x24.ico" />
+		<Content Include="FileMagnifyingGlassIcon256x256.ico" />
 	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />

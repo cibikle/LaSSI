@@ -1429,6 +1429,48 @@ namespace LaSSI
          return deadCrew is not null && deadCrew.Count > 0;
          //return false;
       }
+      internal bool FindWaitingShuttles(bool showReport = false)
+      {
+         List<string> shipsWaitingForShuttleToLeave = new();
+         Dictionary<string,List<string>> owedTrade = new();
+         if (friendlyShips is null && GetRoot() is not null and Node root)
+         {
+            friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
+         }
+         foreach (var layer in friendlyShips!)
+         {
+            if (GetChildNode(layer, "Deliveries") is not null and Node deliveries)
+            {
+               //deadCrew = FindChildNodesWithProperties(objects, "\"[i ", true, new List<string> { "Type", "State", "CauseOfDeath" }, true);
+               if (deliveries.HasProperties(new string[]{ "Shuttle"})){
+                  shipsWaitingForShuttleToLeave.Add(layer.Name);
+                  if(deliveries.FindChild("Trade") is not null and Node trade)
+                  {
+                     foreach(DictionaryEntry item in trade.Properties)
+                     {
+                        string itemString = $"{item.Key}: {item.Value}";
+                        if (owedTrade.ContainsKey(layer.Name))
+                        {
+                           owedTrade[layer.Name].Add(itemString);
+                        }
+                        else
+                        {
+                           owedTrade.Add(layer.Name,new List<string> { itemString });
+                        }
+                     }
+                  }
+               }
+            }
+         }
+         if(showReport)
+         {
+            /*CheckBoxListDialog foo = new("test",owedTrade.Keys.ToList());
+            foo.ShowModal();*/
+            LassiReport lassiReport = new LassiReport("Waiting on shuttles", owedTrade);
+            lassiReport.Show();
+         }
+         return shipsWaitingForShuttleToLeave.Count > 0;
+      }
       internal List<Node> GetFriendlyShips()
       {
          if (friendlyShips is null && GetRoot() is not null and Node root)
@@ -1521,6 +1563,7 @@ namespace LaSSI
          RebuildTreeView(Root);
          crossSectorMissions = null;
          freespaceObjectsWithComet = null;
+         friendlyShips = null;
       }
       private void ClearDetails()
       {

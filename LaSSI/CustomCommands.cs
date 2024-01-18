@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Markup;
 
 namespace LaSSI
 {
@@ -32,10 +33,22 @@ namespace LaSSI
          ToolsList.Add(CreateCrossSectorMissionFixCommand(CrossSectorMissionFix_Executed));
          ToolsList.Add(CreateCleanupDeadCrew_Command(CleanupDeadCrew_Executed));
          ToolsList.Add(CreateRemoveHab_Command(RemoveHab_Executed));
+         ToolsList.Add(CreateShuttleWaitingCommand(ShuttleWaiting_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
+      internal static Command CreateShuttleWaitingCommand(EventHandler<EventArgs> eventHandler)
+      {
+         var shuttleWaiting = new Command
+         {
+            MenuText = "What is the shuttle waiting for?",
+            ID = "ShuttleWaitingTool"
+         };
+         shuttleWaiting.Executed += eventHandler;
+         shuttleWaiting.Enabled = false;
+         return shuttleWaiting;
+      }
       internal static Command CreateCleanDerelictsCommand(EventHandler<EventArgs> CleanDerelicts_Executed)
       {
          var cleanDerelicts = new Command
@@ -269,6 +282,11 @@ namespace LaSSI
             case "RemoveHabTool":
                {
                   enablability = true; // todo: probably expand this
+                  break;
+               }
+            case "ShuttleWaitingTool":
+               {
+                  enablability = data.FindWaitingShuttles();
                   break;
                }
          }
@@ -578,6 +596,10 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void ShuttleWaiting_Executed(object? sender, EventArgs e)
+      {
+         MainForm.DataPanel.FindWaitingShuttles(true);
+      }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
          if (sender is Command c and not null && MainForm.DataPanel.AssertionFailureConditionExists(true))
