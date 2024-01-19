@@ -1,14 +1,20 @@
-﻿using System;
+﻿using Eto.Forms;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
-using Eto.Forms;
 
 namespace LaSSI
 {
    public class Node : ITreeGridItem<Node>
    {
-      public string Name { get; set; } = string.Empty;
+      private string name;
+      public string Name
+      {
+         get { return name; }
+         set { name = value; if (string.IsNullOrEmpty(baseName)) { baseName = name; } }
+      }
+      public string baseName { get; set; } = string.Empty;
       public string Text { get; set; } = string.Empty;
       public int Id { get; set; }
       public TreeGridItemCollection Children { get; set; } = new();
@@ -80,6 +86,11 @@ namespace LaSSI
          Parent = parent;
          Properties = new OrderedDictionary();
       }
+      public void RebuildName()
+      {
+         Name = baseName;
+         AddAddlNameDetails();
+      }
       public void AddChild(Node node)
       {
          Children.Add(node);
@@ -136,7 +147,7 @@ namespace LaSSI
             {
                if (recurse)
                {
-                  return child.FindChild(name, looseMatch, recurse);
+                  return child.FindChild(name, looseMatch, recurse); // todo: this doesn;t work
                }
             }
          }
@@ -476,6 +487,12 @@ namespace LaSSI
             if (Properties.Contains("FromSystemId")) { details += $", pick-up: System {Properties["FromSystemId"]}"; }
             if (Properties.Contains("ToSystemId")) { details += $", drop-off: System {Properties["ToSystemId"]}"; }
             if (Properties.Contains("ToSectorId") && int.Parse((string)Properties["ToSectorId"]!) != 0) { details += $", destination: Sector {Properties["ToSectorId"]}"; }
+
+            if (missionType == "Rescue")
+            {
+               if (Properties.Contains("FromSystemId")) { details = details.Replace("pick-up", "contract available"); }
+               if (Properties.Contains("ToSystemId")) { details = details.Replace("drop-off", "ship location"); }
+            }
          }
          return details;
       }

@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Markup;
 
 namespace LaSSI
 {
@@ -34,10 +33,21 @@ namespace LaSSI
          ToolsList.Add(CreateCleanupDeadCrew_Command(CleanupDeadCrew_Executed));
          ToolsList.Add(CreateRemoveHab_Command(RemoveHab_Executed));
          ToolsList.Add(CreateShuttleWaitingCommand(ShuttleWaiting_Executed));
+         ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
+      internal static Command CreateMarkStrandedShipsDerelictCommand(EventHandler<EventArgs> handler)
+      {
+         Command markStrandedShipsDerelictCommand = new()
+         {
+            MenuText = "Mark rescued \"Stranded Ships\" as derelict",
+            ID = "MarkStrandedShipsDerelict",
+         };
+         markStrandedShipsDerelictCommand.Executed += handler;
+         return markStrandedShipsDerelictCommand;
+      }
       internal static Command CreateShuttleWaitingCommand(EventHandler<EventArgs> eventHandler)
       {
          var shuttleWaiting = new Command
@@ -287,6 +297,12 @@ namespace LaSSI
             case "ShuttleWaitingTool":
                {
                   enablability = data.FindWaitingShuttles();
+                  break;
+               }
+            case "MarkStrandedShipsDerelict":
+               {
+                  enablability = data.FindStrandedShips();
+
                   break;
                }
          }
@@ -596,6 +612,18 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void markStrandedShipsDerelict_Executed(object? sender, EventArgs e)
+      {
+         if (sender is Command c and not null && !MainForm.DataPanel.FindStrandedShips(true))
+         {
+            c.Enabled = false;
+            _ = MessageBox.Show("Any stranded ships with crews already rescued have been marked as derelict.", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
+         else
+         {
+            _ = MessageBox.Show("Failed to mark some stranded ships as derelict.", "Uh-oh!", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
+         }
+      }
       internal void ShuttleWaiting_Executed(object? sender, EventArgs e)
       {
          MainForm.DataPanel.FindWaitingShuttles(true);

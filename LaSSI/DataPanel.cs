@@ -1,12 +1,13 @@
-﻿using System;
-using Eto.Drawing;
-using System.Collections;
-using System.Collections.Specialized;
+﻿using Eto.Drawing;
 using Eto.Forms;
-using System.Diagnostics;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
@@ -343,7 +344,7 @@ namespace LaSSI
             {
                var s = item.Properties[(object)"Name"];
                var t = item.Properties[(object)"Type"];
-               if (s is not null && s.ToString() != "\"Stranded Ship\"" && t is not null && t.ToString() == "Derelict")
+               if (s is not null && /*s.ToString() != "\"Stranded Ship\"" &&*/ t is not null && t.ToString() == "Derelict")
                {
                   toRemove.Add(item);
                }
@@ -674,17 +675,20 @@ namespace LaSSI
 
       private void UpdateDetailsPanel(Node item, bool clearPreexisting = false)
       {
-         if (clearPreexisting)
+         if (item is not null)
          {
-            ClearItemFromCache(item);
+            if (clearPreexisting)
+            {
+               ClearItemFromCache(item);
+            }
+            DynamicLayout detailslayout = GetPanel2DetailsLayout();
+            if (!DetailPanelsCache.ContainsKey(item))
+            {
+               DetailPanelsCache.Add(item, CreateDetailsLayout(item));
+            }
+            detailslayout.Content = DetailPanelsCache[item];
+            UpdateApplyRevertButtons(DetailPanelsCache[item].Status);
          }
-         DynamicLayout detailslayout = GetPanel2DetailsLayout();
-         if (!DetailPanelsCache.ContainsKey(item))
-         {
-            DetailPanelsCache.Add(item, CreateDetailsLayout(item));
-         }
-         detailslayout.Content = DetailPanelsCache[item];
-         UpdateApplyRevertButtons(DetailPanelsCache[item].Status);
       }
       private void ClearItemFromCache(Node item)
       {
@@ -812,7 +816,7 @@ namespace LaSSI
       }
       private Node? GetMissionsNode()
       {
-         if (GetRoot() is not null and Node root && root.FindChild("Missions", false, true) is not null and Node MissionsSupernode)
+         if (GetRoot() is not null and Node root && root.FindChild("Missions") is not null and Node MissionsSupernode) // todo: this doesn't work!
          {
             Node? MissionsNode = MissionsSupernode.FindChild("Missions");
             return MissionsNode;
@@ -866,7 +870,7 @@ namespace LaSSI
       {
          foreach (string stringToCheckAgainst in stringsToCheckAgainst)
          {
-            if (stringToCheckAgainst.Equals(stringToCheck)) return true;
+            if (Regex.IsMatch(stringToCheck, stringToCheckAgainst, RegexOptions.IgnoreCase)) return true;
          }
          return false;
       }
@@ -1432,7 +1436,7 @@ namespace LaSSI
       internal bool FindWaitingShuttles(bool showReport = false)
       {
          List<string> shipsWaitingForShuttleToLeave = new();
-         Dictionary<string,List<string>> owedTrade = new();
+         Dictionary<string, List<string>> owedTrade = new();
          if (friendlyShips is null && GetRoot() is not null and Node root)
          {
             friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
@@ -1441,12 +1445,12 @@ namespace LaSSI
          {
             if (GetChildNode(layer, "Deliveries") is not null and Node deliveries)
             {
-               //deadCrew = FindChildNodesWithProperties(objects, "\"[i ", true, new List<string> { "Type", "State", "CauseOfDeath" }, true);
-               if (deliveries.HasProperties(new string[]{ "Shuttle"})){
+               if (deliveries.HasProperties(new string[] { "Shuttle" }))
+               {
                   shipsWaitingForShuttleToLeave.Add(layer.Name);
-                  if(deliveries.FindChild("Trade") is not null and Node trade)
+                  if (deliveries.FindChild("Trade") is not null and Node trade)
                   {
-                     foreach(DictionaryEntry item in trade.Properties)
+                     foreach (DictionaryEntry item in trade.Properties)
                      {
                         string itemString = $"{item.Key}: {item.Value}";
                         if (owedTrade.ContainsKey(layer.Name))
@@ -1455,17 +1459,15 @@ namespace LaSSI
                         }
                         else
                         {
-                           owedTrade.Add(layer.Name,new List<string> { itemString });
+                           owedTrade.Add(layer.Name, new List<string> { itemString });
                         }
                      }
                   }
                }
             }
          }
-         if(showReport)
+         if (showReport)
          {
-            /*CheckBoxListDialog foo = new("test",owedTrade.Keys.ToList());
-            foo.ShowModal();*/
             LassiReport lassiReport = new LassiReport("Waiting on shuttles", owedTrade);
             lassiReport.Show();
          }
@@ -1519,6 +1521,43 @@ namespace LaSSI
             return true;
          }
          return false;
+      }
+      internal bool FindStrandedShips(bool takeAction = false)
+      {
+         TreeGridItemCollection strandedShips = new();
+         int updatedShips = 0;
+         if (GetRoot() is not null and Node root)
+         {
+            strandedShips = root.FindChildren("Stranded Ship", true);
+            List<Node> rescueMissions = FindMissions(new string[] { "Rescue" });
+            foreach (var rescueMission in rescueMissions)
+            {
+               if (!rescueMission.TryGetProperty("Completed", out string val) && rescueMission.TryGetProperty("ShipId", out string shipId))
+               {
+                  strandedShips.Remove(FindShip(shipId));
+               }
+            }
+         }
+         if (takeAction)
+         {
+            bool actionTaken = false;
+            foreach (Node item in strandedShips)
+            {
+               if (item.TrySetProperty("Type", "Derelict"))
+               {
+                  updatedShips++;
+                  actionTaken = true;
+               }
+
+               item.RebuildName();
+            }
+            if (actionTaken)
+            {
+               AddUnsavedToDataState();
+               Rebuild(Root);
+            }
+         }
+         return strandedShips.Count - updatedShips > 0;
       }
       /// <summary>
       /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship
