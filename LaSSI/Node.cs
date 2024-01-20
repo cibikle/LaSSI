@@ -107,7 +107,7 @@ namespace LaSSI
          }
          return node;
       }
-      public bool ContainsChild(Node node, bool recurse)
+      public bool IsParentOf(Node node, bool recurse)
       {
          if (!this.HasChildren()) return false;
          if (!this.Children.Contains(node) && !recurse) return false;
@@ -115,14 +115,36 @@ namespace LaSSI
          bool contains = false;
          foreach (Node child in Children)
          {
-            contains = child.ContainsChild(node, recurse);
+            contains = child.IsParentOf(node, recurse);
             if (contains) break;
          }
          return contains;
       }
+      public bool IsChildOf(Node node, bool recurse)
+      {
+         Node? parent = GetParent();
+         if (parent is null) return false;
+         if (parent != node && !recurse) return false;
+         if (parent == node) return true;
+         return parent.IsChildOf(node, recurse);
+      }
       public bool HasChildren()
       {
          return Children.Count > 0;
+      }
+      public Node? FindParent(string name = "", string propertyName = "", string propertyValue = "")
+      {
+         Node? parent = GetParent();
+         if (parent is null) return null;
+         if (Regex.IsMatch(parent.Name, name, RegexOptions.IgnoreCase)
+            || parent.TryGetProperty(propertyName, out string propVal) && Regex.IsMatch(propVal, propertyValue, RegexOptions.IgnoreCase))
+         {
+            return parent;
+         }
+         else
+         {
+            return parent.FindParent(name, propertyName, propertyValue);
+         }
       }
       public Node? FindChild(string name, bool looseMatch = false, bool recurse = false)
       {
@@ -601,7 +623,7 @@ namespace LaSSI
       internal string GetHabitationZoneDetails()
       {
          string entities = $"{Properties["Entities"]}";
-         int used = entities.Length - entities.Replace(",", "").Length + 1;
+         int used = entities.Length - entities.Replace(",", "").Length + 1; // returns 1 erroneously when 0 inhabitants present
          return $"ID {Properties["Id"]}, Capacity: {used}/{Properties["Capacity"]}";
       }
       internal string GetWorkQueueJobDetails()

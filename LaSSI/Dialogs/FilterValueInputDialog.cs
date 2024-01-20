@@ -4,25 +4,29 @@ using System;
 
 namespace LaSSI
 {
-   public class TextInputDialog : Dialog
+   public class FilterValueInputDialog : Dialog
    {
 
-      public TextInputDialog()
+      public FilterValueInputDialog()
       {
 
       }
-      public TextInputDialog(string title)
+      public FilterValueInputDialog(string title)
       {
          CommonSetup(title);
       }
-      public TextInputDialog(string title, string hint)
-      {
-         TextBox.PlaceholderText = hint;
-         CommonSetup(title);
-      }
+      //public FilterValueInputDialog(string title, string hint)
+      //{
+      //   TextBox.PlaceholderText = hint;
+      //   CommonSetup(title);
+      //}
       public string GetInput()
       {
          return TextBox.Text;
+      }
+      public void SetText(string text)
+      {
+         TextBox.Text = text;
       }
       public DialogResult GetDialogResult()
       {
@@ -80,6 +84,8 @@ namespace LaSSI
 
       public string Hint { get; set; } = string.Empty;
       private readonly TextBox TextBox = new();
+      private MainForm mainForm;
+      private DynamicLayout filterLayout = LassiTools.LassiToolFilterLayout.CreateFilterLayout(new LassiTools.LassiToolFilter(mainForm));
       private DialogResult Result = DialogResult.None;
       private Button? OK;
    }

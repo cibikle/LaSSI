@@ -13,7 +13,7 @@
 		<Company />
 		<Authors>CIBikle</Authors>
 		<FileVersion>0.9.7</FileVersion>
-		<ApplicationIcon>FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
+		<ApplicationIcon>icons\FileMagnifyingGlassIcon24x24.ico</ApplicationIcon>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
 		<EnableCodeSigning>True</EnableCodeSigning>
@@ -21,18 +21,41 @@
 		<EnableDmgBuild>True</EnableDmgBuild>
 	</PropertyGroup>
 	<ItemGroup>
-		<Content Include="FileMagnifyingGlassIcon24x24.ico" />
+		<Content Include="icons\FileMagnifyingGlassIcon24x24.ico" />
 	</ItemGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="InventoryMasterList.txt" />
+		<EmbeddedResource Include="icons\copy.png" />
+		<EmbeddedResource Include="icons\upload.png" />
+		<EmbeddedResource Include="icons\download.png" />
+		<EmbeddedResource Include="icons\plus.png" />
+		<EmbeddedResource Include="icons\delete.png" />
+		<EmbeddedResource Include="icons\import.png" />
+		<EmbeddedResource Include="icons\export.png" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Remove="MacIcon.icns" />
+		<None Remove="icons\" />
+		<None Remove="icons\FileMagnifyingGlassIcon24x24.ico" />
+		<None Remove="icons\MacIcon.icns" />
+		<None Remove="icons\copy.png" />
+		<None Remove="icons\upload.png" />
+		<None Remove="icons\download.png" />
+		<None Remove="icons\plus.png" />
+		<None Remove="icons\delete.png" />
+		<None Remove="icons\import.png" />
+		<None Remove="icons\export.png" />
+		<None Remove="Dialogs\" />
+		<None Remove="LassiTools\" />
 	</ItemGroup>
 	<ItemGroup>
-		<BundleResource Include="MacIcon.icns" />
+		<BundleResource Include="icons\MacIcon.icns" />
+	</ItemGroup>
+	<ItemGroup>
+		<Folder Include="icons\" />
+		<Folder Include="Dialogs\" />
+		<Folder Include="LassiTools\" />
 	</ItemGroup>
 </Project>

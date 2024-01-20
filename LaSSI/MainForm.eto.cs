@@ -29,8 +29,10 @@ namespace LaSSI
       internal CustomCommands? CustomCommands;
       internal SubMenuItem fileMenu;
       internal Prefs prefs;
+      internal Dictionary<string, LassiTool> ToolBox;
       void InitializeComponent()
       {
+         ToolBox = LoadToolBox();
          Closing += MainForm_Closing;
          Title = "LaSSI (the Last Starship Save Inspector)";
          MinimumSize = new Size(200, 200);
@@ -45,7 +47,9 @@ namespace LaSSI
          fileMenu = new() { Text = "&File" };
          fileMenu.Items.AddRange(CustomCommands.FileCommands);
          SubMenuItem toolsMenu = new() { Text = "&Tools" };
-         toolsMenu.Items.AddRange(CustomCommands.ToolsList);
+         toolsMenu.Items.Add(CustomCommands.ToolsList[0]);
+         toolsMenu.Items.AddSeparator();
+         toolsMenu.Items.AddRange(CustomCommands.ToolsList.Skip(1));
          Menu = new MenuBar
          {
             Items =
@@ -81,10 +85,7 @@ namespace LaSSI
 
       private void MainForm_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
       {
-         if (CustomCommands != null)
-         {
-            CustomCommands.ReadyForQuit();
-         }
+         CustomCommands?.ReadyForQuit();
       }
 
       internal void Startup()
@@ -142,6 +143,19 @@ namespace LaSSI
             }
          }
          return InventoryMasterList;
+      }
+      private Dictionary<string, LassiTool> LoadToolBox()
+      {
+         LassiTool placeholder1 = new("placeholder 1", this);
+         placeholder1.Filter.SelectionScope = LassiTools.FilterSelectionScope.Some;
+         placeholder1.Filter.conditionCollection.Add(new LassiTools.FilterConditionLine("Type", new("FriendlyShip"), LassiTools.FilterOperator.Equals));
+         Dictionary<string, LassiTool> toolbox = new()
+         {
+            { "placeholder 1", placeholder1 },
+            { "Placeholder 2", new LassiTool("Placeholder 2",this) },
+            { "Pl3", new LassiTool("Pl3",this) }
+         };
+         return toolbox;
       }
       private static Uri GetSavesUri()
       {

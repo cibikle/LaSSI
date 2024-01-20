@@ -1,41 +1,39 @@
 ﻿using Eto.Forms;
 using Eto.Drawing;
 using System;
-using System.Collections.Generic;
 
 namespace LaSSI
 {
-   public class CheckBoxListDialog : Dialog
+   public class TextInputDialog : Dialog
    {
 
-      public CheckBoxListDialog()
+      public TextInputDialog()
       {
 
       }
-      //public CheckBoxListDialog(string title)
-      //{
-      //   CommonSetup(title);
-      //}
-      public CheckBoxListDialog(string title, List<string> options)
+      public TextInputDialog(string title)
       {
-         //TextBox.PlaceholderText = hint;
-         CommonSetup(title, options);
+         CommonSetup(title);
       }
-      public IEnumerable<string> GetSelectedItems()
+      public TextInputDialog(string title, string hint)
       {
-         return list.SelectedKeys;
+         TextBox.PlaceholderText = hint;
+         CommonSetup(title);
+      }
+      public string GetInput()
+      {
+         return TextBox.Text;
+      }
+      public void SetText(string text)
+      {
+         TextBox.Text = text;
       }
       public DialogResult GetDialogResult()
       {
          return Result;
       }
-      private void CommonSetup(string title, List<string> options)
+      private void CommonSetup(string title)
       {
-         list.Orientation = Orientation.Vertical;
-         foreach (var opt in options)
-         {
-            list.Items.Add(opt);
-         }
          Title = title;
          DynamicLayout layout = new()
          {
@@ -43,27 +41,22 @@ namespace LaSSI
          };
          Content = layout;
          layout.BeginCentered(new Padding(5, 5));
-         layout.Add(list);
+         layout.Add(TextBox);
          layout.EndCentered();
          layout.BeginCentered(new Padding(5, 5));
          layout.AddCentered(ButtonsLayout());
          layout.EndCentered();
-         list.SelectedKeysChanged += List_SelectedKeysChanged;
+         TextBox.TextChanged += TextBox_TextChanged;
       }
 
-      private void List_SelectedKeysChanged(object? sender, EventArgs e)
+      private void TextBox_TextChanged(object? sender, EventArgs e)
       {
-         if (sender is not null and CheckBoxList list && OK is not null)
+         if (sender is not null and TextBox t && OK is not null)
          {
-            int count = 0;
-            var enumerator = list.SelectedKeys.GetEnumerator();
-            while (enumerator.MoveNext())
-            {
-               count++;
-            }
-            OK.Enabled = count > 0;
+            OK.Enabled = t.Text.Trim().Length > 0;
          }
       }
+
       private StackLayout ButtonsLayout()
       {
          Button ok = new(OK_clicked)
@@ -90,7 +83,7 @@ namespace LaSSI
       }
 
       public string Hint { get; set; } = string.Empty;
-      private readonly CheckBoxList list = new();
+      private readonly TextBox TextBox = new();
       private DialogResult Result = DialogResult.None;
       private Button? OK;
    }

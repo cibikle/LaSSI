@@ -24,6 +24,7 @@ namespace LaSSI
          FileCommands.Add(CreateBrowseSavesCommand(BrowseSavesCommand_Executed));
          FileCommands.Add(CreateBrowseBackupsCommand(BrowseBackupsCommand_Executed));
          QuitCommand = CreateQuitCommand(QuitCommand_Executed);
+         ToolsList.Add(CreateToolsManagerCommand(ToolsManager_Executed));
          ToolsList.Add(CreateCleanDerelictsCommand(CleanDerelicts_Executed));
          ToolsList.Add(CreateFixAssertionFailedCommand(FixAssertionFailed_Executed));
          ToolsList.Add(CreateResetCameraCommand(ResetCamera_Executed));
@@ -36,6 +37,18 @@ namespace LaSSI
       }
 
       #region tools
+      internal static Command CreateToolsManagerCommand(EventHandler<EventArgs> ToolsManager_Executed)
+      {
+         var ToolsManager = new Command
+         {
+            MenuText = "Tools manager",
+            Shortcut = Application.Instance.CommonModifier | Keys.T,
+            ID = "ToolsManager"
+         };
+         ToolsManager.Executed += ToolsManager_Executed;
+         ToolsManager.Enabled = true;
+         return ToolsManager;
+      }
       internal static Command CreateCleanDerelictsCommand(EventHandler<EventArgs> CleanDerelicts_Executed)
       {
          var cleanDerelicts = new Command
@@ -267,6 +280,11 @@ namespace LaSSI
                   break;
                }
             case "RemoveHabTool":
+               {
+                  enablability = true; // todo: probably expand this
+                  break;
+               }
+            case "ToolsManager":
                {
                   enablability = true; // todo: probably expand this
                   break;
@@ -553,6 +571,11 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      private void ToolsManager_Executed(object? sender, EventArgs e)
+      {
+         ToolManager toolManager = new(MainForm);
+         toolManager.Show();
+      }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {
          if (sender is Command c and not null && MainForm.DataPanel.AssertionFailureConditionExists(true))
