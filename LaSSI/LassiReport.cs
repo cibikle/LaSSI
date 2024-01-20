@@ -1,29 +1,33 @@
 ﻿using Eto.Drawing;
 using Eto.Forms;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LaSSI
 {
    internal class LassiReport : Form
    {
-      private Dictionary<string, List<string>>? data;
+      private Dictionary<object, List<object>>? data;
+      private bool canRearrangeData = false;
+      public bool CanRearrangeData { get { return canRearrangeData; } set { canRearrangeData = value; } }
       public LassiReport() { }
       public LassiReport(string title)
       {
          Title = title;
+         CommonSetup();
       }
-      public LassiReport(string title, Dictionary<string, List<string>> data) 
+      public LassiReport(string title, Dictionary<object, List<object>> data, bool CanRearrangeData = false)
       {
          Title = title;
          this.data = data;
-         Content = CreateReportLayout();
-         Size = new Size(400, 200);
-         Location = AdjustForFormSize(GetScreenCenter(), Size);
+         this.CanRearrangeData = CanRearrangeData;
+         CommonSetup();
       }
+      private void CommonSetup()
+      {
+         Content = CreateReportLayout();
+         Location = AdjustForFormSize(GetScreenCenter(), new Size(400, 200));
+      }
+
       private static Point GetScreenCenter()
       {
          var screenBounds = Screen.PrimaryScreen.Bounds;
@@ -43,26 +47,43 @@ namespace LaSSI
          DynamicLayout layout = new();
          TreeGridView treeGridView = new()
          {
-
+            AllowDrop = canRearrangeData,
 
          };
 
          TreeGridItemCollection treeGridItems = new TreeGridItemCollection();
-         foreach(var dataPoint in data)
+         foreach (var dataPoint in data)
          {
-            
             var children = new TreeGridItemCollection();
             foreach (var value in dataPoint.Value)
             {
+               string valueText = string.Empty;
+               if (value is string s1)
+               {
+                  valueText = s1;
+               }
+               else if (value is Node n)
+               {
+                  valueText = n.Name;
+               }
                children.Add(new TreeGridItem()
                {
-                  Tag = value
+                  Tag = valueText,
                });
+            }
+            string keyText = string.Empty;
+            if (dataPoint.Key is string s)
+            {
+               keyText = s;
+            }
+            else if (dataPoint.Key is Node n)
+            {
+               keyText = n.Name;
             }
             var item = new TreeGridItem(children)
             {
-               Tag = dataPoint.Key,
-               Expanded = true
+               Tag = keyText,
+               Expanded = true,
             };
             treeGridItems.Add(item);
          }

@@ -1,5 +1,5 @@
-﻿using Eto.Forms;
-using Eto.Drawing;
+﻿using Eto.Drawing;
+using Eto.Forms;
 using System;
 using System.Collections.Generic;
 
@@ -12,13 +12,8 @@ namespace LaSSI
       {
 
       }
-      //public CheckBoxListDialog(string title)
-      //{
-      //   CommonSetup(title);
-      //}
       public CheckBoxListDialog(string title, List<string> options)
       {
-         //TextBox.PlaceholderText = hint;
          CommonSetup(title, options);
       }
       public IEnumerable<string> GetSelectedItems()
@@ -42,6 +37,12 @@ namespace LaSSI
             Padding = new Padding(5, 5)
          };
          Content = layout;
+         if (list.Items.Count > 3)
+         {
+            layout.BeginHorizontal();
+            layout.Add(AllNoneButtonsLayout(), true);
+            layout.EndHorizontal();
+         }
          layout.BeginCentered(new Padding(5, 5));
          layout.Add(list);
          layout.EndCentered();
@@ -62,6 +63,14 @@ namespace LaSSI
                count++;
             }
             OK.Enabled = count > 0;
+            if (All is not null)
+            {
+               All.Enabled = count < list.Items.Count;
+            }
+            if (None is not null)
+            {
+               None.Enabled = count > 0;
+            }
          }
       }
       private StackLayout ButtonsLayout()
@@ -72,7 +81,7 @@ namespace LaSSI
             Enabled = false,
          };
          OK = ok;
-         this.DefaultButton = ok; // this seems bad but I'm not fixing it now
+         this.DefaultButton = ok;
          Button cancel = new() { Text = "Cancel" };
          cancel.Click += delegate
          {
@@ -82,6 +91,20 @@ namespace LaSSI
          this.AbortButton = cancel;
          return new StackLayout(ok, cancel) { Orientation = Orientation.Horizontal, Spacing = 5 };
       }
+      private StackLayout AllNoneButtonsLayout()
+      {
+         Button all = new()
+         {
+            Text = "All",
+            Enabled = true,
+         };
+         all.Click += (sender, e) => { list.SelectedValues = list.Items; };
+         All = all;
+         Button none = new() { Text = "None", Enabled = false };
+         none.Click += (sender, e) => { list.SelectedValues = null; };
+         None = none;
+         return new StackLayout(all, none) { Orientation = Orientation.Horizontal, Spacing = 5 };
+      }
 
       private void OK_clicked(object? sender, EventArgs e)
       {
@@ -89,10 +112,11 @@ namespace LaSSI
          Close();
       }
 
-      public string Hint { get; set; } = string.Empty;
       private readonly CheckBoxList list = new();
       private DialogResult Result = DialogResult.None;
       private Button? OK;
+      private Button? All;
+      private Button? None;
    }
 }
 

@@ -841,6 +841,22 @@ namespace LaSSI
 
          return missions;
       }
+      private List<Node> FindMissionsByAssignment(string assignedLayerId)
+      {
+         var missions = new List<Node>();
+         if (GetMissionsNode() is not null and Node MissionsNode)
+         {
+            foreach (Node mission in MissionsNode.Children)
+            {
+               if (mission.TryGetProperty("AssignedLayerId", out string layerId) && layerId.Equals(assignedLayerId))
+               {
+                  missions.Add(mission);
+               }
+            }
+         }
+
+         return missions;
+      }
       private List<Node> FindMissions(Dictionary<string, string> propertyKeysAndValues)
       {
          List<Node> missions = new();
@@ -1257,7 +1273,7 @@ namespace LaSSI
             Node? assignedShip = FindShip(LayerId);
             if (assignedShip is null
                || (assignedShip.TryGetProperty("Type", out string Disposition)
-               && ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
+               && !ShipDispositionMatches(ShipDisposition.Friendly, StringDescToShipDisposition(Disposition))))
             {
                if (justTakeCareOfIt)
                {
@@ -1436,7 +1452,7 @@ namespace LaSSI
       internal bool FindWaitingShuttles(bool showReport = false)
       {
          List<string> shipsWaitingForShuttleToLeave = new();
-         Dictionary<string, List<string>> owedTrade = new();
+         Dictionary<object, List<object>> owedTrade = new();
          if (friendlyShips is null && GetRoot() is not null and Node root)
          {
             friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
@@ -1459,7 +1475,7 @@ namespace LaSSI
                         }
                         else
                         {
-                           owedTrade.Add(layer.Name, new List<string> { itemString });
+                           owedTrade.Add(layer.Name, new List<object> { itemString });
                         }
                      }
                   }
@@ -1480,6 +1496,41 @@ namespace LaSSI
             friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
          }
          return friendlyShips!;
+      }
+      internal bool ReassignMissions(bool takeAction = false)
+      {
+         List<Node> assignedMissions = new();
+         List<Node> fleet = GetFriendlyShips();
+         foreach (Node ship in fleet)
+         {
+            if (ship.TryGetProperty("Id", out string shipId))
+            {
+               assignedMissions.AddRange(FindMissionsByAssignment(shipId));
+            }
+         }
+         if (takeAction)
+         {
+            CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select((Node n) => n.Name).ToList());
+            chooseMissionsToReassign.ShowModal(mainForm);
+            if (chooseMissionsToReassign.GetDialogResult() == DialogResult.Ok)
+            {
+               IEnumerable<string> missionsToReassign = chooseMissionsToReassign.GetSelectedItems();
+               RadioInputDialog radioInputDialog = new RadioInputDialog("Choose ship to assign missions", fleet.Cast<object>().ToList());
+               radioInputDialog.ShowModal(mainForm);
+               if (radioInputDialog.GetDialogResult() == DialogResult.Ok)
+               {
+                  fleet[radioInputDialog.GetSelectedIndex()].TryGetProperty("Id", out string newShipAssignment);
+                  foreach (string item in missionsToReassign)
+                  {
+                     assignedMissions.First((Node n) => n.Name == item).TrySetProperty("AssignedLayerId", newShipAssignment);
+                  }
+                  ClearDetails();
+                  AddUnsavedToDataState();
+                  Rebuild(Root!);
+               }
+            }
+         }
+         return assignedMissions.Count > 0;
       }
       internal bool ClearDeadCrew()
       {

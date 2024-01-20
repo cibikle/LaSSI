@@ -34,10 +34,21 @@ namespace LaSSI
          ToolsList.Add(CreateRemoveHab_Command(RemoveHab_Executed));
          ToolsList.Add(CreateShuttleWaitingCommand(ShuttleWaiting_Executed));
          ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
+         ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
+      internal static Command CreateMissionReassignCommand(EventHandler<EventArgs> handler)
+      {
+         Command command = new Command()
+         {
+            MenuText = "Reassign missions",
+            ID = "ReassignMissions"
+         };
+         command.Executed += handler;
+         return command;
+      }
       internal static Command CreateMarkStrandedShipsDerelictCommand(EventHandler<EventArgs> handler)
       {
          Command markStrandedShipsDerelictCommand = new()
@@ -302,7 +313,11 @@ namespace LaSSI
             case "MarkStrandedShipsDerelict":
                {
                   enablability = data.FindStrandedShips();
-
+                  break;
+               }
+            case "ReassignMissions":
+               {
+                  enablability = data.ReassignMissions();
                   break;
                }
          }
@@ -612,6 +627,10 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void missionReassign_Executed(object? sender, EventArgs e)
+      {
+         MainForm.DataPanel.ReassignMissions(true);
+      }
       internal void markStrandedShipsDerelict_Executed(object? sender, EventArgs e)
       {
          if (sender is Command c and not null && !MainForm.DataPanel.FindStrandedShips(true))

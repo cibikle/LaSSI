@@ -1,6 +1,7 @@
-﻿using Eto.Forms;
-using Eto.Drawing;
+﻿using Eto.Drawing;
+using Eto.Forms;
 using System;
+using System.Collections.Generic;
 
 namespace LaSSI
 {
@@ -18,7 +19,17 @@ namespace LaSSI
       public RadioInputDialog(string title, string[] options)
       {
          //TextBox.PlaceholderText = hint;
-         Options = options;
+         Options = options; // it is _required_ to set Options before calling CommonSetop(); should that be addressed somehow?
+         CommonSetup(title);
+      }
+      public RadioInputDialog(string title, List<object> options)
+      {
+         string[] strings = new string[options.Count];
+         for (int i = 0; i < options.Count; i++)
+         {
+            strings[i] = ((Node)options[i]).Name;
+         }
+         Options = strings;
          CommonSetup(title);
       }
       public DialogResult GetDialogResult()
@@ -35,20 +46,29 @@ namespace LaSSI
          };
          Content = layout;
 
-         buttonList.Orientation = Orientation.Vertical;
-         buttonList.Spacing = new Size(0, 5);
+         radioButtonList.Orientation = Orientation.Vertical;
+         radioButtonList.Spacing = new Size(0, 5);
+         radioButtonList.SelectedIndex = -1;
+         radioButtonList.SelectedIndexChanged += RadioButtonList_SelectedIndexChanged;
          foreach (var opt in Options)
          {
-            buttonList.Items.Add(opt);
+            radioButtonList.Items.Add(opt);
          }
-         layout.AddCentered(buttonList);
-         buttonList.SelectedIndex = 0;
+         layout.AddCentered(radioButtonList);
          layout.AddCentered(ButtonsLayout());
+      }
+
+      private void RadioButtonList_SelectedIndexChanged(object? sender, EventArgs e)
+      {
+         if (OK is not null && !OK.Enabled)
+         {
+            OK.Enabled = radioButtonList.SelectedIndex >= 0;
+         }
       }
 
       public int GetSelectedIndex()
       {
-         return buttonList.SelectedIndex;
+         return radioButtonList.SelectedIndex;
       }
 
       private StackLayout ButtonsLayout()
@@ -56,6 +76,7 @@ namespace LaSSI
          OK = new(OK_clicked)
          {
             Text = "OK",
+            Enabled = false
          };
          //OK = ok;
          DefaultButton = OK;
@@ -80,7 +101,7 @@ namespace LaSSI
       private DialogResult Result = DialogResult.None;
       private readonly string[] Options = Array.Empty<string>();
       private Button? OK;
-      readonly RadioButtonList buttonList = new();
+      readonly RadioButtonList radioButtonList = new();
    }
 }
 
