@@ -139,7 +139,7 @@ namespace LaSSI
       {
          foreach (Node child in Children)
          {
-            if (child.Name.Equals(name) || (looseMatch && child.Name.Contains(name)))
+            if (child.Name.Equals(name) || (looseMatch && Regex.IsMatch(child.Name, name, RegexOptions.IgnoreCase)))
             {
                return child;
             }

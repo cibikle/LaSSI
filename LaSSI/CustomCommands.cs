@@ -35,10 +35,21 @@ namespace LaSSI
          ToolsList.Add(CreateShuttleWaitingCommand(ShuttleWaiting_Executed));
          ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
          ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
+         ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
+      internal static Command CreateFireCrewCommand(EventHandler<EventArgs> handler)
+      {
+         Command fireCrewCommand = new()
+         {
+            MenuText = "Adjust staff levels",
+            ID = "FireCrew"
+         };
+         fireCrewCommand.Executed += handler;
+         return fireCrewCommand;
+      }
       internal static Command CreateMissionReassignCommand(EventHandler<EventArgs> handler)
       {
          Command command = new Command()
@@ -53,7 +64,7 @@ namespace LaSSI
       {
          Command markStrandedShipsDerelictCommand = new()
          {
-            MenuText = "Mark rescued \"Stranded Ships\" as derelict",
+            MenuText = "Mark rescued Stranded Ships as derelict",
             ID = "MarkStrandedShipsDerelict",
          };
          markStrandedShipsDerelictCommand.Executed += handler;
@@ -318,6 +329,11 @@ namespace LaSSI
             case "ReassignMissions":
                {
                   enablability = data.ReassignMissions();
+                  break;
+               }
+            case "FireCrew":
+               {
+                  enablability = data.FireCrew();
                   break;
                }
          }
@@ -627,6 +643,10 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void fireCrew_Executed(object? sender, EventArgs e)
+      {
+         MainForm.DataPanel.FireCrew(true);
+      }
       internal void missionReassign_Executed(object? sender, EventArgs e)
       {
          MainForm.DataPanel.ReassignMissions(true);

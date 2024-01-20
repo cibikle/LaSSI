@@ -15,7 +15,20 @@ namespace LaSSI
       public CheckBoxListDialog(string title, List<string> options)
       {
          CommonSetup(title, options);
+         Shown += CheckBoxListDialog_Shown;
       }
+
+      private void CheckBoxListDialog_Shown(object? sender, EventArgs e)
+      {
+         if (Height > Owner.Height)
+         {
+            Height = Owner.Height;
+
+            scrollable.Height = scrollable.Parent.Height - 80;
+            //Width += 40;
+         }
+      }
+
       public IEnumerable<string> GetSelectedItems()
       {
          return list.SelectedKeys;
@@ -32,19 +45,25 @@ namespace LaSSI
             list.Items.Add(opt);
          }
          Title = title;
+         //Scrollable scrollable = new();
+         //Content = scrollable;
          DynamicLayout layout = new()
          {
-            Padding = new Padding(5, 5)
+            Padding = new Padding(5, 0)
          };
          Content = layout;
+         scrollable.Content = list;
          if (list.Items.Count > 3)
          {
             layout.BeginHorizontal();
             layout.Add(AllNoneButtonsLayout(), true);
             layout.EndHorizontal();
          }
-         layout.BeginCentered(new Padding(5, 5));
-         layout.Add(list);
+         layout.BeginCentered(new Padding(5, 5, 20, 0));
+         //layout.BeginScrollable();
+         layout.Add(scrollable, false, false);
+         layout.AddSpace();
+         //layout.EndScrollable();
          layout.EndCentered();
          layout.BeginCentered(new Padding(5, 5));
          layout.AddCentered(ButtonsLayout());
@@ -105,18 +124,17 @@ namespace LaSSI
          None = none;
          return new StackLayout(all, none) { Orientation = Orientation.Horizontal, Spacing = 5 };
       }
-
       private void OK_clicked(object? sender, EventArgs e)
       {
          Result = DialogResult.Ok;
          Close();
       }
-
       private readonly CheckBoxList list = new();
       private DialogResult Result = DialogResult.None;
       private Button? OK;
       private Button? All;
       private Button? None;
+      private Scrollable scrollable = new();
    }
 }
 

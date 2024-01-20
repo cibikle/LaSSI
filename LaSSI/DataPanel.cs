@@ -1435,10 +1435,7 @@ namespace LaSSI
       }
       internal bool FindDeadCrew()
       {
-         if (friendlyShips is null && GetRoot() is not null and Node root)
-         {
-            friendlyShips = FindChildNodesWithProperty(root, "Type", "FriendlyShip");
-         }
+         var ships = GetFriendlyShips();
          foreach (var layer in friendlyShips!)
          {
             if (GetChildNode(layer, "Objects") is not null and Node objects)
@@ -1609,6 +1606,63 @@ namespace LaSSI
             }
          }
          return strandedShips.Count - updatedShips > 0;
+      }
+      internal bool FireCrew(bool takeAction = false)
+      {
+         bool crewDetected = false;
+         var ships = GetFriendlyShips();
+         foreach (Node ship in ships)
+         {
+            if (!crewDetected)
+            {
+               if (GetChildNode(ship, "Objects") is not null and Node objects)
+               {
+                  crewDetected = (objects.FindChild("Crewmember", true) is not null || objects.FindChild("Scientist", true) is not null || objects.FindChild("WeaponsSpecialist", true) is not null);
+               }
+            }
+         }
+
+         if (takeAction)
+         {
+            RadioInputDialog selectShip = new("Choose ship", ships.Cast<object>().ToList());
+            selectShip.ShowModal(mainForm);
+            if (selectShip.GetDialogResult() == DialogResult.Ok)
+            {
+               TreeGridItemCollection crew = new();
+               List<string> crewStrings = new();
+               Node selectedShip = ships[selectShip.GetSelectedIndex()];
+
+               if (GetChildNode(selectedShip, "Objects") is not null and Node objects)
+               {
+                  crew.AddRange(objects.FindChildren("Type", "CrewMember"));
+                  crew.AddRange(objects.FindChildren("Type", "Scientist"));
+                  crew.AddRange(objects.FindChildren("Type", "WeaponsSpecialist"));
+               }
+               foreach (Node crewmember in crew)
+               {
+                  crewStrings.Add(crewmember.Name);
+               }
+
+               CheckBoxListDialog crewRoster = new("Crew roster", crewStrings);
+               crewRoster.ShowModal(mainForm);
+               if (crewRoster.GetDialogResult() == DialogResult.Ok)
+               {
+                  var selectedCrew = crewRoster.GetSelectedItems();
+                  foreach (var selectedCrewmember in selectedCrew)
+                  {
+                     foreach (Node crewMember in crew)
+                     {
+                        if (crewMember.Name == selectedCrewmember)
+                        {
+                           crewMember.RemoveParent(crewMember.GetParent()!);
+                        }
+                     }
+                  }
+               }
+            }
+         }
+
+         return crewDetected;
       }
       /// <summary>
       /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship
