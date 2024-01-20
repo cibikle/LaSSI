@@ -36,10 +36,21 @@ namespace LaSSI
          ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
          ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
          ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
+         ToolsList.Add(CreateClaimGhostShipsCommand(claimGhostShip_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
       }
 
       #region tools
+      internal static Command CreateClaimGhostShipsCommand(EventHandler<EventArgs> handler)
+      {
+         Command claimGhostShipsCommand = new()
+         {
+            MenuText = "Claim ghost ships as salvage",
+            ID = "ClaimGhostShips"
+         };
+         claimGhostShipsCommand.Executed += handler;
+         return claimGhostShipsCommand;
+      }
       internal static Command CreateFireCrewCommand(EventHandler<EventArgs> handler)
       {
          Command fireCrewCommand = new()
@@ -334,6 +345,11 @@ namespace LaSSI
             case "FireCrew":
                {
                   enablability = data.FireCrew();
+                  break;
+               }
+            case "ClaimGhostShips":
+               {
+                  enablability = data.ClaimGhostShips();
                   break;
                }
          }
@@ -643,6 +659,10 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void claimGhostShip_Executed(object? sender, EventArgs e)
+      {
+         MainForm.DataPanel.ClaimGhostShips(true);
+      }
       internal void fireCrew_Executed(object? sender, EventArgs e)
       {
          MainForm.DataPanel.FireCrew(true);

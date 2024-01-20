@@ -237,10 +237,8 @@ namespace LaSSI
       public bool TryGetProperty(string propertyName, out string propertyValue)
       {
          if (MatchProperty(propertyName, out string matchingPropertyName))
-         //if (HasProperties(new string[] { propertyName }))
          {
             propertyValue = $"{Properties[matchingPropertyName]}";
-            //propertyValue = $"{Properties[propertyName]}";
             return true;
          }
          else
@@ -551,9 +549,13 @@ namespace LaSSI
          if (Properties.Contains("HomeLayer")) details += $", Home layer: {Properties["HomeLayer"]}";
          if (Properties.Contains("Resource")) details += $", {Properties["Resource"]}";
          if (Properties.Contains("Quantity")) details += $", Qty: {Properties["Quantity"]}";
-         if (Properties.Contains("Capacity")) details += $", Cap.: {Properties["Capacity"]}";
          if (Properties.Contains("Recipe")) details += $", Recipe: {Properties["Recipe"]}";
          if (Properties.Contains("Contents")) details += $", Contents: {Properties["Contents"]}";
+         if (Properties.Contains("Capacity"))
+         {
+            if (!Properties.Contains("Quantity")) details += ", Qty: 0";
+            details += $", Cap.: {Properties["Capacity"]}";
+         }
          return details;
       }
       internal string GetPhysicsStateDetails()
@@ -618,7 +620,13 @@ namespace LaSSI
       internal string GetHabitationZoneDetails()
       {
          string entities = $"{Properties["Entities"]}";
-         int used = entities.Length - entities.Replace(",", "").Length + 1;
+
+         int used = 0;
+         if (entities.Length > 0)
+         {
+            used = entities.Length - entities.Replace(",", "").Length + 1;
+         }
+
          return $"ID {Properties["Id"]}, Capacity: {used}/{Properties["Capacity"]}";
       }
       internal string GetWorkQueueJobDetails()

@@ -1628,6 +1628,7 @@ namespace LaSSI
             selectShip.ShowModal(mainForm);
             if (selectShip.GetDialogResult() == DialogResult.Ok)
             {
+               bool actionTaken = false;
                TreeGridItemCollection crew = new();
                List<string> crewStrings = new();
                Node selectedShip = ships[selectShip.GetSelectedIndex()];
@@ -1647,6 +1648,7 @@ namespace LaSSI
                crewRoster.ShowModal(mainForm);
                if (crewRoster.GetDialogResult() == DialogResult.Ok)
                {
+                  actionTaken = true;
                   var selectedCrew = crewRoster.GetSelectedItems();
                   foreach (var selectedCrewmember in selectedCrew)
                   {
@@ -1659,10 +1661,81 @@ namespace LaSSI
                      }
                   }
                }
+
+               if (actionTaken)
+               {
+                  AddUnsavedToDataState();
+                  Rebuild(Root);
+               }
             }
          }
 
          return crewDetected;
+      }
+      internal bool ClaimGhostShips(bool takeAction = false)
+      {
+         TreeGridItemCollection neutralAndHostileShips = mainForm.saveFile.FindNodes(Root, new string[] { "NeutralShip" });
+         neutralAndHostileShips.AddRange(mainForm.saveFile.FindNodes(Root, new string[] { "HostileShip" }));
+         TreeGridItemCollection ghostShips = new();
+         List<string> ghostShipNames = new();
+         // check each ship for dead crew (at least half, I guess?) or the reactors are off
+         foreach (Node ship in neutralAndHostileShips)
+         {
+            if (Regex.IsMatch(ship.Name, "Stranded Ship", RegexOptions.IgnoreCase) || Regex.IsMatch(ship.Name, "Starbase", RegexOptions.IgnoreCase) || Regex.IsMatch(ship.Name, "Shipyard", RegexOptions.IgnoreCase))
+            {
+               continue;
+            }
+            int deadCrew = 0;
+            Node objectsSubnode = ship.FindChild("Objects")!;
+            var reactors = objectsSubnode.FindChildren("Type", "Reactor");
+            var crew = objectsSubnode.FindChildren("Type", "CrewMember");
+            foreach (Node crewMember in crew)
+            {
+               if (crewMember.TryGetProperty("State", out string state) && state.Equals("Dead", StringComparison.OrdinalIgnoreCase))
+               {
+                  deadCrew++;
+               }
+            }
+            if (deadCrew > 0)
+            {
+               ghostShips.Add(ship);
+               ghostShipNames.Add(ship.Name);
+               continue;
+            }
+            foreach (Node reactor in reactors)
+            {
+               if (!reactor.TryGetProperty("Activated", out string state))
+               {
+                  ghostShips.Add(ship);
+                  ghostShipNames.Add(ship.Name);
+                  break;
+               }
+            }
+         }
+         if (takeAction)
+         {
+            bool actionTaken = false;
+            CheckBoxListDialog ghostShipSelection = new("Select ghost ships to claim as salvage", ghostShipNames);
+            ghostShipSelection.ShowModal(mainForm);
+            if (ghostShipSelection.GetDialogResult() == DialogResult.Ok)
+            {
+               actionTaken = true;
+               var selectedShips = ghostShipSelection.GetSelectedItems();
+               foreach (var ship in selectedShips)
+               {
+                  Node claimedShip = (Node)ghostShips[ghostShipNames.FindIndex(x => x.Equals(ship))];
+                  claimedShip.TrySetProperty("Type", "FriendlyShip");
+                  claimedShip.RebuildName();
+               }
+            }
+
+            if (actionTaken)
+            {
+               AddUnsavedToDataState();
+               Rebuild(Root);
+            }
+         }
+         return ghostShips.Count > 0;
       }
       /// <summary>
       /// Pass nothing to get the CurrentSystem from the Galaxy node, pass null to get the current system of the first friendly ship, pass a LayerId to get the current system of a particular friendly ship
