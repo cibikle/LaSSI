@@ -1687,6 +1687,10 @@ namespace LaSSI
             }
             int deadCrew = 0;
             Node objectsSubnode = ship.FindChild("Objects")!;
+            if (objectsSubnode is null)
+            {
+               continue;
+            }
             var reactors = objectsSubnode.FindChildren("Type", "Reactor");
             var crew = objectsSubnode.FindChildren("Type", "CrewMember");
             foreach (Node crewMember in crew)

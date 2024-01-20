@@ -12,7 +12,7 @@
 		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
 		<Company />
 		<Authors>CIBikle</Authors>
-		<FileVersion>0.9.7</FileVersion>
+		<FileVersion>0.9.8</FileVersion>
 		<ApplicationIcon>FileMagnifyingGlassIcon256x256.ico</ApplicationIcon>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
