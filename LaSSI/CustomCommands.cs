@@ -661,7 +661,10 @@ namespace LaSSI
       #region tool event handlers
       internal void claimGhostShip_Executed(object? sender, EventArgs e)
       {
-         MainForm.DataPanel.ClaimGhostShips(true);
+         if (MainForm.DataPanel.ClaimGhostShips(true))
+         {
+            _ = MessageBox.Show("Ghost ships claimed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
       }
       internal void fireCrew_Executed(object? sender, EventArgs e)
       {

@@ -1729,6 +1729,10 @@ namespace LaSSI
                {
                   Node claimedShip = (Node)ghostShips[ghostShipNames.FindIndex(x => x.Equals(ship))];
                   claimedShip.TrySetProperty("Type", "FriendlyShip");
+                  if (claimedShip.FindChild("ShipAI") is not null and Node shipAi)
+                  {
+                     claimedShip.RemoveChild(shipAi);
+                  }
                   claimedShip.RebuildName();
                }
             }
@@ -1738,6 +1742,7 @@ namespace LaSSI
                AddUnsavedToDataState();
                Rebuild(Root);
             }
+            return actionTaken;
          }
          return ghostShips.Count > 0;
       }
