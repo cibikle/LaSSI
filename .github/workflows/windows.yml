@@ -110,4 +110,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.Linux-x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output\publish\linux-x64
+        path: ${{ env.Wap_Project_Directory }}\output\linux-x64
