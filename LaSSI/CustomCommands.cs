@@ -1,4 +1,5 @@
-﻿using Eto.Forms;
+﻿using Eto;
+using Eto.Forms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -266,13 +267,23 @@ namespace LaSSI
       #region utility
       internal static void EnableSaveAs(MenuBar menu)
       {
-         var SaveAsCommand = ((SubMenuItem)menu.Items.First(menuItem => menuItem.Text == "&File")).Items.Select(submenuItem
+         string menuItemText = "File";
+         if(!EtoEnvironment.Platform.IsLinux)
+         {
+            menuItemText = $"&{menuItemText}";
+         }
+         var SaveAsCommand = ((SubMenuItem)menu.Items.First(menuItem => menuItem.Text == menuItemText)).Items.Select(submenuItem
             => submenuItem.Command as Command).First(command => command != null && command.ID == "SaveFileAsCommand");
          if (SaveAsCommand is not null) SaveAsCommand.Enabled = true;
       }
       internal static void EnableTools(MenuBar menu, DataPanel data)
       {
-         var ToolsMenu = (SubMenuItem)menu.Items.First(menuItem => menuItem.Text == "&Tools");
+         string menuItemText = "Tools";
+         if(!EtoEnvironment.Platform.IsLinux)
+         {
+            menuItemText = $"&{menuItemText}";
+         }
+         var ToolsMenu = (SubMenuItem)menu.Items.First(menuItem => menuItem.Text == menuItemText);
          if (ToolsMenu is not null)
          {
             foreach (var o in ToolsMenu.Items)

@@ -29,6 +29,7 @@ namespace LaSSI
       internal CustomCommands? CustomCommands;
       internal SubMenuItem fileMenu;
       internal Prefs prefs;
+      internal char WindowsMenuPrefix = '&';
       void InitializeComponent()
       {
          Closing += MainForm_Closing;
@@ -42,9 +43,9 @@ namespace LaSSI
          prefs = new Prefs(this);
          //prefs.PrefsDialog.UiRefreshRequired += PrefsDialog_UiRefreshRequired;
          // create menu
-         fileMenu = new() { Text = "&File" };
+         fileMenu = new() { Text = "&File" }; //the & is used in Windows only, ignored in Mac, and stripped out in Linux
          fileMenu.Items.AddRange(CustomCommands.FileCommands);
-         SubMenuItem toolsMenu = new() { Text = "&Tools" };
+         SubMenuItem toolsMenu = new() { Text = "&Tools" }; //the & is used in Windows only, ignored in Mac, and stripped out in Linux
          toolsMenu.Items.AddRange(CustomCommands.ToolsList);
          Menu = new MenuBar
          {
@@ -157,7 +158,8 @@ namespace LaSSI
          else if (EtoEnvironment.Platform.IsLinux) //this reflects TLS when run on Linux through Proton; must be updated if TLS is ever ported
          { // todo: this kinda sucks -- surely there's any number of better ways
             savesFolderPath = Path.Combine(savesFolderPath
-               , "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
+            , ".local/share/Steam/steamapps/compatdata/1857080/pfx/drive_c/users/steamuser/AppData/Local/Introversion");
+               //, "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
          }
          savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
          Uri SavesUri = new(savesFolderPath);

@@ -108,17 +108,13 @@ namespace LaSSI
       internal static string GetAppSupportDirectory()
       {
          string appSupport = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-         if (EtoEnvironment.Platform.IsMac)
+         if (EtoEnvironment.Platform.IsMac || EtoEnvironment.Platform.IsLinux)
          {
             appSupport = Path.Combine(appSupport, "Library", "Application Support");
          }
          else if (EtoEnvironment.Platform.IsWindows)
          {
             appSupport = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-         }
-         else if (EtoEnvironment.Platform.IsLinux)
-         {
-            //todo
          }
          appSupport = Path.Combine(appSupport, "LaSSI");
 

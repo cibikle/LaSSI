@@ -20,6 +20,10 @@
 		<EnableNotarization>True</EnableNotarization>
 		<EnableDmgBuild>True</EnableDmgBuild>
 	</PropertyGroup>
+	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(LINUX))">
+		<SelfContained>true</SelfContained>
+        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+	</PropertyGroup>
 	<ItemGroup>
 		<Content Include="FileMagnifyingGlassIcon256x256.ico" />
 	</ItemGroup>
