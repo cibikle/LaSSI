@@ -20,7 +20,7 @@ try {
     New-Item "output" -ItemType Directory;
     
     Move-Item -Path ($builtFilePath -f $win64Spec) -Destination "output";
-    Move-Item -Path $builtFilePathLinux -Destination "output";
+    Move-Item -Path $builtFilePathLinux -Destination "output/linux-x64";
     ls output
 }
 finally {
