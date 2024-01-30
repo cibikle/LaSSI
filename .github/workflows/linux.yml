@@ -49,4 +49,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.linux_x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}/output/
+        path: ${{ env.Wap_Project_Directory }}/output/LaSSI
