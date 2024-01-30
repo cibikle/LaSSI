@@ -37,7 +37,7 @@ jobs:
       run: |
         New-Item "output" -ItemType Directory
         #dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/'
-        dotnet publish -c Release --self-contained --runtime linux-x64 -p:PublishSingleFile=true --output 'output/'
+        dotnet publish -c Release LaSSI.csproj -p:PublishSingleFile=true --output 'output/'
 
     - name: Fix Linux file permission
       run: |
