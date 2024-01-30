@@ -44,7 +44,7 @@ jobs:
         pushd ${{ env.Wap_Project_Directory }}/output/
         chmod +x LaSSI
         zip LaSSI.zip LaSSI
-        ll .
+        ls -al .
         popd
       shell: bash
 
