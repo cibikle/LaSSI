@@ -41,12 +41,15 @@ jobs:
 
     - name: Fix Linux file permission
       run: |
-        chmod +x ${{ env.Wap_Project_Directory }}/output/LaSSI
-        ls -al ${{ env.Wap_Project_Directory }}/output
+        pushd ${{ env.Wap_Project_Directory }}/output/
+        chmod +x LaSSI
+        zip LaSSI.zip LaSSI
+        ll .
+        popd
       shell: bash
 
     - name: Upload build artifact - Linux
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.linux_x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}/output/LaSSI
+        path: ${{ env.Wap_Project_Directory }}/output/LaSSI.zip
