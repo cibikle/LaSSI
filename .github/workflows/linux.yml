@@ -42,11 +42,11 @@ jobs:
     - name: Fix Linux file permission
       run: |
         chmod +x ${{ env.Wap_Project_Directory }}/output/LaSSI
-        ls -al ${{ env.Wap_Project_Directory }}/output/LaSSI
+        ls -al ${{ env.Wap_Project_Directory }}/output
       shell: bash
 
-    - name: Upload build artifact - Linux
-      uses: actions/upload-artifact@v3
-      with:
-        name: "LaSSI.linux_x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}/output/LaSSI
+#    - name: Upload build artifact - Linux
+#      uses: actions/upload-artifact@v3
+#      with:
+ #       name: "LaSSI.linux_x64.v0.${{ github.event.inputs.version }}"
+ #       path: ${{ env.Wap_Project_Directory }}/output/LaSSI
