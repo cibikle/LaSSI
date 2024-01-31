@@ -98,16 +98,17 @@ jobs:
       run: |
         ${{ env.Publish_Script }} '${{ github.event.inputs.version }}'
 
-    # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
-    - name: Upload build artifact - Win
-      uses: actions/upload-artifact@v3
+    - name: Package Files
+      run: powershell Compress-Archive -Path '${{ env.Wap_Project_Directory }}\output\publish\*' -DestinationPath 'LaSSI.win64.v0.${{ github.event.inputs.version }}.zip' -Force
+
+    - name: Upload build artifact - Windows
+      uses: ncipollo/release-action@main
       with:
-        name: "LaSSI.win64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output\publish
-        
-    # Upload the MSIX package: https://github.com/marketplace/actions/upload-a-build-artifact
-    - name: Upload build artifact - Linux
-      uses: actions/upload-artifact@v3
-      with:
-        name: "LaSSI.Linux-x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}\output\linux-x64
+        allowUpdates: true
+        updateOnlyUnreleased: true
+        artifactErrorsFailBuild: true
+        draft: true
+        prerelease: false
+        commit: ${{ github.ref_name }}
+        tag: 'v0.${{ github.event.inputs.version }}'
+        artifacts: 'LaSSI.win64.v0.${{ github.event.inputs.version }}.zip'
