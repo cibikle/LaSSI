@@ -45,4 +45,7 @@
 	<ItemGroup>
 	  <PackageReference Update="Eto.Platform.Wpf" Version="2.8.2" />
 	</ItemGroup>
+   <ItemGroup>
+      <PackageReference Include="Extended.Wpf.Toolkit" Version="4.6.0" />
+   </ItemGroup>
 </Project>

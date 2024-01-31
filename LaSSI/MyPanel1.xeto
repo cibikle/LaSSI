@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Dialog
+	xmlns="http://schema.picoe.ca/eto.forms" 
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:local="clr-namespace:LaSSI;assembly=EtoApp.1"
+	Title="My Eto Dialog"
+	MinimumSize="200,200"
+	Padding="10"
+	>
+	<StackLayout>
+		<Label>Some Content</Label>
+	</StackLayout>
+
+</Dialog>
