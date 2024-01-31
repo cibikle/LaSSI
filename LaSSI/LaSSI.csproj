@@ -22,7 +22,7 @@
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(LINUX))">
 		<SelfContained>true</SelfContained>
-        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 	</PropertyGroup>
 	<ItemGroup>
 		<Content Include="FileMagnifyingGlassIcon256x256.ico" />
@@ -38,5 +38,11 @@
 	</ItemGroup>
 	<ItemGroup>
 		<BundleResource Include="MacIcon.icns" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Update="Eto.Forms" Version="2.8.2" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Update="Eto.Platform.Wpf" Version="2.8.2" />
 	</ItemGroup>
 </Project>
