@@ -20,6 +20,9 @@ jobs:
         configuration: [Release]
     runs-on: macos-latest  # For a list of available runner types, refer to https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
+    permissions:
+         contents: write
+
     env:
       Solution_Name: LaSSI.sln                         # Replace with your solution name, i.e. MyWpfApp.sln.
       Wap_Project_Directory: LaSSI    # Replace with the Wap project directory relative to the solution, i.e. MyWpfApp.Package.
