@@ -13,6 +13,9 @@ jobs:
         configuration: [Release]
     runs-on: ubuntu-latest  # For a list of available runner types, refer to https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
+    permissions:
+         contents: write
+
     env:
       Solution_Name: LaSSI.sln                         # Replace with your solution name, i.e. MyWpfApp.sln.
       Wap_Project_Directory: LaSSI    # Replace with the Wap project directory relative to the solution, i.e. MyWpfApp.Package.
@@ -43,13 +46,20 @@ jobs:
       run: |
         pushd ${{ env.Wap_Project_Directory }}/output/
         chmod +x LaSSI
-        zip LaSSI.zip LaSSI
+        zip LaSSI.linux_x64.v0.${{ github.event.inputs.version }}.zip LaSSI
         ls -al .
         popd
+        mv ${{ env.Wap_Project_Directory }}/output/LaSSI.linux_x64.v0.${{ github.event.inputs.version }}.zip .
       shell: bash
 
     - name: Upload build artifact - Linux
-      uses: actions/upload-artifact@v3
+      uses: ncipollo/release-action@main
       with:
-        name: "LaSSI.linux_x64.v0.${{ github.event.inputs.version }}"
-        path: ${{ env.Wap_Project_Directory }}/output/LaSSI.zip
+        allowUpdates: true
+        updateOnlyUnreleased: true
+        artifactErrorsFailBuild: true
+        draft: true
+        prerelease: false
+        commit: ${{ github.ref_name }}
+        tag: 'v0.${{ github.event.inputs.version }}'
+        artifacts: 'LaSSI.linux_x64.v0.${{ github.event.inputs.version }}.zip'
