@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Eto.Forms;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Eto.Forms;
 
 namespace LaSSI
 {
@@ -56,7 +56,21 @@ namespace LaSSI
          OrderedDictionary Dictionary = new OrderedDictionary();
          for (int i = 0; i < Data.Length; i += 2)
          {
-            Dictionary.Add(Data[i], Data[i + 1]);
+            string key = Data[i];
+            string value = Data[i + 1];
+            if (value.StartsWith("\""))
+            {
+               i++;
+               while (!value.EndsWith("\""))
+               {
+                  value += " ";
+                  i++;
+                  value += Data[i];
+               }
+               i--;
+            }
+            Dictionary.Add(key, value);
+            //Dictionary.Add(Data[i], Data[i + 1]);
          }
          return Dictionary;
       }

@@ -268,7 +268,7 @@ namespace LaSSI
       internal static void EnableSaveAs(MenuBar menu)
       {
          string menuItemText = "File";
-         if(!EtoEnvironment.Platform.IsLinux)
+         if (!EtoEnvironment.Platform.IsLinux)
          {
             menuItemText = $"&{menuItemText}";
          }
@@ -279,7 +279,7 @@ namespace LaSSI
       internal static void EnableTools(MenuBar menu, DataPanel data)
       {
          string menuItemText = "Tools";
-         if(!EtoEnvironment.Platform.IsLinux)
+         if (!EtoEnvironment.Platform.IsLinux)
          {
             menuItemText = $"&{menuItemText}";
          }
@@ -509,6 +509,10 @@ namespace LaSSI
       }
       internal void LoadFile(string filename, bool IsReloadAfterSave = false)
       {
+         if (!File.Exists(filename))
+         {
+            return;
+         }
          //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
 
          MainForm.saveFilePath = filename;
@@ -528,6 +532,10 @@ namespace LaSSI
       }
       internal static string StartBackup(string filename)
       {
+         if (!File.Exists(filename))
+         {
+            return filename;
+         }
          string date = DateTime.Now.ToString("yyyyMMdd-HHmmss");
          string newBackupDirectory = Path.Combine(Prefs.GetBackupsDirectory(), $"backup_{date}");
          Directory.CreateDirectory(newBackupDirectory);
