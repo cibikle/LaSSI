@@ -1,6 +1,7 @@
 ﻿using System;
 using Eto.Drawing;
 using Eto.Forms;
+using LaSSI.LassiTools.CustomCells;
 
 namespace LaSSI.LassiTools
 {
@@ -21,11 +22,11 @@ namespace LaSSI.LassiTools
             Text = "Where"
          };
          DynamicLayout clearTestButtons = ClearTestButtons(filter);
-         var AddCommand = new Command { MenuText = "Add condition" };
-         var RemoveCommand = new Command { MenuText = "Remove condition" };
-         GridView conditionsGrid = ConditionsGrid(filter, new MenuItem[] { AddCommand, RemoveCommand });
-         AddCommand.Executed += (sender, e) => { filter.Add(); };
-         RemoveCommand.Executed += (sender, e) => { if (conditionsGrid.SelectedItem is not null and FilterConditionLine line) { filter.Remove(line); } };
+         var AddCondition = new Command { MenuText = "Add condition" };
+         var RemoveCondition = new Command { MenuText = "Remove condition" };
+         GridView conditionsGrid = ConditionsGrid(filter, new MenuItem[] { AddCondition, RemoveCondition });
+         AddCondition.Executed += (sender, e) => { filter.Add(); };
+         RemoveCondition.Executed += (sender, e) => { if (conditionsGrid.SelectedItem is not null and FilterConditionLine line) { filter.Remove(line); } };
 
          filterLayout.BeginHorizontal();
          filterLayout.Add(SelectionLayout(filter));

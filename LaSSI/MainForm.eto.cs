@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
+using LaSSI.LassiTools;
 namespace LaSSI
 {
    enum NodeStatus
@@ -30,6 +30,8 @@ namespace LaSSI
       internal SubMenuItem fileMenu;
       internal Prefs prefs;
       internal Dictionary<string, LassiTool> ToolBox;
+      internal ToolManager ToolManager;
+
       void InitializeComponent()
       {
          ToolBox = LoadToolBox();
@@ -73,6 +75,7 @@ namespace LaSSI
             Visible = false,
             Indeterminate = true
          };
+         ToolManager = new(this);
          Content = InitMainPanel();
          PlatformSpecificNonsense();
          Startup();

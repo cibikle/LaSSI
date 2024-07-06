@@ -49,6 +49,7 @@
 		<None Remove="icons\export.png" />
 		<None Remove="Dialogs\" />
 		<None Remove="LassiTools\" />
+		<None Remove="LassiTools\CustomCells\" />
 	</ItemGroup>
 	<ItemGroup>
 		<BundleResource Include="icons\MacIcon.icns" />
@@ -57,5 +58,6 @@
 		<Folder Include="icons\" />
 		<Folder Include="Dialogs\" />
 		<Folder Include="LassiTools\" />
+		<Folder Include="LassiTools\CustomCells\" />
 	</ItemGroup>
 </Project>

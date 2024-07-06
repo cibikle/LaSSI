@@ -573,8 +573,8 @@ namespace LaSSI
       #region tool event handlers
       private void ToolsManager_Executed(object? sender, EventArgs e)
       {
-         ToolManager toolManager = new(MainForm);
-         toolManager.Show();
+         //ToolManager toolManager = new(MainForm);
+         MainForm.ToolManager.Show();
       }
       internal void FixAssertionFailed_Executed(object? sender, EventArgs e)
       {

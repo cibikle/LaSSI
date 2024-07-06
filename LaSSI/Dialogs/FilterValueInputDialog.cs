@@ -1,6 +1,7 @@
 ﻿using Eto.Forms;
 using Eto.Drawing;
 using System;
+using LaSSI.LassiTools;
 
 namespace LaSSI
 {
@@ -11,9 +12,11 @@ namespace LaSSI
       {
 
       }
-      public FilterValueInputDialog(string title)
+      public FilterValueInputDialog(string title, MainForm mainForm, FilterConditionLine filter)
       {
          CommonSetup(title);
+         filterLayout = LassiToolFilterLayout.CreateFilterLayout(new LassiToolFilter(mainForm));
+         this.filter = filter;
       }
       //public FilterValueInputDialog(string title, string hint)
       //{
@@ -40,13 +43,35 @@ namespace LaSSI
             Padding = new Padding(5, 5)
          };
          Content = layout;
-         layout.BeginCentered(new Padding(5, 5));
+
+         //layout.BeginCentered(new Padding(5, 5));
+         layout.BeginHorizontal();
+         layout.Add(TextChoice);
          layout.Add(TextBox);
-         layout.EndCentered();
+         layout.EndBeginHorizontal();
+         //layout.BeginCentered(new Padding(5, 5));
+         layout.Add(SubfilterChoice);
+         //layout.Add();//subfilter
+         layout.EndHorizontal();
          layout.BeginCentered(new Padding(5, 5));
          layout.AddCentered(ButtonsLayout());
          layout.EndCentered();
+         //TextChoice.Checked = true;
          TextBox.TextChanged += TextBox_TextChanged;
+         TextChoice.Click += TextChoice_Click;
+         SubfilterChoice.Click += SubfilterChoice_Click;
+      }
+
+      private void SubfilterChoice_Click(object? sender, EventArgs e)
+      {
+         TextChoice.Checked = TextBox.Enabled = false;
+
+      }
+
+      private void TextChoice_Click(object? sender, EventArgs e)
+      {
+         SubfilterChoice.Checked = false;
+         TextBox.Enabled = true;
       }
 
       private void TextBox_TextChanged(object? sender, EventArgs e)
@@ -84,10 +109,18 @@ namespace LaSSI
 
       public string Hint { get; set; } = string.Empty;
       private readonly TextBox TextBox = new();
-      private MainForm mainForm;
-      private DynamicLayout filterLayout = LassiTools.LassiToolFilterLayout.CreateFilterLayout(new LassiTools.LassiToolFilter(mainForm));
+      private MainForm? mainForm;
+      private DynamicLayout? filterLayout;
       private DialogResult Result = DialogResult.None;
+      private RadioButton TextChoice = new RadioButton()
+      {
+         Text = "string"
+      };
+      private RadioButton SubfilterChoice = new RadioButton()
+      {
+         Text = "subfilter"
+      };
       private Button? OK;
+      FilterConditionLine filter;
    }
 }
-

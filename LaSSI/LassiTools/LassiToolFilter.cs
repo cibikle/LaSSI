@@ -241,152 +241,10 @@ namespace LaSSI.LassiTools
       }
    }
 
-   public class FilterConditionLine
-   {
-      //FilterLineLogicalOperator logicalOperator = FilterLineLogicalOperator.NULL;
-      //string logicalOperator = FilterLogicalOperator.Operators[FilterLineLogicalOperator.NULL];
-      string key = "...";
-      //public FilterConditionValue value = new("...");
-      string filterValue = "...";
-      //FilterLineEvaluationOperator evaluationOperator = FilterLineEvaluationOperator.NULL;
-      string evaluationOperator = FilterEvaulationOperator.Operators[FilterOperator.Equals];
-      string ruleType = FilterRuleType.RuleTypes[FilterRuleTypeEnum.Must];
-      //string conditionGroup = "-1";
 
-      //public FilterLineLogicalOperator LogicalOperator
-      //{
-      //   get { return logicalOperator; }
-      //   set { logicalOperator = value; }
-      //}
-      //public string LogicalOperator
-      //{
-      //   get { return logicalOperator; }
-      //   set { logicalOperator = value; }
-      //}
-      public string RuleType
-      {
-         get { return ruleType; }
-         set { ruleType = value; }
-      }
-      public string EvaluationOperator
-      {
-         get { return evaluationOperator; }
-         set { evaluationOperator = value; }
-      }
-      public string Key
-      {
-         get { return key; }
-         set { key = value; }
-      }
-      //public string Group
-      //{
-      //   get { return conditionGroup; }
-      //   set { conditionGroup = value; }
-      //}
-      public string Value
-      {
-         get { return filterValue; }
-         set { filterValue = value; }
-      }
-      public FilterConditionLine()
-      {
 
-      }
-      public FilterConditionLine(string key, string value, FilterOperator EvaluationOperator = FilterOperator.Equals, FilterRuleTypeEnum RuleType = FilterRuleTypeEnum.Must)
-      {
-         this.key = key;
-         this.filterValue = value;
-         evaluationOperator = FilterEvaulationOperator.Operators[EvaluationOperator];
-         ruleType = FilterRuleType.RuleTypes[RuleType];
-         //logicalOperator = FilterLogicalOperator.Operators[LogicalOperator];
-         //this.conditionGroup = conditionGroup;
-      }
-   }
 
-   public class FilterConditionValue
-   {
-      private string value = string.Empty;
-      private LassiToolFilter? subfilter;
-      public LassiToolFilter? Subfilter
-      {
-         get { return subfilter; }
-         set { Value = "{filter}"; subfilter = value; }
-      }
-      public string Value
-      {
-         get { return value; }
-         set { this.value = value; }
-      }
-      public FilterConditionValue(string Value)
-      {
-         value = Value;
-      }
-      public FilterConditionValue(LassiToolFilter Value)
-      {
-         Subfilter = Value;
-      }
-   }
-   public class FilterConditionResults
-   {
-      private TreeGridItemCollection? results;
-      private GenerationModifier generation;
 
-      public TreeGridItemCollection? Results { get { return results; } set { results = value; } }
-      public GenerationModifier Generation { get { return generation; } set { generation = value; } }
-
-      public FilterConditionResults(TreeGridItemCollection results, GenerationModifier generation)
-      {
-         this.results = results;
-         this.generation = generation;
-      }
-   }
-   public class FilterKeyCell : CustomCell
-   {
-      protected override Control OnCreateCell(CellEventArgs args)
-      {
-         var control = new Button();
-         control.TextBinding.BindDataContext((FilterConditionLine m) => m.Key);
-         control.Click += (sender, e) =>
-         {
-            if (sender is not null and Button b)
-            {
-               TextInputDialog textInput = new($"Set key");
-               textInput.SetText(b.Text);
-               textInput.ShowModal();
-               if (textInput.GetDialogResult() == DialogResult.Ok)
-               {
-                  b.Text = textInput.GetInput();
-                  b.Bindings[0].Update(BindingUpdateMode.Source);
-               }
-            }
-         };
-         return control;
-      }
-   }
-   public class FilterValueCell : CustomCell
-   {
-      protected override Control OnCreateCell(CellEventArgs args)
-      {
-         var control = new Button();
-         //control.bin
-         control.TextBinding.BindDataContext((FilterConditionLine m) => m.Value);
-         control.Click += (sender, e) =>
-         {
-            if (sender is not null and Button b)
-            {
-               TextInputDialog textInput = new($"Set value");
-               textInput.SetText(b.Text);
-               textInput.ShowModal();
-               if (textInput.GetDialogResult() == DialogResult.Ok)
-               {
-                  b.Text = textInput.GetInput();
-                  b.Bindings[0].Update(BindingUpdateMode.Source);
-               }
-            }
-         };
-         return control;
-      }
-   }
    //public class FilterGroupCell : CustomCell
    //{
    //   protected override Control OnCreateCell(CellEventArgs args)
@@ -411,42 +269,8 @@ namespace LaSSI.LassiTools
    //      return control;
    //   }
    //}
-   public class FilterRuleTypeCell : CustomCell
-   {
-      protected override Control OnCreateCell(CellEventArgs args)
-      {
-         var control = new DropDown();
-         FilterRuleType.LoadControl(control.Items);
-         control.SelectedKeyBinding.BindDataContext((FilterConditionLine m) => m.RuleType);
 
-         control.SelectedValueChanged += (sender, e) =>
-         {
-            if (sender is not null and EnumDropDown<FilterRuleTypeEnum> d)
-            {
-               d.Bindings[0].Update(BindingUpdateMode.Source);
-            }
-         };
-         return control;
-      }
-   }
-   public class EvaluationOperatorCell : CustomCell
-   {
-      protected override Control OnCreateCell(CellEventArgs args)
-      {
-         var control = new DropDown();
-         FilterEvaulationOperator.LoadControl(control.Items);
-         control.SelectedKeyBinding.BindDataContext((FilterConditionLine m) => m.EvaluationOperator);
 
-         control.SelectedValueChanged += (sender, e) =>
-         {
-            if (sender is not null and EnumDropDown<FilterOperator> d)
-            {
-               d.Bindings[0].Update(BindingUpdateMode.Source);
-            }
-         };
-         return control;
-      }
-   }
 
    //public class FilterLogicalOperator
    //{
@@ -512,6 +336,7 @@ namespace LaSSI.LassiTools
          }
       }
    }
+
    public enum GenerationModifier
    {
       Self,
@@ -519,6 +344,7 @@ namespace LaSSI.LassiTools
       Child,
       Any
    }
+
    public enum FilterOperator
    {
       Equals,
