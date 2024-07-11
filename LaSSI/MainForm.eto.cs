@@ -1,6 +1,8 @@
 using Eto;
 using Eto.Drawing;
 using Eto.Forms;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,8 +10,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace LaSSI
 {
@@ -124,14 +124,16 @@ namespace LaSSI
                //Console.WriteLine($"current verion: {version}; latest version: {tag}");
                if (tag.CompareTo(version) > 0 && !draft && !prerelease)
                {
-                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available" }, "New version available", new List<string> { url });
+                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available" }, "New version available!", new List<string> { url });
+
+                  this.SetParent(m);
                   m.ShowModal(this.Parent);
                }
                else
                {
                   if (userTriggered)
                   {
-                     _ = MessageBox.Show("No newer version available", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+                     _ = MessageBox.Show($"You are on the latest version (v{version})", "No newer version available", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
                   }
                }
             }

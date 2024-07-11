@@ -1,5 +1,6 @@
-﻿using System;
+﻿using Eto.Drawing;
 using Eto.Forms;
+using System;
 using System.Collections.Generic;
 
 namespace LaSSI
@@ -33,6 +34,8 @@ namespace LaSSI
          layout.EndVertical();
 
          Content = layout;
+         Shown += ModalShown;
+         Topmost = true;
       }
       private Button CreateAbortButton()
       {
@@ -42,6 +45,15 @@ namespace LaSSI
             Close();
          };
          return b;
+      }
+
+      private void ModalShown(object? sender, EventArgs e)
+      {
+         if (Parent is not null)
+         {
+            Point p = new(Parent.Location.X + (Parent.Width / 2) - (Width / 2), Parent.Location.Y + (Parent.Height / 2) - (Height / 2));
+            this.Location = p;
+         }
       }
    }
 }
