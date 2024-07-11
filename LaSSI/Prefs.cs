@@ -56,6 +56,7 @@ namespace LaSSI
       //Pref backup = new Pref("Backup", "Yes", PrefType.checkbox);
       //Pref backupRetention = new Pref("Backup retention (days)", "30", PrefType.number);
       //Pref retainPositionAndSize = new Pref("Remember window size and position", yesno.no, PrefType.checkbox);
+      public Pref updateCheck = new Pref("Check for new version on start", yesno.yes, PrefType.checkbox);
       public MainForm MainForm;
 
       public Prefs(MainForm mainForm)
@@ -72,6 +73,7 @@ namespace LaSSI
          defaultPrefs.Add(startupBehavior);
          defaultPrefs.Add(startupFile);
          defaultPrefs.Add(holidayFun);
+         defaultPrefs.Add(updateCheck);
          if (LoadPrefs())
          {
             Debug.WriteLine("Loaded prefs");

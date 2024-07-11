@@ -5,7 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace LaSSI
 {
@@ -30,6 +34,9 @@ namespace LaSSI
       internal SubMenuItem fileMenu;
       internal Prefs prefs;
       internal char WindowsMenuPrefix = '&';
+      internal string version = Assembly.GetExecutingAssembly().GetName().Version!.ToString();
+      //private const string AssemblyName = "LaSSI";
+      static readonly HttpClient client = new HttpClient();
       void InitializeComponent()
       {
          Closing += MainForm_Closing;
@@ -54,15 +61,16 @@ namespace LaSSI
                // File submenu
                fileMenu,
                toolsMenu
-            // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
+               // new SubMenuItem { Text = "&View", Items = { /* commands/items */ } },
             },
             ApplicationItems =
             {
                // application (OS X) or file menu (others)
                CustomCommands.CreatePrefsMenuItem(CustomCommands.prefsCommand),
+               CustomCommands.CreateUpdateCheckMenuItem(CustomCommands.CheckForUpdates)
             },
             QuitItem = CustomCommands.QuitCommand,
-            AboutItem = new AboutCommand(this)
+            AboutItem = new AboutCommand(this, 'v' + version)
 
          };
          LoadingBar = new ProgressBar()
@@ -71,8 +79,68 @@ namespace LaSSI
             Indeterminate = true
          };
          Content = InitMainPanel();
+
          PlatformSpecificNonsense();
+
          Startup();
+      }
+
+      private string GetToken(JObject data, string tokenName)
+      {
+         if (data[tokenName] is not null and JToken token && token is not null)
+         {
+            return (string)token!;
+         }
+         else
+         {
+            return string.Empty;
+         }
+      }
+
+      public async Task CheckForUpdatesAsync(bool userTriggered = false)
+      {
+         //version = "0.8.9";
+         try
+         {
+            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+            client.DefaultRequestHeaders.UserAgent.TryParseAdd("request");//Set the User Agent to "request"
+
+            HttpResponseMessage response = await client.GetAsync("https://api.github.com/repos/cibikle/LaSSI/releases/latest");
+
+            response.EnsureSuccessStatusCode();
+
+            string responseBody = await response.Content.ReadAsStringAsync();
+
+            var data = JsonConvert.DeserializeObject(responseBody) as JObject;
+
+            if (data is not null)
+            {
+               string tag = GetToken(data, "tag_name").TrimStart('v');
+               bool draft = GetToken(data, "draft").Equals("true");
+               bool prerelease = GetToken(data, "prerelease").Equals("true");
+               string url = GetToken(data, "html_url");
+
+               //Console.WriteLine($"current verion: {version}; latest version: {tag}");
+               if (tag.CompareTo(version) > 0 && !draft && !prerelease)
+               {
+                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available" }, "New version available", new List<string> { url });
+                  m.ShowModal(this.Parent);
+               }
+               else
+               {
+                  if (userTriggered)
+                  {
+                     _ = MessageBox.Show("No newer version available", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+                  }
+               }
+            }
+         }
+         catch (HttpRequestException e)
+         {
+            Console.WriteLine("\nException Caught!");
+            Console.WriteLine("Message :{0} ", e.Message);
+         }
       }
 
       //private void PrefsDialog_UiRefreshRequired(object? sender, EventArgs e)
@@ -90,24 +158,36 @@ namespace LaSSI
 
       internal void Startup()
       {
-         if (CustomCommands is not null && prefs.FindPref("Startup behavior") is not null and Pref startupBehavior)
+         if (CustomCommands is not null)
          {
-            switch (startupBehavior.value)
+            if (prefs.FindPref("Check for new version on start") is not null and Pref updateCheck)
             {
-               /*case StartupBehavior.ShowFileChooser:
-                  {
-                     CustomCommands.OpenFileExecute();
+               switch (updateCheck.value)
+               {
+                  case yesno.yes:
+                     var foo = CheckForUpdatesAsync();
                      break;
-                  }*/
-               case StartupBehavior.LoadFile:
-               case StartupBehavior.LoadLastFile:
-                  {
-                     if (prefs.FindPref("Startup file") is not null and Pref startupFile && startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
+               }
+            }
+            if (prefs.FindPref("Startup behavior") is not null and Pref startupBehavior)
+            {
+               switch (startupBehavior.value)
+               {
+                  /*case StartupBehavior.ShowFileChooser:
                      {
-                        CustomCommands.LoadFile(Path.Combine(savesFolder.OriginalString, filename));
+                        CustomCommands.OpenFileExecute();
+                        break;
+                     }*/
+                  case StartupBehavior.LoadFile:
+                  case StartupBehavior.LoadLastFile:
+                     {
+                        if (prefs.FindPref("Startup file") is not null and Pref startupFile && startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
+                        {
+                           CustomCommands.LoadFile(Path.Combine(savesFolder.OriginalString, filename));
+                        }
+                        break;
                      }
-                     break;
-                  }
+               }
             }
          }
       }
@@ -119,6 +199,7 @@ namespace LaSSI
          if (EtoEnvironment.Platform.IsWindows)
          {
             Focus(); //required to prevent focus from being on the menu bar when the app launches on Windows
+            //releaseDownloadPattern = "win64";
          }
          else if (EtoEnvironment.Platform.IsMac)
          {
@@ -126,8 +207,13 @@ namespace LaSSI
             BringToFront(); // this is useful for dev but causes a problem with release builds
 #endif
             Closeable = false;
+            //releaseDownloadPattern = "macx64";
          }
          //what do you suppose will be the weird thing I have to account for on Linux?
+         else if (EtoEnvironment.Platform.IsLinux)
+         {
+            //releaseDownloadPattern = "linux64"; // todo: double check this
+         }
       }
 
       private static List<InventoryGridItem> LoadInventoryMasterList()
@@ -159,7 +245,7 @@ namespace LaSSI
          { // todo: this kinda sucks -- surely there's any number of better ways
             savesFolderPath = Path.Combine(savesFolderPath
             , ".local/share/Steam/steamapps/compatdata/1857080/pfx/drive_c/users/steamuser/AppData/Local/Introversion");
-               //, "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
+            //, "Steam", "steamapps", "compat", "1857080", "pfx", "drive_c", "users", "steamuser", "AppData", "Local", "Introversion");
          }
          savesFolderPath = Path.Combine(savesFolderPath, "LastStarship", "saves");
          Uri SavesUri = new(savesFolderPath);

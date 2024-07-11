@@ -12,8 +12,9 @@
 		<RepositoryUrl>https://github.com/cibikle/LaSSI/issues</RepositoryUrl>
 		<Company />
 		<Authors>CIBikle</Authors>
-		<FileVersion>0.9.8.1</FileVersion>
+		<FileVersion>0.9.9</FileVersion>
 		<ApplicationIcon>FileMagnifyingGlassIcon256x256.ico</ApplicationIcon>
+		<AssemblyVersion>0.9.9</AssemblyVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition="$([MSBuild]::IsOsPlatform(OSX)) AND $(Configuration) == 'Release'">
 		<EnableCodeSigning>True</EnableCodeSigning>
@@ -40,9 +41,9 @@
 		<BundleResource Include="MacIcon.icns" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Update="Eto.Forms" Version="2.8.2" />
+		<PackageReference Update="Eto.Forms" Version="2.8.2" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Update="Eto.Platform.Wpf" Version="2.8.2" />
+		<PackageReference Update="Eto.Platform.Wpf" Version="2.8.2" />
 	</ItemGroup>
 </Project>

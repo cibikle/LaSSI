@@ -16,6 +16,7 @@ namespace LaSSI
       internal List<Command> ToolsList { get; set; } = new List<Command>();
       internal MainForm MainForm;
       internal Command prefsCommand { get; }
+      internal Command CheckForUpdates { get; }
 
       public CustomCommands(MainForm mainForm)
       {
@@ -39,6 +40,7 @@ namespace LaSSI
          ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
          ToolsList.Add(CreateClaimGhostShipsCommand(claimGhostShip_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
+         CheckForUpdates = new Command(UpdateCommand_Executed);
       }
 
       #region tools
@@ -188,6 +190,10 @@ namespace LaSSI
       {
          return new ButtonMenuItem { Text = "&Preferences...", Command = prefsCommand, Shortcut = Application.Instance.CommonModifier | Keys.Comma };
       }
+      internal static ButtonMenuItem CreateUpdateCheckMenuItem(Command updatesCommand)
+      {
+         return new ButtonMenuItem { Text = "&Check for updates", Command = updatesCommand, Shortcut = Application.Instance.CommonModifier | Keys.U };
+      }
       internal static Command CreatePrefsCommand(EventHandler<EventArgs> PrefsCommand_Executed)
       {
          var prefsCommand = new Command
@@ -198,6 +204,17 @@ namespace LaSSI
          };
          prefsCommand.Executed += PrefsCommand_Executed;
          return prefsCommand;
+      }
+      internal static Command CreateUpdatesCheckCommand(EventHandler<EventArgs> UpdateCommand_Executed)
+      {
+         var updateCommand = new Command
+         {
+            MenuText = "&Check for updates",
+            Shortcut = Application.Instance.CommonModifier | Keys.U,
+            ID = "UpdatesCommand"
+         };
+         updateCommand.Executed += UpdateCommand_Executed;
+         return updateCommand;
       }
       internal static Command CreateQuitCommand(EventHandler<EventArgs> QuitCommand_Executed)
       {
@@ -582,6 +599,10 @@ namespace LaSSI
       }
       #endregion utility
       #region event handlers
+      private void UpdateCommand_Executed(object? sender, EventArgs e)
+      {
+         var foo = MainForm.CheckForUpdatesAsync(true);
+      }
       private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
          PrefsDialog f = new PrefsDialog(MainForm.prefs);

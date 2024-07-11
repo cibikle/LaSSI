@@ -6,8 +6,12 @@ namespace LaSSI
 {
    public class Modal : Dialog
    {
-      public Modal(List<string> text, List<string>? links = null)
+      public Modal(List<string> text, string? title, List<string>? links = null)
       {
+         if (!string.IsNullOrEmpty(title))
+         {
+            this.Title = title;
+         }
          var layout = new DynamicLayout();
          foreach (var s in text)
          {
