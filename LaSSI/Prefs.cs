@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using Eto;
+﻿using Eto;
 using Eto.Drawing;
 using Eto.Forms;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 
 namespace LaSSI
 {
@@ -28,8 +28,8 @@ namespace LaSSI
       //[Description("Show file chooser")]
       //ShowFileChooser,
       //[Description("Load last file")]
-      LoadLastFile,
-      LoadFile
+      LoadLastFile
+      //,LoadFile
    }
    public enum AlwaysNeverPrompt
    {

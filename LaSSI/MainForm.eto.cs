@@ -180,7 +180,7 @@ namespace LaSSI
                         CustomCommands.OpenFileExecute();
                         break;
                      }*/
-                  case StartupBehavior.LoadFile:
+                  //case StartupBehavior.LoadFile:
                   case StartupBehavior.LoadLastFile:
                      {
                         if (prefs.FindPref("Startup file") is not null and Pref startupFile && startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
