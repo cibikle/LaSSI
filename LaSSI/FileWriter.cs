@@ -197,7 +197,7 @@ namespace LaSSI
          string indent = GetIndentPad(indentationLevel);
          foreach (DictionaryEntry entry in item.Properties)
          {
-            if (IsPropertyArray(entry.Key))
+            if (IsPropertyArray(entry.Key.ToString()!, item))
             {
                if (entry.Value!.ToString()!.Contains(' '))
                {
@@ -222,17 +222,19 @@ namespace LaSSI
          }
          return text;
       }
-      private static bool IsPropertyArray(object key)
+      private static bool IsPropertyArray(string key, Node context)
       {
-         return (key is (object)"Entities"
-            or (object)"Researched"
-            or (object)"Visible"
-            or (object)"Workers"
-            or (object)"UnloadRequests"
-            or (object)"UnlockedRecipes"
-            or (object)"SpecialUnlocks"
-            or (object)"Items"
-            or (object)"Layers"); // todo: clean this up
+         return (key.Equals("Entities")
+            || key.Equals("Researched")
+            || key.Equals("Visible")
+            || key.Equals("Workers")
+            || key.Equals("UnloadRequests")
+            || key.Equals("UnlockedRecipes")
+            || key.Equals("SpecialUnlocks")
+            || key.Equals("Items")
+            || key.Equals("Layers")
+            || (key.Equals("Completed") && context.Name.Equals("Episodes"))
+            || key.Equals("Equipment")); // todo: clean this up
       }
       private string PropertiesToNodes(Node item, int indentationLevel = 0, int startIndex = 0)
       {

@@ -57,19 +57,27 @@ namespace LaSSI
          for (int i = 0; i < Data.Length; i += 2)
          {
             string key = Data[i];
-            string value = Data[i + 1];
-            if (value.StartsWith("\""))
+            try
             {
-               i++;
-               while (!value.EndsWith("\""))
+               string value = Data[i + 1];
+
+               if (value.StartsWith("\""))
                {
-                  value += " ";
                   i++;
-                  value += Data[i];
+                  while (!value.EndsWith("\""))
+                  {
+                     value += " ";
+                     i++;
+                     value += Data[i];
+                  }
+                  i--;
                }
-               i--;
+               Dictionary.Add(key, value);
             }
-            Dictionary.Add(key, value);
+            catch (Exception e)
+            {
+               Console.WriteLine(e.Message);
+            }
             //Dictionary.Add(Data[i], Data[i + 1]);
          }
          return Dictionary;
@@ -107,6 +115,10 @@ namespace LaSSI
          TreeGridItemCollection nodes = new();
          bool match = false;
          int matches = 0;
+         if (searchTerms.Length < 1 || node is null)
+         {
+            return nodes;
+         }
          foreach (string term in searchTerms)
          {
             if (term.EndsWith(':'))//if term is property name
@@ -227,12 +239,19 @@ namespace LaSSI
                      }
                      Node curNode = nodeStack.Peek();
                      string key = lineParts[0], value = lineParts[1];
-                     if (curNode.IsResearch() || lineParts[0] == "Entities" || lineParts[0] == "Workers"
-                        || lineParts[0] == "UnloadRequests" || lineParts[0] == "Items") // todo: clean this up
+                     if (curNode.IsResearch() || IsList(lineParts[0]))
                      {
                         if (lineParts.Length > 2)
                         {
-                           value = line[line.IndexOf("\"")..].TrimStart('"', '[').TrimEnd(']', '"', ' ');
+                           value = line[line.IndexOf("\"")..];
+                           if (value.StartsWith("\"["))
+                           {
+                              value = value.TrimStart('"', '[');
+                           }
+                           if (value.EndsWith("]\""))
+                           {
+                              value = value.TrimEnd(']', '"', ' ');
+                           }
                         }
                         else
                         {
@@ -286,6 +305,14 @@ namespace LaSSI
                   }
             }
          }
+      }
+
+      private static bool IsList(string key)
+      {
+         Regex number = new Regex(@"\d+");
+         return key == "Entities" || key == "Workers"
+                        || key == "UnloadRequests" || key == "Items" || key == "Completed"
+                        || key == "Equipment" || number.IsMatch(key);
       }
       /// <summary>
       /// Processes a "complex" line, i.e., more than two parts (e.g., the HUD or a Hazard).

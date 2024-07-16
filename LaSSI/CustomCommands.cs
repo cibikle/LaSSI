@@ -52,6 +52,7 @@ namespace LaSSI
             ID = "ClaimGhostShips"
          };
          claimGhostShipsCommand.Executed += handler;
+         claimGhostShipsCommand.Enabled = false;
          return claimGhostShipsCommand;
       }
       internal static Command CreateFireCrewCommand(EventHandler<EventArgs> handler)
@@ -62,6 +63,7 @@ namespace LaSSI
             ID = "FireCrew"
          };
          fireCrewCommand.Executed += handler;
+         fireCrewCommand.Enabled = false;
          return fireCrewCommand;
       }
       internal static Command CreateMissionReassignCommand(EventHandler<EventArgs> handler)
@@ -72,6 +74,7 @@ namespace LaSSI
             ID = "ReassignMissions"
          };
          command.Executed += handler;
+         command.Enabled = false;
          return command;
       }
       internal static Command CreateMarkStrandedShipsDerelictCommand(EventHandler<EventArgs> handler)
@@ -82,6 +85,7 @@ namespace LaSSI
             ID = "MarkStrandedShipsDerelict",
          };
          markStrandedShipsDerelictCommand.Executed += handler;
+         markStrandedShipsDerelictCommand.Enabled = false;
          return markStrandedShipsDerelictCommand;
       }
       internal static Command CreateShuttleWaitingCommand(EventHandler<EventArgs> eventHandler)

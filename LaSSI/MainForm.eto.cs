@@ -124,7 +124,7 @@ namespace LaSSI
                //Console.WriteLine($"current verion: {version}; latest version: {tag}");
                if (tag.CompareTo(version) > 0 && !draft && !prerelease)
                {
-                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available" }, "New version available!", new List<string> { url });
+                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available:" }, "New version available!", new List<string> { url });
 
                   this.SetParent(m);
                   m.ShowModal(this.Parent);

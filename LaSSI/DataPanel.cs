@@ -1507,6 +1507,11 @@ namespace LaSSI
          }
          if (takeAction)
          {
+            if (fleet.Count < 1)
+            {
+               _ = MessageBox.Show("Found no friendly ships", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+               return false;
+            }
             CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select((Node n) => n.Name).ToList());
             chooseMissionsToReassign.ShowModal(mainForm);
             if (chooseMissionsToReassign.GetDialogResult() == DialogResult.Ok)
@@ -1589,6 +1594,11 @@ namespace LaSSI
          if (takeAction)
          {
             bool actionTaken = false;
+            if (strandedShips.Count < 1)
+            {
+               _ = MessageBox.Show("Found no stranded ships", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+               return false;
+            }
             foreach (Node item in strandedShips)
             {
                if (item.TrySetProperty("Type", "Derelict"))
@@ -1624,6 +1634,11 @@ namespace LaSSI
 
          if (takeAction)
          {
+            if (ships.Count < 1)
+            {
+               _ = MessageBox.Show("Found no friendly ships to adjust staff levels on", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+               return false;
+            }
             RadioInputDialog selectShip = new("Choose ship", ships.Cast<object>().ToList());
             selectShip.ShowModal(mainForm);
             if (selectShip.GetDialogResult() == DialogResult.Ok)
@@ -1719,6 +1734,11 @@ namespace LaSSI
          if (takeAction)
          {
             bool actionTaken = false;
+            if (ghostShipNames.Count < 1)
+            {
+               _ = MessageBox.Show("Found no ghost ships to claim", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+               return actionTaken;
+            }
             CheckBoxListDialog ghostShipSelection = new("Select ghost ships to claim as salvage", ghostShipNames);
             ghostShipSelection.ShowModal(mainForm);
             if (ghostShipSelection.GetDialogResult() == DialogResult.Ok)
