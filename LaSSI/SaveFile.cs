@@ -375,6 +375,25 @@ namespace LaSSI
             }
             currentNode.Properties.Add(key, value.Trim());
          }
+         else if (subnodeId.Equals("Episodes")) //todo: this could be a real problem
+         {
+            string value = string.Empty;
+            int timerIndex = Array.IndexOf(lineParts, "CreateTimer");
+            OrderedDictionary properties = LoadDictionary(lineParts[timerIndex..(timerIndex + 2)]);
+            int completedIndex = Array.IndexOf(lineParts, "Completed");
+            string key = lineParts[completedIndex];
+            for (int i = completedIndex + 1; i < lineParts.Length - 1; i++)
+            {
+               value += lineParts[i] + " ";
+               if (value.Contains(']'))
+               {
+                  i = lineParts.Length;
+               }
+            }
+            properties.Add(key, value.TrimStart('\"', '[', ' ').TrimEnd(']', '\"', ' '));
+            Node node = new Node(subnodeId, properties, currentNode);
+            currentNode.AddChild(node);
+         }
          else if (currentNode.IsPowerGrid())
          {
             string CatName = GetPowerGridCategoryName(currentNode);
