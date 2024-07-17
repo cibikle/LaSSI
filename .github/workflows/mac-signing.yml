@@ -39,7 +39,7 @@ jobs:
     - name: Set Notarization Password
       shell: bash
       run: |
-        xcrun altool --store-password-in-keychain-item "AC_PASSWORD" -u "${{ secrets.APPLE_DEVELOPER_USERNAME }}" -p "${{ secrets.APPLE_DEVELOPER_NOTARIZATION_PASSWORD }}"
+        xcrun notarytool store-credentials "AC_PASSWORD" --apple-id "${{ secrets.APPLE_DEVELOPER_USERNAME }}" --password "${{ secrets.APPLE_DEVELOPER_NOTARIZATION_PASSWORD }}" --team-id "${{ vars.APPLE_DEVELOPER_TEAM_ID }}"
 
     - name: Checkout
       uses: actions/checkout@v3
