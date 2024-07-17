@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Eto.Forms/2.8.0">
+<Project Sdk="Eto.Forms/2.8.3">
 	<!--
     Set the BuildPlatform property to the Eto platform you wish to build for.
     The default is the platform you are building on.
@@ -39,11 +39,5 @@
 	</ItemGroup>
 	<ItemGroup>
 		<BundleResource Include="MacIcon.icns" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Update="Eto.Forms" Version="2.8.2" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Update="Eto.Platform.Wpf" Version="2.8.2" />
 	</ItemGroup>
 </Project>
