@@ -63,17 +63,10 @@ jobs:
       run: |
         chmod -R +x ${{ env.Wap_Project_Directory }}/output/LaSSI.app
         ls -al ${{ env.Wap_Project_Directory }}/output/LaSSI.app
+        pwd
+        ls -al
+        ls -al LaSSI
         zip LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip LaSSI
       shell: bash
 
-    - name: Upload build artifact - Mac
-      uses: ncipollo/release-action@main
-      with:
-        allowUpdates: true
-        updateOnlyUnreleased: true
-        artifactErrorsFailBuild: true
-        draft: true
-        prerelease: false
-        commit: ${{ github.ref_name }}
-        tag: 'v0.${{ github.event.inputs.version }}'
-        artifacts: 'LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip'
+
