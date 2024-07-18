@@ -59,18 +59,20 @@ jobs:
         New-Item "output" -ItemType Directory;
         dotnet build -c Release LaSSI.csproj -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/'
 
-    - name: Fix Mac file permission
+    - name: Rename DMG file
       run: |
-        chmod -R +x ${{ env.Wap_Project_Directory }}/output/LaSSI.app
-        ls -al ${{ env.Wap_Project_Directory }}/output/LaSSI.app
-        ls -al LaSSI/output
-        #zip LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip ${{ env.Wap_Project_Directory }}/output/
+        mv ${{ env.Wap_Project_Directory }}/output/LaSSI.dmg ${{ env.Wap_Project_Directory }}/output/LaSSI.macx64.v0.${{ github.event.inputs.version }}.dmg
       shell: bash
 
     - name: Upload build artifact - Mac
-      uses: actions/upload-artifact@v3
+      uses: ncipollo/release-action@main
       with:
-        name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
-       # path: LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip
-        path: ${{ env.Wap_Project_Directory }}/output/LaSSI.dmg
+        allowUpdates: true
+        updateOnlyUnreleased: true
+        artifactErrorsFailBuild: true
+        draft: true
+        prerelease: false
+        commit: ${{ github.ref_name }}
+        tag: 'v0.${{ github.event.inputs.version }}'
+        artifacts: '${{ env.Wap_Project_Directory }}/output/LaSSI.macx64.v0.${{ github.event.inputs.version }}.dmg'
 
