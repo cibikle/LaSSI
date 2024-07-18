@@ -64,12 +64,13 @@ jobs:
         chmod -R +x ${{ env.Wap_Project_Directory }}/output/LaSSI.app
         ls -al ${{ env.Wap_Project_Directory }}/output/LaSSI.app
         ls -al LaSSI/output
-        zip LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip ${{ env.Wap_Project_Directory }}/output/
+        #zip LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip ${{ env.Wap_Project_Directory }}/output/
       shell: bash
 
     - name: Upload build artifact - Mac
       uses: actions/upload-artifact@v3
       with:
         name: "LaSSI.macx64.v0.${{ github.event.inputs.version }}"
-        path: LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip
+       # path: LaSSI.macx64.v0.${{ github.event.inputs.version }}.zip
+        path: ${{ env.Wap_Project_Directory }}/output/LaSSI.dmg
 
