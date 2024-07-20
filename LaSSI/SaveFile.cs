@@ -381,16 +381,19 @@ namespace LaSSI
             int timerIndex = Array.IndexOf(lineParts, "CreateTimer");
             OrderedDictionary properties = LoadDictionary(lineParts[timerIndex..(timerIndex + 2)]);
             int completedIndex = Array.IndexOf(lineParts, "Completed");
-            string key = lineParts[completedIndex];
-            for (int i = completedIndex + 1; i < lineParts.Length - 1; i++)
+            if (completedIndex > 0)
             {
-               value += lineParts[i] + " ";
-               if (value.Contains(']'))
+               string key = lineParts[completedIndex];
+               for (int i = completedIndex + 1; i < lineParts.Length - 1; i++)
                {
-                  i = lineParts.Length;
+                  value += lineParts[i] + " ";
+                  if (value.Contains(']'))
+                  {
+                     i = lineParts.Length;
+                  }
                }
+               properties.Add(key, value.TrimStart('\"', '[', ' ').TrimEnd(']', '\"', ' '));
             }
-            properties.Add(key, value.TrimStart('\"', '[', ' ').TrimEnd(']', '\"', ' '));
             Node node = new Node(subnodeId, properties, currentNode);
             currentNode.AddChild(node);
          }
