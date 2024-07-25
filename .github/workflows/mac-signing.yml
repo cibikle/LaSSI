@@ -56,7 +56,7 @@ jobs:
       shell: pwsh
       working-directory: LaSSI
       run: |
-        $content = [System.IO.File]::ReadAllText("Info.plist").Replace("$VerString","0.${{ github.event.inputs.version }}")
+        $content = [System.IO.File]::ReadAllText("Info.plist").Replace("VerString","0.${{ github.event.inputs.version }}")
         [System.IO.File]::WriteAllText("Info.plist", $content)
         New-Item "output" -ItemType Directory;
         dotnet build -c Release LaSSI.csproj -p:AssemblyVersion=0.${{ github.event.inputs.version }}  -p:BuildPlatform=Mac64 -p:MacBundleDotNet=true --output 'output/'
