@@ -318,8 +318,43 @@ namespace LaSSI
          };
          rootLayout.Add(InitFilePanel());
          rootLayout.Add(LoadingBar);
-         rootLayout.Add(DataPanel);
+
+         rootLayout.Add(SetupTabs());
+         //rootLayout.Add(DataPanel);
          return rootLayout;
+      }
+      private TabControl SetupTabs()
+      {
+         TabControl tabs = new TabControl();
+         TabPage treeViewPage = new TabPage
+         {
+            Text = "Tree view"
+         };
+         TabPage sectorPage = new TabPage
+         {
+            Text = "Sector"
+         };
+         TabPage systemPage = new TabPage
+         {
+            Text = "System"
+         };
+         TabPage fleetPage = new TabPage
+         {
+            Text = "Fleet"
+         };
+         TabPage shipPage = new TabPage
+         {
+            Text = "Ship"
+         };
+
+         treeViewPage.Content = DataPanel;
+         tabs.Pages.Add(treeViewPage);
+         tabs.Pages.Add(sectorPage);
+         tabs.Pages.Add(systemPage);
+         //tabs.Pages.Add(fleetPage);
+         //tabs.Pages.Add(shipPage);
+
+         return tabs;
       }
       private static TableLayout InitFilePanel()
       {
