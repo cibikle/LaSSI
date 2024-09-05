@@ -224,7 +224,7 @@ namespace LaSSI
       }
       private static bool IsPropertyArray(string key, Node context)
       {
-         return (key.Equals("Entities")
+         return key.Equals("Entities")
             || key.Equals("Researched")
             || key.Equals("Visible")
             || key.Equals("Workers")
@@ -233,8 +233,11 @@ namespace LaSSI
             || key.Equals("SpecialUnlocks")
             || key.Equals("Items")
             || key.Equals("Layers")
-            || (key.Equals("Completed") && context.Name.Equals("Episodes"))
-            || key.Equals("Equipment")); // todo: clean this up
+            || (key.Equals("Completed") && (context.Name.Equals("Episodes") || context.Name.Equals("Tutorial")))
+            || key.Equals("Equipment")
+            || key.Equals("Actions")
+            || key.Equals("EpisodeSystems")
+            || key.Equals("StartingTiddlets"); // todo: clean this up
       }
       private string PropertiesToNodes(Node item, int indentationLevel = 0, int startIndex = 0)
       {

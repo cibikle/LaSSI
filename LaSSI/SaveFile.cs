@@ -312,7 +312,7 @@ namespace LaSSI
          Regex number = new Regex(@"\d+");
          return key == "Entities" || key == "Workers"
                         || key == "UnloadRequests" || key == "Items" || key == "Completed"
-                        || key == "Equipment" || number.IsMatch(key);
+                        || key == "Equipment" || key == "Actions" || key == "EpisodeSystems" || key == "StartingTiddlets" || number.IsMatch(key);
       }
       /// <summary>
       /// Processes a "complex" line, i.e., more than two parts (e.g., the HUD or a Hazard).
