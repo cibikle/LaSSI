@@ -1587,7 +1587,7 @@ namespace LaSSI
             {
                if (palette.Properties[key] is not null and string value)
                {
-                  palette.Properties[key] = value.Replace("Habitation true", "");
+                  palette.Properties[key] = value.Replace("Habitation true ", "");
                }
             }
             return true;
