@@ -1148,6 +1148,15 @@ namespace LaSSI
          GetTreeGridView().DataStore = items;
          ClearDetails();
       }
+      //public List<Node> GetFreeSpaceCollection()
+      //{
+      //   return null;
+      //}
+      //public Node GetFreeSpaceLayer(string systemId)
+      //{
+      //   return null;
+      //}
+
       public bool CometExists()
       {
          List<Node> systemsWithComets = GetGalaxyObjects(false, new Dictionary<string, string> { { "Comet", "true" } });
@@ -1494,6 +1503,16 @@ namespace LaSSI
          }
          return friendlyShips!;
       }
+      internal List<Node> GetFriendlyShips(out List<string> shipNames)
+      {
+         shipNames = new();
+         var ships = GetFriendlyShips();
+         foreach (var s in ships)
+         {
+            shipNames.Add(s.Name);
+         }
+         return ships;
+      }
       internal bool ReassignMissions(bool takeAction = false)
       {
          List<Node> assignedMissions = new();
@@ -1568,7 +1587,7 @@ namespace LaSSI
             {
                if (palette.Properties[key] is not null and string value)
                {
-                  palette.Properties[key] = value.Replace("Habitation true", "");
+                  palette.Properties[key] = value.Replace("Habitation true ", "");
                }
             }
             return true;
@@ -1687,12 +1706,12 @@ namespace LaSSI
 
          return crewDetected;
       }
-      internal bool ClaimGhostShips(bool takeAction = false)
+      internal TreeGridItemCollection FindGhostShips(out List<string> ghostShipNames)
       {
          TreeGridItemCollection neutralAndHostileShips = mainForm.saveFile.FindNodes(Root, new string[] { "NeutralShip" });
          neutralAndHostileShips.AddRange(mainForm.saveFile.FindNodes(Root, new string[] { "HostileShip" }));
          TreeGridItemCollection ghostShips = new();
-         List<string> ghostShipNames = new();
+         ghostShipNames = new();
          // check each ship for dead crew (at least half, I guess?) or the reactors are off
          foreach (Node ship in neutralAndHostileShips)
          {
@@ -1731,6 +1750,54 @@ namespace LaSSI
                }
             }
          }
+         return ghostShips;
+      }
+      internal bool ScuttleShips(bool takeAction = false)
+      {
+         int updatedShips = 0;
+         TreeGridItemCollection ships = FindGhostShips(out List<string> shipNames);
+         ships.AddRange(GetFriendlyShips(out List<string> friendlyShipNames));
+         shipNames.AddRange(friendlyShipNames);
+         if (takeAction)
+         {
+            bool actionTaken = false;
+            if (shipNames.Count < 1)
+            {
+               _ = MessageBox.Show("No ships to scuttle. Somehow.", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+               return actionTaken;
+            }
+            CheckBoxListDialog scuttleShipsSelection = new("Select ghost ships or friendies to scuttle", shipNames);
+            scuttleShipsSelection.ShowModal(mainForm);
+            if (scuttleShipsSelection.GetDialogResult() == DialogResult.Ok)
+            {
+               actionTaken = true;
+               var selectedShips = scuttleShipsSelection.GetSelectedItems();
+               foreach (var shipName in selectedShips)
+               {
+                  Node ship = (Node)ships[shipNames.FindIndex(x => x.Equals(shipName))];
+                  if (ship.TrySetProperty("Type", "Derelict"))
+                  {
+                     updatedShips++;
+                     actionTaken = true;
+                  }
+
+                  ship.RebuildName();
+               } // todo: probably makes sense to display the list of ships "derelicted"
+               if (actionTaken)
+               {
+                  AddUnsavedToDataState();
+                  Rebuild(Root);
+               }
+            }
+
+            return actionTaken;
+         }
+
+         return shipNames.Count > 0;
+      }
+      internal bool ClaimGhostShips(bool takeAction = false)
+      {
+         TreeGridItemCollection ghostShips = FindGhostShips(out List<string> ghostShipNames);
          if (takeAction)
          {
             bool actionTaken = false;

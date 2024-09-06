@@ -39,11 +39,48 @@ namespace LaSSI
          ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
          ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
          ToolsList.Add(CreateClaimGhostShipsCommand(claimGhostShip_Executed));
+         ToolsList.Add(CreateScuttleShipsCommand(scuttleShips_Executed));
+         //ToolsList.Add(CreateCleanupFreeSpaceCommand(cleanupFreeSpace_Executed));
+         //ToolsList.Add(CreateAbandonedDronesCommand(abandondedDrones_Executed));
          prefsCommand = new Command(PrefsCommand_Executed);
          CheckForUpdates = new Command(UpdateCommand_Executed);
       }
 
       #region tools
+
+      internal static Command CreateAbandonedDronesCommand(EventHandler<EventArgs> handler)
+      {
+         Command freeAbandondedDronesCommand = new()
+         {
+            MenuText = "Free abandonded drones",
+            ID = "FreeAbandondedDrones"
+         };
+         freeAbandondedDronesCommand.Executed += handler;
+         freeAbandondedDronesCommand.Enabled = false;
+         return freeAbandondedDronesCommand;
+      }
+      internal static Command CreateCleanupFreeSpaceCommand(EventHandler<EventArgs> handler)
+      {
+         Command cleanupFreeSpaceCommand = new()
+         {
+            MenuText = "Clean up Free Space",
+            ID = "CleanupFreeSpace"
+         };
+         cleanupFreeSpaceCommand.Executed += handler;
+         cleanupFreeSpaceCommand.Enabled = false;
+         return cleanupFreeSpaceCommand;
+      }
+      internal static Command CreateScuttleShipsCommand(EventHandler<EventArgs> handler)
+      {
+         Command scuttleShipsCommand = new()
+         {
+            MenuText = "Scuttle ships",
+            ID = "ScuttleShips"
+         };
+         scuttleShipsCommand.Executed += handler;
+         scuttleShipsCommand.Enabled = false;
+         return scuttleShipsCommand;
+      }
       internal static Command CreateClaimGhostShipsCommand(EventHandler<EventArgs> handler)
       {
          Command claimGhostShipsCommand = new()
@@ -384,6 +421,21 @@ namespace LaSSI
                   enablability = data.ClaimGhostShips();
                   break;
                }
+            case "ScuttleShips":
+               {
+                  enablability = data.ScuttleShips();
+                  break;
+               }
+            case "CleanupFreeSpace":
+               {
+                  //enablability = data.();
+                  break;
+               }
+            case "FreeAbandondedDrones":
+               {
+                  //enablability = data.ClaimGhostShips();
+                  break;
+               }
          }
 
          return enablability;
@@ -703,6 +755,29 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
+      internal void abandondedDrones_Executed(object? sender, EventArgs e)
+      {
+         //maybe reuse a bunch of stuff from cleanupFreeSpace
+      }
+      internal void cleanupFreeSpace_Executed(object? sender, EventArgs e)
+      {
+         // first check if FreeSpace exists in the "current" layers or the SystemArchive
+         // present, I guess, checkboxlist of all Systems with FreeSpace layers
+         // also a checkboxlist of stuff to cleanup?
+         //  - corpses
+         //  - drones
+         //  - salvage
+         //  - resources
+      }
+      internal void scuttleShips_Executed(object? sender, EventArgs e)
+      {
+         // find all Friendly and ghost ships, present checkboxlist
+
+         if (MainForm.DataPanel.ScuttleShips(true))
+         {
+            _ = MessageBox.Show("Ships scuttled", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
+      }
       internal void claimGhostShip_Executed(object? sender, EventArgs e)
       {
          if (MainForm.DataPanel.ClaimGhostShips(true))
