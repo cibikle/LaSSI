@@ -375,11 +375,25 @@ namespace LaSSI
             }
             currentNode.Properties.Add(key, value.Trim());
          }
-         else if (subnodeId.Equals("Episodes")) //todo: this could be a real problem
+         else if (subnodeId.Equals("Episodes") || subnodeId.Equals("Tutorial")) //todo: this could be a real problem
          {
             string value = string.Empty;
-            int timerIndex = Array.IndexOf(lineParts, "CreateTimer");
-            OrderedDictionary properties = LoadDictionary(lineParts[timerIndex..(timerIndex + 2)]);
+            int wordIndex = 2; // for a dad-ratted magic number, it should be pretty safe since the line parts
+                               // should always start [0]BEGIN, [1]{node name, e.g., Tutorial}, [2]{key, e.g., PlayerHasShiftClicked}, etc.
+            switch (subnodeId)
+            {
+               case "Episodes":
+                  {
+                     wordIndex = Array.IndexOf(lineParts, "CreateTimer");
+                     break;
+                  }
+               case "Tutorial":
+                  {
+                     wordIndex = Array.IndexOf(lineParts, "PlayerHasShiftClicked");
+                     break;
+                  }
+            }
+            OrderedDictionary properties = LoadDictionary(lineParts[wordIndex..(wordIndex + 2)]);
             int completedIndex = Array.IndexOf(lineParts, "Completed");
             if (completedIndex > 0)
             {
