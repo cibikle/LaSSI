@@ -14,8 +14,8 @@ namespace LaSSI
       public string Filename = string.Empty;
       public Node HudNode { get; set; } = new Node("HUD");
       public Node GalaxyNode { get; set; } = new Node("Galaxy");
-      public Node Root { get; set; } = new Node();
-      public TreeGridItemCollection root { get; set; } = new TreeGridItemCollection();
+      public Node RootNode { get; set; } = new Node();
+      public TreeGridItemCollection Tree { get; set; } = new TreeGridItemCollection();
       public static readonly string NewLineUnix = "\n";
       public static readonly string NewLineRegexUnix = @"(?<!\r)\n";
       public static readonly string NewLineWindows = "\r\n";
@@ -39,10 +39,10 @@ namespace LaSSI
       {
          Filename = filename;
          //GameMode = string.Empty;
-         Root = new Node($"{Path.GetFileName(filename)}");
-         root.Add(Root);
-         Root.AddChild(HudNode);
-         Root.AddChild(GalaxyNode);
+         RootNode = new Node($"{Path.GetFileName(filename)}");
+         Tree.Add(RootNode);
+         RootNode.AddChild(HudNode);
+         RootNode.AddChild(GalaxyNode);
       }
       private static void LoadHUD(SaveFilev2 saveFile, string[] HudData)
       {
@@ -53,7 +53,7 @@ namespace LaSSI
       }
       private static OrderedDictionary LoadDictionary(string[] Data)
       {
-         OrderedDictionary Dictionary = new OrderedDictionary();
+         OrderedDictionary Dictionary = new();
          for (int i = 0; i < Data.Length; i += 2)
          {
             string key = Data[i];
@@ -104,7 +104,7 @@ namespace LaSSI
       }
       private void AddPropertyToRootNode(string key, string value)
       {
-         this.Root.Properties.Add(key, value);
+         this.RootNode.Properties.Add(key, value);
       }
       private static bool IsRootNodeProperty(string name)
       {
@@ -113,7 +113,7 @@ namespace LaSSI
       internal TreeGridItemCollection FindNodes(Node node, string[] searchTerms)
       {
          TreeGridItemCollection nodes = new();
-         bool match = false;
+         bool match;// = false;
          int matches = 0;
          if (searchTerms.Length < 1 || node is null)
          {
@@ -140,25 +140,19 @@ namespace LaSSI
             }
          }
 
-         //if (match)
          if (matches == searchTerms.Length)
          {
             nodes.Add(node);
          }
-         foreach (Node child in node.Children)
+         foreach (Node child in node.Children.Cast<Node>())
          {
             nodes.AddRange(FindNodes(child, searchTerms));
          }
          return nodes;
       }
-      //internal TreeGridItemCollection FindNodes(Dictionary<string, string> searchTerms)
-      //{
-
-      //}
       public TreeGridItemCollection Search(string searchtext)
       {
          TreeGridItemCollection searchCollection;
-         //Dictionary<string, string> properties = new();
          string[] searchTokens = searchtext.Split(" ");
          List<string> searchTerms = new();
          bool quote = false;
@@ -178,7 +172,7 @@ namespace LaSSI
                quote = !quote;
             }
          }
-         searchCollection = FindNodes(Root, searchTerms.ToArray());
+         searchCollection = FindNodes(RootNode, searchTerms.ToArray());
          return searchCollection;
       }
       public void Load()
@@ -193,7 +187,7 @@ namespace LaSSI
          }
 
          Stack<Node> nodeStack = new();
-         nodeStack.Push(saveFile.Root);
+         nodeStack.Push(saveFile.RootNode);
          Debug.WriteLine(filename);
          TextReader reader = new StreamReader(filename);
          string text = reader.ReadToEnd();
@@ -232,72 +226,16 @@ namespace LaSSI
                   }
                default:
                   {
-                     if (nodeStack.Peek() == saveFile.Root && IsRootNodeProperty(lineParts[0]))
+                     if (nodeStack.Peek() == saveFile.RootNode && IsRootNodeProperty(lineParts[0]))
                      {
                         saveFile.AddPropertyToRootNode(lineParts[0], lineParts[1]);
                         continue;
                      }
                      Node curNode = nodeStack.Peek();
                      string key = lineParts[0], value = lineParts[1];
-                     if (curNode.IsResearch() || IsList(lineParts[0]))
-                     {
-                        if (lineParts.Length > 2)
-                        {
-                           value = line[line.IndexOf("\"")..];
-                           if (value.StartsWith("\"["))
-                           {
-                              value = value.TrimStart('"', '[');
-                           }
-                           if (value.EndsWith("]\""))
-                           {
-                              value = value.TrimEnd(']', '"', ' ');
-                           }
-                        }
-                        else
-                        {
-                           value = lineParts[1].TrimStart('[').TrimEnd(']');
-                        }
-                     }
-                     else if (curNode.IsLayer(true) || curNode.IsEditor(true)) //remember, layers include both "FreeSpace" and all ships/stations!
-                     {
-                        if (lineParts.Length > 2)
-                        {
-                           if (key == "Name" || key == "Author" || key.StartsWith("row"))//todo: uh, something better than writing out all possibilities
-                           {
-                              value = line[line.IndexOf("\"")..].Trim();
-                           }
-                        }
-                        //if (lineParts[0] == "SystemId")
-                        //{
-                        //   string systemId = lineParts[1];
-                        //   if (curNode.Parent is not null and Node parent)
-                        //   {
-                        //      if ((parent == saveFile.Root)
-                        //         || (parent.IsSystemNode()
-                        //         && parent.TryGetProperty("SystemId", out string currentSystemId)
-                        //         && currentSystemId != systemId))
-                        //      {
-                        //         //remove curNode from parent's children
-                        //         parent.RemoveChild(curNode);
-                        //         //try to find correct system node in root's children
-                        //         Node? systemNode = saveFile.Root.FindChild($"System {systemId}");
-                        //         //create new system node if needed and add to root's children
-                        //         if (systemNode is null)
-                        //         {
-                        //            OrderedDictionary d = new()
-                        //            {
-                        //               { lineParts[0], lineParts[1] }
-                        //            };
-                        //            systemNode = new Node($"System {systemId}", d);
-                        //            parent.AddChild(systemNode);
-                        //         }
-                        //         //add curNode to new system node's children
-                        //         systemNode.AddChild(curNode);
-                        //      }
-                        //   }
-                        //}
-                     }
-                     if (key != string.Empty && value != string.Empty) //unneccessary?
+                     value = line.Replace(lineParts[0] + " ", null).Trim();
+
+                     if (key != string.Empty && value != string.Empty) //is this check neccessary?
                      {
                         curNode.Properties.Add(key, value);
                      }
@@ -306,13 +244,9 @@ namespace LaSSI
             }
          }
       }
-
-      private static bool IsList(string key)
+      private static bool IsSubnode(string subnodeId)
       {
-         Regex number = new Regex(@"\d+");
-         return key == "Entities" || key == "Workers"
-                        || key == "UnloadRequests" || key == "Items" || key == "Completed"
-                        || key == "Equipment" || key == "Actions" || key == "EpisodeSystems" || key == "StartingTiddlets" || number.IsMatch(key);
+         return Regex.Match(subnodeId, subnodeRegex).Success;
       }
       /// <summary>
       /// Processes a "complex" line, i.e., more than two parts (e.g., the HUD or a Hazard).
@@ -323,10 +257,10 @@ namespace LaSSI
       private static void ProcessComplexLine(Stack<Node> nodeStack, string[] lineParts, SaveFilev2 saveFile)
       {
          string subnodeId = $"{lineParts[1]} {lineParts[2]}";
-         Match m = Regex.Match(subnodeId, subnodeRegex);
-         if (m.Success && lineParts.Length == 3) //we found an array line, multi-part
+         bool isSubnode = IsSubnode(subnodeId);
+         if (isSubnode && lineParts.Length == 3) //we found an array line, multi-part
          {
-            Node node = new Node(subnodeId);
+            Node node = new(subnodeId);
             nodeStack.Peek().AddChild(node);
             nodeStack.Push(node);
          }
@@ -341,7 +275,7 @@ namespace LaSSI
                   }
                default:
                   {
-                     ProcessComplexLineDefault(nodeStack.Peek(), lineParts, m, subnodeId);
+                     ProcessComplexLineDefault(nodeStack.Peek(), lineParts, isSubnode, subnodeId);
                      break;
                   }
             }
@@ -352,12 +286,12 @@ namespace LaSSI
       /// </summary>
       /// <param name="currentNode"></param>
       /// <param name="lineParts"></param>
-      /// <param name="m"></param>
+      /// <param name="isSubnode"></param>
       /// <param name="subnodeId"></param>
-      private static void ProcessComplexLineDefault(Node currentNode, string[] lineParts, Match m, string subnodeId)
+      private static void ProcessComplexLineDefault(Node currentNode, string[] lineParts, bool isSubnode, string subnodeId)
       {
          int start = 2; // non-array one-liners (e.g., BEGIN Orders Salvage true...) have worthwhile data starting at index 2
-         if (m.Success) // OTOH, array one-liners (e.g., BEGIN "[i 0]"      StringId mission_sectorrescue_title...) have worthwhile data starting at index 3 (damn off-by-ones...)
+         if (isSubnode) // OTOH, array one-liners (e.g., BEGIN "[i 0]"      StringId mission_sectorrescue_title...) have worthwhile data starting at index 3 (damn off-by-ones...)
          {
             start++;
          }
@@ -368,12 +302,24 @@ namespace LaSSI
          if (currentNode.IsPalette())
          {
             string key = lineParts[1];
-            string value = string.Empty;
-            for (int i = start; i < lineParts.Length - 1; i++)
-            {
-               value += lineParts[i] + " ";
-            }
+            string value = string.Join(" ", lineParts[start..]).Replace("END", "");
             currentNode.Properties.Add(key, value.Trim());
+         }
+         else if (currentNode.IsPowerGrid())
+         {
+            string CatName = GetPowerGridCategoryName(currentNode);
+            if (lineParts.Length >= 4)
+            {
+               currentNode.Properties.Add($"{lineParts[1]} {CatName}", $"{lineParts[2]} {lineParts[3]}");
+            }
+            else if (lineParts.Length == 3)
+            {
+               currentNode.Properties.Add($"{lineParts[1]} {CatName}", "Setting 0");
+            }
+            else
+            {
+               Debug.WriteLine($"Unexpected number of line parts for a powergrid setting: {lineParts.Length}");
+            }
          }
          else if (subnodeId.Equals("Episodes") || subnodeId.Equals("Tutorial")) //todo: this could be a real problem
          {
@@ -395,6 +341,7 @@ namespace LaSSI
             }
             OrderedDictionary properties = LoadDictionary(lineParts[wordIndex..(wordIndex + 2)]);
             int completedIndex = Array.IndexOf(lineParts, "Completed");
+            Node node = new(subnodeId);
             if (completedIndex > 0)
             {
                string key = lineParts[completedIndex];
@@ -406,26 +353,10 @@ namespace LaSSI
                      i = lineParts.Length;
                   }
                }
-               properties.Add(key, value.TrimStart('\"', '[', ' ').TrimEnd(']', '\"', ' '));
+               properties.Add(key, value);
             }
-            Node node = new Node(subnodeId, properties, currentNode);
+            node.Properties = properties;
             currentNode.AddChild(node);
-         }
-         else if (currentNode.IsPowerGrid())
-         {
-            string CatName = GetPowerGridCategoryName(currentNode);
-            if (lineParts.Length >= 4)
-            {
-               currentNode.Properties.Add($"{lineParts[1]} {CatName}", $"{lineParts[2]} {lineParts[3]}");
-            }
-            else if (lineParts.Length == 3)
-            {
-               currentNode.Properties.Add($"{lineParts[1]} {CatName}", "Setting 0");
-            }
-            else
-            {
-               Debug.WriteLine($"Unexpected number of line parts for a powergrid setting: {lineParts.Length}");
-            }
          }
          else
          {
@@ -440,10 +371,9 @@ namespace LaSSI
                {
                   workers += lineParts[i] + ' ';
                }
-               workers = workers.TrimStart('"', '[').TrimEnd('"', ']', ' ');
                properties.Add(lineParts[WorkersIndex], workers);
             }
-            Node node = new Node(subnodeId, properties, currentNode);
+            Node node = new(subnodeId, properties, currentNode);
             currentNode.AddChild(node);
          }
 
@@ -575,7 +505,7 @@ namespace LaSSI
       /// <param name="lineParts"></param>
       private static void ProcessSimpleLineDefault(Stack<Node> nodeStack, string[] lineParts)
       {
-         Node node = new Node(lineParts[1]);
+         Node node = new(lineParts[1]);
          nodeStack.Peek().AddChild(node);
          if (lineParts.Length == 2)
          {
@@ -589,10 +519,9 @@ namespace LaSSI
 
       public static SaveFilev2 LoadFile(string filename)
       {
-         SaveFilev2 saveFile = new SaveFilev2(filename);
+         SaveFilev2 saveFile = new(filename);
          LoadFile(saveFile, filename);
          return saveFile;
       }
-
    }
 }

@@ -2,24 +2,26 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
    public class Node : ITreeGridItem<Node>
    {
-      private string name;
+      private string name = string.Empty;
       public string Name
       {
          get { return name; }
-         set { name = value; if (string.IsNullOrEmpty(baseName)) { baseName = name; } }
+         set { name = value; if (string.IsNullOrEmpty(BaseName)) { BaseName = name; } }
       }
-      public string baseName { get; set; } = string.Empty;
+      public string BaseName { get; set; } = string.Empty;
       public string Text { get; set; } = string.Empty;
-      public int Id { get; set; }
+      public int Id { get; set; } = 0;
       public TreeGridItemCollection Children { get; set; } = new();
-      public OrderedDictionary Properties { get; set; }
+      public OrderedDictionary Properties { get; set; } = new OrderedDictionary();
       public int Count => Children.Count;
+      private List<string> ListOfArrays = new();
 
       public bool Expanded { get; set; }
 
@@ -30,9 +32,16 @@ namespace LaSSI
       public Node this[int index] => GetChild(index);
 
 
-      private Node? GetChild(int index)
+      private Node GetChild(int index)
       {
-         return Children[index] is Node node ? node : null;
+         if (index >= 0 && index < Children.Count && Children[index] is Node node)
+         {
+            return node;
+         }
+         else
+         {
+            throw new IndexOutOfRangeException();
+         }
       }
       public Node? GetParent()
       {
@@ -40,14 +49,14 @@ namespace LaSSI
          {
             return p;
          }
-         return null;
+         else
+         {
+            return null;
+         }
       }
       public Node()
       {
          Name = string.Empty;
-         Id = 0;
-         Parent = null;
-         Properties = new OrderedDictionary();
       }
       public Node(string name, int id, Node? parent, TreeGridItemCollection children, OrderedDictionary properties)
       {
@@ -60,35 +69,23 @@ namespace LaSSI
       public Node(string name)
       {
          Name = name;
-         Id = 0;
-         Parent = null;
-         Properties = new OrderedDictionary();
       }
-      public Node(string name, OrderedDictionary properties)
+      public Node(string name, OrderedDictionary properties) : this(name)
       {
-         Name = name;
-         Id = 0;
-         Parent = null;
          Properties = properties;
       }
-      public Node(string name, OrderedDictionary properties, Node parent)
+      public Node(string name, OrderedDictionary properties, Node parent) : this(name, properties)
       {
-         Name = name;
-         Id = 0;
          Parent = parent;
-         Properties = properties;
          AddAddlNameDetails();
       }
-      public Node(string name, Node parent)
+      public Node(string name, Node parent) : this(name)
       {
-         Name = name;
-         Id = 0;
          Parent = parent;
-         Properties = new OrderedDictionary();
       }
       public void RebuildName()
       {
-         Name = baseName;
+         Name = BaseName;
          AddAddlNameDetails();
       }
       public void AddChild(Node node)
@@ -124,7 +121,7 @@ namespace LaSSI
          if (!this.Children.Contains(node) && !recurse) return false;
          if (this.Children.Contains(node)) return true;
          bool contains = false;
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             contains = child.ContainsChild(node, recurse);
             if (contains) break;
@@ -137,7 +134,7 @@ namespace LaSSI
       }
       public Node? FindChild(string name, bool looseMatch = false, bool recurse = false)
       {
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if (child.Name.Equals(name) || (looseMatch && Regex.IsMatch(child.Name, name, RegexOptions.IgnoreCase)))
             {
@@ -156,7 +153,7 @@ namespace LaSSI
       public TreeGridItemCollection FindChildren(string searchName, bool recurse = false)
       {
          TreeGridItemCollection nodes = new();
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if ( /*child.Name.Equals(name) || (looseMatch && child.Name.StartsWith(name))*/ Regex.IsMatch(child.Name, searchName, RegexOptions.IgnoreCase))
             {
@@ -174,7 +171,7 @@ namespace LaSSI
       }
       public Node? FindChild(string propertyName, string propertyValue) // todo: add recurse option
       {
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if (child.Properties.Contains(propertyName) && propertyValue.Equals(child.Properties[propertyName]))
             {
@@ -186,7 +183,7 @@ namespace LaSSI
       public TreeGridItemCollection FindChildren(string propertyName, string propertyValue = "", bool recurse = false)
       {
          TreeGridItemCollection nodes = new();
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if (child.TryGetProperty(propertyName, out string propValue) && propValue.Equals(propertyValue, StringComparison.OrdinalIgnoreCase))
             {
@@ -205,7 +202,7 @@ namespace LaSSI
       public TreeGridItemCollection FindChildrenWithProperty(string propertyName, bool recurse = false)
       {
          TreeGridItemCollection nodes = new();
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if (child.HasProperties(new string[] { propertyName }))
             {
@@ -223,7 +220,7 @@ namespace LaSSI
       }
       public Node? FindChild(string name, string propertyName, string propertyValue, bool looseMatch = false) // todo: add recurse option
       {
-         foreach (Node child in Children)
+         foreach (Node child in Children.Cast<Node>())
          {
             if ((child.Name.Equals(name) || (looseMatch && child.Name.Contains(name)))
                && child.Properties.Contains(propertyName) && propertyValue.Equals(child.Properties[propertyName]))
@@ -233,7 +230,20 @@ namespace LaSSI
          }
          return null;
       }
-
+      public static bool DetermineIfPropertyIsArray(string key)
+      {
+         //if the key starts and ends with a [ and a ], it's an array
+         //if the key starts with a " and a [ and ends with a ] and a " and contains a ' ' and a ',', it's an array
+         return (key.StartsWith('[') && key.EndsWith(']')) || (key.StartsWith("\"[") && key.EndsWith("]\"") && key.Contains(", "));
+      }
+      public void RegisterPropertyAsArray(string key)
+      {
+         ListOfArrays.Add(key);
+      }
+      public bool PropertyIsArray(string key)
+      {
+         return ListOfArrays.Contains(key);
+      }
       public bool TryGetProperty(string propertyName, out string propertyValue)
       {
          if (MatchProperty(propertyName, out string matchingPropertyName))
@@ -389,7 +399,7 @@ namespace LaSSI
       internal bool IsPalette(bool DetermineIfChild = false)
       {
          if (this.Name == "Palette") return true;
-         return GetParent() is not null and Node p && DetermineIfChild ? p.IsPalette(DetermineIfChild) : false;
+         return GetParent() is not null and Node p && DetermineIfChild && p.IsPalette(DetermineIfChild);
       }
       internal bool IsPowerGrid()
       {
@@ -398,7 +408,7 @@ namespace LaSSI
       internal bool IsEditor(bool DetermineIfChild = false)
       {
          if (this.Name == "Editor") return true;
-         return GetParent() is not null and Node p && DetermineIfChild ? p.IsEditor(DetermineIfChild) : false;
+         return GetParent() is not null and Node p && DetermineIfChild && p.IsEditor(DetermineIfChild);
       }
       internal bool IsPhysicsState()
       {

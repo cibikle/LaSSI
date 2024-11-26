@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+//using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
@@ -17,21 +18,20 @@ namespace LaSSI
       {
          string rootdata = RenderRoot(root.Properties);
          string text = string.Empty;
-         foreach (Node child in root.Children)
+         foreach (Node child in root.Children.Cast<Node>())
          {
-            text += foo(child);
+            text += RenderLine(child);
          }
 
          string data = Environment.NewLine + rootdata + text;
-         using (var sw = new StreamWriter(Filename))
-         {
-            sw.Write(data);
-         }
+         using var sw = new StreamWriter(Filename);
+         sw.Write(data);
 
          return false;
       }
       private static bool IsOneliner(Node item) // todo: this is a travesty
       {
+         //string arrayPattern = "\\\"\\[i \\d+\\]\\\"";
          bool IsOneLiner;
          if (item.GetParent() is not null and Node p && p.Name == "Zones")
          {
@@ -91,8 +91,6 @@ namespace LaSSI
          }
          else if (item.Name == "Cells")
          {
-            //if (item.Values[1] is OrderedDictionary dic)
-            //{
             OrderedDictionary dic = item.Properties;
             if (dic.Count == 0)
             {
@@ -102,12 +100,6 @@ namespace LaSSI
             {
                IsOneLiner = false;
             }
-            //}
-            //else
-            //{
-            //   IsOneLiner = true;
-            //}
-
          }
          else if (item.Children.Count == 0
             && item.Properties.Count <= 10
@@ -129,7 +121,7 @@ namespace LaSSI
 
          return IsOneLiner;
       }
-      private string foo(Node item, int indentationLevel = 0)
+      private string RenderLine(Node item, int indentationLevel = 0)
       {
          if (IsOneliner(item))
          {
@@ -145,7 +137,7 @@ namespace LaSSI
          string name = item.Name;
          if (name.Contains('('))
          {
-            name = name[..(name.IndexOf("("))];
+            name = name[..name.IndexOf("(")];
          }
          return name;
       }
@@ -183,9 +175,9 @@ namespace LaSSI
             text += RenderProperties(item, indentationLevel, true);
          }
 
-         foreach (Node child in item.Children)
+         foreach (Node child in item.Children.Cast<Node>())
          {
-            text += foo(child, indentationLevel);
+            text += RenderLine(child, indentationLevel);
          }
          text += $"{indent}END{Environment.NewLine}";
          return text;
@@ -197,21 +189,7 @@ namespace LaSSI
          string indent = GetIndentPad(indentationLevel);
          foreach (DictionaryEntry entry in item.Properties)
          {
-            if (IsPropertyArray(entry.Key.ToString()!, item))
-            {
-               if (entry.Value!.ToString()!.Contains(' '))
-               {
-                  text += $"{indent}{entry.Key} \"[{entry.Value}]\"  ";
-               }
-               else
-               {
-                  text += $"{indent}{entry.Key} [{entry.Value}]  ";
-               }
-            }
-            else
-            {
-               text += $"{indent}{entry.Key} {entry.Value}  ";
-            }
+            text += $"{indent}{entry.Key} {entry.Value}  ";
 
             if (multiline) text += Environment.NewLine;
             counter++;
@@ -221,23 +199,6 @@ namespace LaSSI
             }
          }
          return text;
-      }
-      private static bool IsPropertyArray(string key, Node context)
-      {
-         return key.Equals("Entities")
-            || key.Equals("Researched")
-            || key.Equals("Visible")
-            || key.Equals("Workers")
-            || key.Equals("UnloadRequests")
-            || key.Equals("UnlockedRecipes")
-            || key.Equals("SpecialUnlocks")
-            || key.Equals("Items")
-            || key.Equals("Layers")
-            || (key.Equals("Completed") && (context.Name.Equals("Episodes") || context.Name.Equals("Tutorial")))
-            || key.Equals("Equipment")
-            || key.Equals("Actions")
-            || key.Equals("EpisodeSystems")
-            || key.Equals("StartingTiddlets"); // todo: clean this up
       }
       private string PropertiesToNodes(Node item, int indentationLevel = 0, int startIndex = 0)
       {
@@ -252,8 +213,8 @@ namespace LaSSI
                counter++;
                continue;
             }
-            string key = entry.Key.ToString()!;
-            string value = entry.Value!.ToString()!;
+            string key = $"{entry.Key}";
+            string value = $"{entry.Value}";
             if (name == "PowerGrid")
             {
                key = key[..(key.IndexOf(' '))];
@@ -282,22 +243,6 @@ namespace LaSSI
          }
 
          return data;
-      }
-      private static string RenderHud(OrderedDictionary dictionary)
-      {
-         string foo = "BEGIN HUD";
-         int keylen = foo.Length;
-         foo += new string(' ', 18 - keylen - 1);
-         //var s = HudValues[1];
-         if (dictionary.Count != 0)
-         {
-            foreach (DictionaryEntry p in dictionary)
-            {
-               foo += $"{p.Key} {p.Value}  ";
-            }
-         }
-         foo += "END" + Environment.NewLine;
-         return foo;
       }
    }
 }

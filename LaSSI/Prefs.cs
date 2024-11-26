@@ -37,26 +37,26 @@ namespace LaSSI
       never,
       always
    }
-   public enum yesno
+   public enum YesNo
    {
       no,
       yes
    }
    public class Prefs
    {
-      public List<Pref> defaultPrefs = new List<Pref>();
-      public Pref saveBeforeQuitting = new Pref("Save before quitting", AlwaysNeverPrompt.prompt, PrefType.alwaysneverprompt);
-      public Pref applyBeforeSaving = new Pref("Apply before saving", AlwaysNeverPrompt.always, PrefType.alwaysneverprompt);
+      public List<Pref> defaultPrefs = new();
+      public Pref saveBeforeQuitting = new("Save before quitting", AlwaysNeverPrompt.prompt, PrefType.alwaysneverprompt);
+      public Pref applyBeforeSaving = new("Apply before saving", AlwaysNeverPrompt.always, PrefType.alwaysneverprompt);
       //Pref autoSave = new Pref("Autosave", yesno.no, PrefType.checkbox);
       //Pref autoReload = new Pref("Auto-reload", yesno.no, PrefType.checkbox);
-      internal Pref startupFile = new Pref("Startup file", "", PrefType.file);
+      internal Pref startupFile = new("Startup file", "", PrefType.file);
       //internal Pref autoLoad = new Pref("Auto-load last file on start", yesno.no, PrefType.checkbox);
       public Pref startupBehavior = new("Startup behavior", StartupBehavior.Nothing, PrefType.startupbehavior);
-      internal Pref holidayFun = new("Holiday fun", yesno.yes, PrefType.checkbox, true);
+      internal Pref holidayFun = new("Holiday fun", YesNo.yes, PrefType.checkbox, true);
       //Pref backup = new Pref("Backup", "Yes", PrefType.checkbox);
       //Pref backupRetention = new Pref("Backup retention (days)", "30", PrefType.number);
       //Pref retainPositionAndSize = new Pref("Remember window size and position", yesno.no, PrefType.checkbox);
-      public Pref updateCheck = new Pref("Check for new version on start", yesno.yes, PrefType.checkbox);
+      public Pref updateCheck = new("Check for new version on start", YesNo.yes, PrefType.checkbox);
       public MainForm MainForm;
 
       public Prefs(MainForm mainForm)
@@ -162,9 +162,9 @@ namespace LaSSI
 
    internal class PrefsDialog : Dialog
    {
-      public event EventHandler? UiRefreshRequired;
+      //public event EventHandler? UiRefreshRequired;
 
-      private Prefs Prefs;
+      private readonly Prefs Prefs;
       private Button? OKButton;
       private Button? CancelButton;
       public PrefsDialog(Prefs prefs)
@@ -179,15 +179,15 @@ namespace LaSSI
       }
       private DynamicLayout InitPrefsPanel()
       {
-         Size space = new Size(5, 5);
-         DynamicLayout mainLayout = new DynamicLayout()
+         Size space = new(5, 5);
+         DynamicLayout mainLayout = new()
          {
             Padding = 5,
             Spacing = space
          };
-         foreach (var pref in Prefs.defaultPrefs) // todo: change this
+         foreach (Pref pref in Prefs.defaultPrefs) // todo: change this
          {
-            mainLayout.AddSeparateRow(null, space, false, false, CreateRow(pref));
+            _ = mainLayout.AddSeparateRow(null, space, false, false, CreateRow(pref));
          }
          OKButton = new(OK_clicked)
          {
@@ -197,7 +197,7 @@ namespace LaSSI
          {
             Text = "Cancel"
          };
-         StackLayout buttons = new StackLayout()
+         StackLayout buttons = new()
          {
             Orientation = Orientation.Horizontal
          };
@@ -230,9 +230,9 @@ namespace LaSSI
                   {
                      ID = pref.name,
                   };
-                  if (pref.value is not null and yesno value)
+                  if (pref.value is not null and YesNo value)
                   {
-                     checkBox.Checked = value == yesno.yes;
+                     checkBox.Checked = value == YesNo.yes;
                   }
 
                   checkBox.CheckedChanged += CheckBox_CheckedChanged;
@@ -292,7 +292,7 @@ namespace LaSSI
                      ID = pref.name
                   };
                   pickStartingSave.Click += PickStartingSave_Click;
-                  StackLayout stack = new StackLayout()
+                  StackLayout stack = new()
                   {
                      Orientation = Orientation.Horizontal,
                      Spacing = 5
@@ -311,7 +311,7 @@ namespace LaSSI
       {
          if (sender is not null and Control c)
          {
-            PrefsDialog prefsDialog = (PrefsDialog)c.FindParent("PrefsDialog");
+            //PrefsDialog prefsDialog = (PrefsDialog)c.FindParent("PrefsDialog");
             if (Prefs.FindPref(c.ID) is not null and Pref pref && pref.prefType == PrefType.checkbox)
             {
                if (pref.uiRefresh)
@@ -511,7 +511,7 @@ namespace LaSSI
             case PrefType.checkbox:
             case PrefType.yesno:
                {
-                  this.value = (yesno)Convert.ToInt32(value);
+                  this.value = (YesNo)Convert.ToInt32(value);
                   break;
                }
          }

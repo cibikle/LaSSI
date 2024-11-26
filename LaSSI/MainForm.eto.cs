@@ -36,7 +36,7 @@ namespace LaSSI
       internal char WindowsMenuPrefix = '&';
       internal string version = Assembly.GetExecutingAssembly().GetName().Version!.ToString();
       //private const string AssemblyName = "LaSSI";
-      static readonly HttpClient client = new HttpClient();
+      static readonly HttpClient client = new();
       void InitializeComponent()
       {
          Closing += MainForm_Closing;
@@ -85,7 +85,7 @@ namespace LaSSI
          Startup();
       }
 
-      private string GetToken(JObject data, string tokenName)
+      private static string GetToken(JObject data, string tokenName)
       {
          if (data[tokenName] is not null and JToken token && token is not null)
          {
@@ -124,7 +124,7 @@ namespace LaSSI
                //Console.WriteLine($"current verion: {version}; latest version: {tag}");
                if (tag.CompareTo(version) > 0 && !draft && !prerelease)
                {
-                  Modal m = new Modal(new List<string> { $"A newer version of LaSSI (v{tag}) is available:" }, "New version available!", new List<string> { url });
+                  Modal m = new(new List<string> { $"A newer version of LaSSI (v{tag}) is available:" }, "New version available!", new List<string> { url });
 
                   this.SetParent(m);
                   m.ShowModal(this.Parent);
@@ -166,8 +166,8 @@ namespace LaSSI
             {
                switch (updateCheck.value)
                {
-                  case yesno.yes:
-                     var foo = CheckForUpdatesAsync();
+                  case YesNo.yes:
+                     _ = CheckForUpdatesAsync();
                      break;
                }
             }
@@ -270,7 +270,7 @@ namespace LaSSI
       internal void UpdateUiAfterLoad()
       {
          _ = UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
-         DataPanel.Rebuild(saveFile.Root);
+         DataPanel.Rebuild(saveFile.RootNode);
          LoadingBar.Visible = false;
          DataPanel.GetSearchBox().Text = string.Empty;
       }

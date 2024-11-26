@@ -1,12 +1,13 @@
 ﻿using Eto.Drawing;
 using Eto.Forms;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LaSSI
 {
    internal class LassiReport : Form
    {
-      private Dictionary<object, List<object>>? data;
+      private readonly Dictionary<object, List<object>>? data;
       private bool canRearrangeData = false;
       public bool CanRearrangeData { get { return canRearrangeData; } set { canRearrangeData = value; } }
       public LassiReport() { }
@@ -30,16 +31,16 @@ namespace LaSSI
 
       private static Point GetScreenCenter()
       {
-         var screenBounds = Screen.PrimaryScreen.Bounds;
-         var screenWidth = screenBounds.Width / 2;
-         var screenHeight = screenBounds.Height / 2;
-         var screenCenter = new Point((int)(screenWidth), (int)(screenHeight));
+         RectangleF screenBounds = Screen.PrimaryScreen.Bounds;
+         float screenWidth = screenBounds.Width / 2;
+         float screenHeight = screenBounds.Height / 2;
+         Point screenCenter = new((int)(screenWidth), (int)(screenHeight));
 
          return screenCenter;
       }
       private static Point AdjustForFormSize(Point screenCenter, Size formSize)
       {
-         var adjustedCenter = new Point(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
+         Point adjustedCenter = new(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
          return adjustedCenter;
       }
       private DynamicLayout CreateReportLayout()
@@ -51,10 +52,11 @@ namespace LaSSI
 
          };
 
-         TreeGridItemCollection treeGridItems = new TreeGridItemCollection();
-         foreach (var dataPoint in data)
+         TreeGridItemCollection treeGridItems = new();
+         foreach ((KeyValuePair<object, List<object>> dataPoint, TreeGridItemCollection children) in from dataPoint in data
+                                                                                                     let children = new TreeGridItemCollection()
+                                                                                                     select (dataPoint, children))
          {
-            var children = new TreeGridItemCollection();
             foreach (var value in dataPoint.Value)
             {
                string valueText = string.Empty;
@@ -71,6 +73,7 @@ namespace LaSSI
                   Tag = valueText,
                });
             }
+
             string keyText = string.Empty;
             if (dataPoint.Key is string s)
             {
@@ -80,6 +83,7 @@ namespace LaSSI
             {
                keyText = n.Name;
             }
+
             var item = new TreeGridItem(children)
             {
                Tag = keyText,
@@ -87,6 +91,7 @@ namespace LaSSI
             };
             treeGridItems.Add(item);
          }
+
          treeGridView.DataStore = treeGridItems;
 
          if (treeGridView.Columns.Count == 0)

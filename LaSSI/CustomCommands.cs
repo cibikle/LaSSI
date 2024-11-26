@@ -697,7 +697,7 @@ namespace LaSSI
             Debug.WriteLine($"{saveDialog.FileName}");
             DynamicLayout bar = (DynamicLayout)MainForm.Content;
             FileWriter writer = new FileWriter();
-            bool success = writer.WriteFile(MainForm.saveFile.Root, saveDialog.FileName);
+            bool success = writer.WriteFile(MainForm.saveFile.RootNode, saveDialog.FileName);
             MainForm.LoadingBar.Visible = false;
 
             MainForm.DataPanel.ResetDataState();

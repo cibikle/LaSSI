@@ -1864,7 +1864,7 @@ namespace LaSSI
       {
          if (mainForm is not null)
          {
-            return mainForm.saveFile.Root;
+            return mainForm.saveFile.RootNode;
          }
          return null;
       }
@@ -1915,7 +1915,7 @@ namespace LaSSI
          {
             if (mainForm is not null)
             {
-               if (mainForm.prefs.FindPref("Holiday fun") is not null and Pref pref && pref.value is not null and yesno holidayfun && holidayfun == yesno.yes)
+               if (mainForm.prefs.FindPref("Holiday fun") is not null and Pref pref && pref.value is not null and YesNo holidayfun && holidayfun == YesNo.yes)
                {
                   var today = DateTime.Today;
 
