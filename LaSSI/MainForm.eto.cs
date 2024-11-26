@@ -270,9 +270,8 @@ namespace LaSSI
       internal void UpdateUiAfterLoad()
       {
          _ = UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
-         DataPanel.Rebuild(saveFile.RootNode);
          LoadingBar.Visible = false;
-         DataPanel.GetSearchBox().Text = string.Empty;
+         DataPanel.UpdateUiAfterLoad(saveFile.RootNode);
       }
       internal static string TrimFilePathForSafety(string filepath)
       {

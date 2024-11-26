@@ -420,7 +420,16 @@ namespace LaSSI
          }
          node.Expanded = true;
       }
-
+      private void ResetTreeViewScrollbar()
+      {
+         GetTreeGridView().ScrollToRow(0);
+      }
+      public void UpdateUiAfterLoad(Node newRoot)
+      {
+         Rebuild(newRoot);
+         GetSearchBox().Text = string.Empty;
+         ResetTreeViewScrollbar();
+      }
       //private static DynamicLayout CreateNodePathLayout(Node item)
       //{
       //   DynamicLayout layout = new DynamicLayout();
