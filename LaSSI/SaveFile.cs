@@ -326,6 +326,7 @@ namespace LaSSI
             string value = string.Empty;
             int wordIndex = 2; // for a dad-ratted magic number, it should be pretty safe since the line parts
                                // should always start [0]BEGIN, [1]{node name, e.g., Tutorial}, [2]{key, e.g., PlayerHasShiftClicked}, etc.
+            Node node = new(subnodeId);
             switch (subnodeId)
             {
                case "Episodes":
@@ -339,23 +340,26 @@ namespace LaSSI
                      break;
                   }
             }
-            OrderedDictionary properties = LoadDictionary(lineParts[wordIndex..(wordIndex + 2)]);
-            int completedIndex = Array.IndexOf(lineParts, "Completed");
-            Node node = new(subnodeId);
-            if (completedIndex > 0)
+            if (wordIndex >= 0)
             {
-               string key = lineParts[completedIndex];
-               for (int i = completedIndex + 1; i < lineParts.Length - 1; i++)
+               OrderedDictionary properties = LoadDictionary(lineParts[wordIndex..(wordIndex + 2)]); int completedIndex = Array.IndexOf(lineParts, "Completed");
+
+               if (completedIndex > 0)
                {
-                  value += lineParts[i] + " ";
-                  if (value.Contains(']'))
+                  string key = lineParts[completedIndex];
+                  for (int i = completedIndex + 1; i < lineParts.Length - 1; i++)
                   {
-                     i = lineParts.Length;
+                     value += lineParts[i] + " ";
+                     if (value.Contains(']'))
+                     {
+                        i = lineParts.Length;
+                     }
                   }
+                  properties.Add(key, value);
                }
-               properties.Add(key, value);
+               node.Properties = properties;
             }
-            node.Properties = properties;
+
             currentNode.AddChild(node);
          }
          else
