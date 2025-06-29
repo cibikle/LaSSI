@@ -162,7 +162,7 @@ namespace LaSSI
          if (name == "PowerGrid" || name == "Palette")
          {
             int index = 0;
-            if (name == "PowerGrid" && item.Properties.Count == 12)
+            if (name == "PowerGrid" && item.Properties.Count > 1) //todo: still kind of a magic number but maybe it's OK now
             {
                index = 1;
                text += RenderProperties(item, indentationLevel, true, index);
@@ -217,7 +217,11 @@ namespace LaSSI
             string value = $"{entry.Value}";
             if (name == "PowerGrid")
             {
-               key = key[..(key.IndexOf(' '))];
+               if (key.Contains(' '))
+               {
+                  key = key[..key.IndexOf(' ')];
+               }
+
                if (value == "Setting 0")
                {
                   value = string.Empty;
