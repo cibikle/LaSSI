@@ -110,7 +110,7 @@ namespace LaSSI
       {
          return RootPropertyNames.Contains(name);
       }
-      internal TreeGridItemCollection FindNodes(Node node, string[] searchTerms)
+      internal static TreeGridItemCollection FindNodes(Node node, string[] searchTerms)
       {
          TreeGridItemCollection nodes = new();
          bool match;// = false;
@@ -121,6 +121,7 @@ namespace LaSSI
          }
          foreach (string term in searchTerms)
          {
+
             if (term.EndsWith(':'))//if term is property name
             {
                match = node.HasProperties(new string[] { term.TrimEnd(':') });
@@ -128,7 +129,15 @@ namespace LaSSI
             else if (term.Contains(':'))//if term is property name/value pair
             {
                string[] keyValue = term.Split(':');
-               match = node.TryGetProperty(keyValue[0], out string value) && Regex.IsMatch(value, keyValue[1], RegexOptions.IgnoreCase);
+               try
+               {
+                  match = node.TryGetProperty(keyValue[0], out string value) && Regex.IsMatch(value, keyValue[1], RegexOptions.IgnoreCase);
+               }
+               catch
+               {
+                  Console.WriteLine("Regex exception, apparently");
+                  match = false;
+               }
             }
             else//if term is name ~~or property name~~
             {
@@ -172,7 +181,14 @@ namespace LaSSI
                quote = !quote;
             }
          }
-         searchCollection = FindNodes(RootNode, searchTerms.ToArray());
+         try
+         {
+            searchCollection = FindNodes(RootNode, searchTerms.ToArray());
+         }
+         catch (RegexParseException)
+         {
+            searchCollection = new();
+         }
          return searchCollection;
       }
       public void Load()
