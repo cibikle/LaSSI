@@ -9,28 +9,6 @@ namespace LaSSI
 
       public TextInputDialog()
       {
-
-      }
-      public TextInputDialog(string title)
-      {
-         CommonSetup(title);
-      }
-      public TextInputDialog(string title, string hint)
-      {
-         TextBox.PlaceholderText = hint;
-         CommonSetup(title);
-      }
-      public string GetInput()
-      {
-         return TextBox.Text;
-      }
-      public DialogResult GetDialogResult()
-      {
-         return Result;
-      }
-      private void CommonSetup(string title)
-      {
-         Title = title;
          DynamicLayout layout = new()
          {
             Padding = new Padding(5, 5)
@@ -43,6 +21,27 @@ namespace LaSSI
          layout.AddCentered(ButtonsLayout());
          layout.EndCentered();
          TextBox.TextChanged += TextBox_TextChanged;
+      }
+      public TextInputDialog(string title) : this()
+      {
+         Title = title;
+      }
+      public TextInputDialog(string title, string hint) : this(title)
+      {
+         TextBox.PlaceholderText = hint;
+      }
+      public string GetInput()
+      {
+         return TextBox.Text;
+      }
+      public DialogResult GetDialogResult()
+      {
+         return Result;
+      }
+
+      public void SetText(string text)
+      {
+         TextBox.Text = text;
       }
 
       private void TextBox_TextChanged(object? sender, EventArgs e)
@@ -84,4 +83,3 @@ namespace LaSSI
       private Button? OK;
    }
 }
-
