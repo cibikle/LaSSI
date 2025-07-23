@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.ObjectModel;
 
 namespace LaSSI
 {
@@ -39,6 +39,13 @@ namespace LaSSI
       {
          return new DictionaryEntry(Key, Value);
       }
+      public static bool IsKeyAlreadyInUse(ObservableCollection<Oncler> onclers, string newKey)
+      {
+         foreach (Oncler f in onclers)
+         {
+            if (f.Key == newKey) return true;
+         }
+         return false;
+      }
    }
 }
-

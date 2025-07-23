@@ -66,7 +66,7 @@ namespace LaSSI
             ApplicationItems =
             {
                // application (OS X) or file menu (others)
-               CustomCommands.CreatePrefsMenuItem(CustomCommands.prefsCommand),
+               CustomCommands.CreatePrefsMenuItem(CustomCommands.PrefsCommand),
                CustomCommands.CreateUpdateCheckMenuItem(CustomCommands.CheckForUpdates)
             },
             QuitItem = CustomCommands.QuitCommand,

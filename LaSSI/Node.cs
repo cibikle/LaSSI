@@ -1,4 +1,5 @@
-﻿using Eto.Forms;
+﻿using Eto.Drawing;
+using Eto.Forms;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -21,7 +22,6 @@ namespace LaSSI
       public TreeGridItemCollection Children { get; set; } = new();
       public OrderedDictionary Properties { get; set; } = new OrderedDictionary();
       public int Count => Children.Count;
-      private List<string> ListOfArrays = new();
 
       public bool Expanded { get; set; }
 
@@ -236,14 +236,7 @@ namespace LaSSI
          //if the key starts with a " and a [ and ends with a ] and a " and contains a ' ' and a ',', it's an array
          return (key.StartsWith('[') && key.EndsWith(']')) || (key.StartsWith("\"[") && key.EndsWith("]\"") && key.Contains(", "));
       }
-      public void RegisterPropertyAsArray(string key)
-      {
-         ListOfArrays.Add(key);
-      }
-      public bool PropertyIsArray(string key)
-      {
-         return ListOfArrays.Contains(key);
-      }
+
       public bool TryGetProperty(string propertyName, out string propertyValue)
       {
          if (MatchProperty(propertyName, out string matchingPropertyName))
@@ -268,7 +261,11 @@ namespace LaSSI
          }
          return (all && properyNamesAndValues.Keys.Count == properyNamesAndValues.Values.Count) || properyNamesAndValues.Values.Count > 0;
       }
-      internal bool HasProperties(string[] propertyNames, bool all = false)
+      public bool HasProperty(string name)
+      {
+         return Properties.Contains(name);
+      }
+      public bool HasProperties(string[] propertyNames, bool all = false)
       {
          int matchCount = -1;
          foreach (var name in propertyNames)
@@ -289,7 +286,7 @@ namespace LaSSI
 
          return matchCount == propertyNames.Length;
       }
-      internal bool MatchProperty(string propertyName, out string matchingPropertyName)
+      public bool MatchProperty(string propertyName, out string matchingPropertyName)
       {
          foreach (string propertyKey in Properties.Keys)
          {
@@ -303,11 +300,14 @@ namespace LaSSI
          matchingPropertyName = string.Empty;
          return false;
       }
-      internal bool NameMatches(string[] names)
+      public bool NameMatches(string[] names)
       {
          foreach (string name in names)
          {
-            if (Regex.IsMatch(Name, name, RegexOptions.IgnoreCase)) return true;
+            if (Regex.IsMatch(Name, name, RegexOptions.IgnoreCase))
+            {
+               return true;
+            }
          }
          return false;
       }
@@ -323,12 +323,12 @@ namespace LaSSI
          }
          return false;
       }
-      internal void ReplaceProperty(string oldPropertyName, string newPropertyName, string newValue)
+      public void ReplaceProperty(string oldPropertyName, string newPropertyName, string newValue)
       {
          Properties.Remove(oldPropertyName);
          Properties.Add(newPropertyName, newValue);
       }
-      internal bool TrySetProperty(string propertyName, string propertyValue)
+      public bool TrySetProperty(string propertyName, string propertyValue)
       {
          if (Properties.Contains((object)propertyName))
          {
@@ -337,44 +337,208 @@ namespace LaSSI
          }
          return false;
       }
+      public static List<string> CommaSeparatedStringToList(string list)
+      {
+         return list.Replace(@"\", "").Replace("[", "").Replace("]", "").Split(", ").ToList<string>();
+      }
+      public List<string> GetItems()
+      {
+         List<string> items = new();
+         if (TryGetProperty("Items", out string data))
+         {
+            items = CommaSeparatedStringToList(data);
+         }
+         return items;
+      }
+      public void RemoveItems(List<string> itemIds)
+      {
+         //List<string> items = GetItems();
+         foreach (string itemId in itemIds)
+         {
+            if (FindChild("Id", itemId) is not null and Node item)
+            {
+               RemoveChild(item);
+            }
+         }
+      }
+      //public void RemoveObjects(string[] objectIds)
+      //{
+      //   Get
+      //}
 
-      internal bool IsHazard()
+      public static Node? GetGalaxyNode(Node root)
+      {
+         return GetChildNode(root, "Galaxy");
+      }
+      public static List<Node> GetGalaxyObjects(Node root, bool all = false, Dictionary<string, string>? filters = null)
+      {
+         List<Node> matchingGalaxyObjects = new();
+         if (GetGalaxyNode(root) is not null and Node galaxy && GetChildNode(galaxy, "Objects") is not null and Node galaxyObjects)
+         {
+            foreach (Node galaxyObject in galaxyObjects.Children.Cast<Node>())
+            {
+               if (filters is not null && filters.Count > 0)
+               {
+                  Dictionary<string, string> val = new();
+                  foreach (var key in filters.Keys)
+                  {
+                     val.Add(key, "");
+                  }
+                  if (galaxyObject.TryGetProperties(val))
+                  {
+                     int matchCount = 0;
+                     foreach (var entry in val)
+                     {
+                        if (entry.Value.Equals(filters[entry.Key]))
+                        {
+                           matchCount++;
+                        }
+                     }
+                     if ((all && matchCount == filters.Count) || matchCount > 0)
+                     {
+                        matchingGalaxyObjects.Add(galaxyObject);
+                     }
+                  }
+               }
+               else
+               {
+                  matchingGalaxyObjects.Add(galaxyObject);
+               }
+            }
+         }
+
+         return matchingGalaxyObjects;
+      }
+      public static Node? GetChildNode(Node item, string childname, bool looseMatch = false)
+      {
+         foreach (Node child in item.Children.Cast<Node>())
+         {
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
+            {
+               return child;
+            }
+         }
+         return null;
+      }
+      public static List<Node> GetChildNodes(Node item, string childname, bool looseMatch = false)
+      {
+         List<Node> children = new();
+         foreach (Node child in item.Children.Cast<Node>())
+         {
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
+            {
+               children.Add(child);
+            }
+         }
+         return children;
+      }
+      public static List<Node> FindChildNodesWithProperties(Node item, string childname, bool looseMatch = false, List<string>? properties = null, bool all = false)
+      {
+         List<Node> children = new();
+         foreach (Node child in item.Children.Cast<Node>())
+         {
+            if (child.Name == childname || (looseMatch && child.Name.Contains(childname)))
+            {
+               if (properties is not null)
+               {
+                  if (child.HasProperties(properties.ToArray(), all))
+                  {
+                     children.Add(child);
+                  }
+               }
+               else
+               {
+                  children.Add(child);
+               }
+            }
+         }
+         return children;
+      }
+      public static List<Node> FindChildNodesWithProperty(Node item, string propertyName, string propertyValue = "")
+      {// todo: do multiples
+         List<Node> list = new();
+         foreach (Node child in item.Children.Cast<Node>())
+         {
+            if (child.TryGetProperty(propertyName, out string value))
+            {
+               if ((propertyValue != "" && propertyValue == value) || propertyValue == "")
+               {
+                  list.Add(child);
+               }
+            }
+         }
+         return list;
+      }
+      public static Node? GetSystemArchives(Node root)
+      {
+         return GetChildNode(GetGalaxyNode(root)!, "SystemArchives");
+      }
+      public static Node? GetSystemArchive(Node root, string id)
+      {
+         Node systemArchives = GetSystemArchives(root)!;
+         foreach (Node systemArchive in systemArchives.Children.Cast<Node>())
+         {
+            if (systemArchive.Name.Contains(id)) return systemArchive;
+         }
+         return null;
+      }
+      public static string GetNodePath(Node item)
+      {
+         string path = item.Name;
+         while (item.Parent != null && item.Parent.Parent != null)
+         {
+            item = (Node)item.Parent;
+            path = $"{item.Name}/{path}";
+         }
+         return path;
+      }
+      public static Label GetNodePathLabel(Node item)
+      {
+         Label nodePathLabel = new() { Text = GetNodePath(item), BackgroundColor = Colors.Silver, Font = new Font("Arial", 18, FontStyle.Bold) };
+         return nodePathLabel;
+      }
+
+      public bool IsHazard()
       {
          if (this.Parent != null && ((Node)Parent).Name == "Hazards" && this.Properties.Contains("Type")) return true;
          return false;
       }
-      internal bool IsStarSystem()
+      public bool IsStarSystem()
       {
          if (GetParent() is not null and Node p && p.Name == "Objects"
             && p.GetParent() is not null and Node gp && gp.Name == "Galaxy"
             && this.Properties.Contains("Name")) return true;
          return false;
       }
-      internal bool IsMission()
+      public bool IsMission()
       {
          if (GetParent() is not null and Node p && p.Name == "Missions"
             && p.GetParent() is not null and Node gp && gp.Name == "Missions"
             && this.Properties.Contains("Type")) return true;
          return false;
       }
-      internal bool IsMissionRequirement()
+      public bool IsCombatMission()
+      {
+         return IsMission() && TryGetProperty("Type", out string type) && type.Equals("Combat");
+      }
+      public bool IsMissionRequirement()
       {
          if (GetParent() is not null and Node p && p.Name == "Requirements"
             && p.GetParent() is not null and Node gp
             && gp.GetParent() is not null and Node ggp && ggp.Name == "Missions") return true;
          return false;
       }
-      internal bool IsResearch()
+      public bool IsResearch()
       {
          if (this.Name == "Research") return true;
          return false;
       }
-      internal bool IsTradingPost()
+      public bool IsTradingPost()
       {
          if (this.Name == "TradingPost") return true;
          return false;
       }
-      internal bool IsFtlJourney()
+      public bool IsFtlJourney()
       {
          if (GetParent() is not null and Node p && p.Name == "Journeys") return true;
          return false;
@@ -382,78 +546,78 @@ namespace LaSSI
       /// <summary>
       /// Determines if the calling node is a layer or, optionally, the child of a Layer (free space/ship).
       /// </summary>
-      internal bool IsLayer(bool DetermineIfChild = false)
+      public bool IsLayer(bool DetermineIfChild = false)
       {
          if (this.Name == "Layer") return true;
          if (GetParent() is not null and Node p && DetermineIfChild) return p.IsLayer(DetermineIfChild);
          return false;
       }
-      internal bool IsSystemNode()
+      public bool IsSystemNode()
       {
          return Name.StartsWith("System");
       }
-      internal bool IsLayerObject()
+      public bool IsLayerObject()
       {
          return IsLayer(true) && GetParent() is not null and Node p && p.Name == "Objects";
       }
-      internal bool IsPalette(bool DetermineIfChild = false)
+      public bool IsPalette(bool DetermineIfChild = false)
       {
          if (this.Name == "Palette") return true;
          return GetParent() is not null and Node p && DetermineIfChild && p.IsPalette(DetermineIfChild);
       }
-      internal bool IsPowerGrid()
+      public bool IsPowerGrid()
       {
          return this.Name == "PowerGrid";
       }
-      internal bool IsEditor(bool DetermineIfChild = false)
+      public bool IsEditor(bool DetermineIfChild = false)
       {
          if (this.Name == "Editor") return true;
          return GetParent() is not null and Node p && DetermineIfChild && p.IsEditor(DetermineIfChild);
       }
-      internal bool IsPhysicsState()
+      public bool IsPhysicsState()
       {
          return GetParent() is not null and Node p && p.Name == "Physics" && Name == "State";
       }
-      internal bool IsSystemArchive()
+      public bool IsSystemArchive()
       {
          return GetParent() is not null and Node p && p.Name == "SystemArchives";
       }
-      internal bool IsLogisticsRequest()
+      public bool IsLogisticsRequest()
       {
          return GetParent() is not null and Node p && p.Name == "Requests" && p.GetParent() is not null and Node gp && gp.Name == "Logistics";
       }
-      internal bool IsWeather()
+      public bool IsWeather()
       {
          return Name == "Weather";
       }
-      internal bool IsOrders()
+      public bool IsOrders()
       {
          return Name == "Orders";
       }
-      internal bool IsNetwork()
+      public bool IsNetwork()
       {
          return Name == "Network";
       }
-      internal bool IsHabitationZone()
+      public bool IsHabitationZone()
       {
          return GetParent() is not null and Node p && p.Name == "Zones" && p.GetParent() is not null and Node gp && gp.Name == "Habitation";
       }
-      internal bool IsWorkQueueJob()
+      public bool IsWorkQueueJob()
       {
          return GetParent() is not null and Node p && p.Name == "Jobs" && p.GetParent() is not null and Node gp && gp.Name == "WorkQueue";
       }
-      internal bool IsLogisticsTransfer()
+      public bool IsLogisticsTransfer()
       {
          return GetParent() is not null and Node p && p.Name == "Transfers" && p.GetParent() is not null and Node gp && gp.Name == "Logistics";
       }
-      internal static string GetHazardName(string id) //todo: replace with enum
+      public static string GetHazardName(string id) //todo: replace with enum
       {
          string HazardName = String.Empty;
          if (id == "1") HazardName = "asteroid field";
          else if (id == "2") HazardName = "gas cloud";
          return HazardName;
       }
-      internal static string GetStarSystemSummary(Node node)
+      public static string GetStarSystemSummary(Node node)
       {
          string Summary = String.Empty;
          Summary += node.Properties["Name"];
@@ -464,7 +628,7 @@ namespace LaSSI
          if (node.Properties.Contains("Rescue")) Summary += ", Rescue";
          return Summary;
       }
-      internal string GetMissionName()
+      public string GetMissionName()
       {
          string details = Properties["Type"]!.ToString()!;
          string missionType = details;
@@ -504,7 +668,7 @@ namespace LaSSI
          }
          return details;
       }
-      internal string GetProductionMissionDetails()
+      public string GetProductionMissionDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -516,7 +680,7 @@ namespace LaSSI
          details += $", {propertyNamesAndValues["ItemCount"]}";
          return details;
       }
-      internal string GetCombatMissionDetails()
+      public string GetCombatMissionDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -530,28 +694,28 @@ namespace LaSSI
          details += $", System {propertyNamesAndValues["ToSystemId"]}";
          return details;
       }
-      internal static string GetMissionRequirement(Node node)
+      public static string GetMissionRequirement(Node node)
       {
          string details = node.Properties["Type"]!.ToString()!;
          if (node.Properties.Contains("ObjectType")) { details += $", {node.Properties["ObjectType"]}"; }
          if (node.Properties.Contains("Count")) { details += $", {node.Properties["Count"]}"; }
          return details;
       }
-      internal static string GetLayerDetails(Node node)
+      public static string GetLayerDetails(Node node)
       {
          string details = $"{node.Properties["Id"]}, {node.Properties["Name"]}, {node.Properties["Type"]}";
          if (node.Properties.Contains("SystemId")) details += $", System {node.Properties["SystemId"]}";
          return details;
       }
-      internal static string GetTradingPostDetails(Node node)
+      public static string GetTradingPostDetails(Node node)
       {
          return $"System {node.Properties["SystemId"]}";
       }
-      internal static string GetFtlJourneyDetails(Node node)
+      public static string GetFtlJourneyDetails(Node node)
       {
          return $"{node.Properties["State"]}: {node.Properties["Layers"]} from System {node.Properties["FromSystem"]} to {node.Properties["ToSystem"]}";
       }
-      internal string GetLayerObjectDetails()
+      public string GetLayerObjectDetails()
       {
          string details = $"{Properties["Id"]}, {Properties["Type"]}";
          if (Properties.Contains("State")) details += $", {Properties["State"]}";
@@ -568,15 +732,15 @@ namespace LaSSI
          }
          return details;
       }
-      internal string GetPhysicsStateDetails()
+      public string GetPhysicsStateDetails()
       {
          return $"{this.Properties["Id"]}";
       }
-      internal string GetSystemArchiveDetails()
+      public string GetSystemArchiveDetails()
       {
          return Regex.Replace(Name, @"^\""\[i\s", "NG").Replace("]\"", "");
       }
-      internal string GetLogisticsRequestDetails()
+      public string GetLogisticsRequestDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -595,7 +759,7 @@ namespace LaSSI
          }
          return string.Empty;
       }
-      internal string GetLogisticsTransferDetails()
+      public string GetLogisticsTransferDetails()
       {
          Dictionary<string, string> propertyNamesAndValues = new()
             {
@@ -618,16 +782,16 @@ namespace LaSSI
          }
          return string.Empty;
       }
-      internal string GetSystemId()
+      public string GetSystemId()
       {
          TryGetProperty("SystemId", out string systemId);
          return systemId;
       }
-      internal string GetNetworkDetails()
+      public string GetNetworkDetails()
       {
          return $"{Properties["Type"]}, {Properties["Id"]}";
       }
-      internal string GetHabitationZoneDetails()
+      public string GetHabitationZoneDetails()
       {
          string entities = $"{Properties["Entities"]}";
 
@@ -639,7 +803,7 @@ namespace LaSSI
 
          return $"ID {Properties["Id"]}, Capacity: {used}/{Properties["Capacity"]}";
       }
-      internal string GetWorkQueueJobDetails()
+      public string GetWorkQueueJobDetails()
       {
          string details = $"{Properties["Type"]}";
          if (Properties.Contains("TargetType")) details += $" {Properties["TargetType"]}";

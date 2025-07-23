@@ -15,7 +15,7 @@ namespace LaSSI
       internal Command QuitCommand { get; set; }
       internal List<Command> ToolsList { get; set; } = new List<Command>();
       internal MainForm MainForm;
-      internal Command prefsCommand { get; }
+      internal Command PrefsCommand { get; }
       internal Command CheckForUpdates { get; }
 
       public CustomCommands(MainForm mainForm)
@@ -38,16 +38,27 @@ namespace LaSSI
          ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
          ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
          ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
-         ToolsList.Add(CreateClaimGhostShipsCommand(claimGhostShip_Executed));
-         ToolsList.Add(CreateScuttleShipsCommand(scuttleShips_Executed));
+         ToolsList.Add(CreateClaimGhostShipsCommand(ClaimGhostShip_Executed));
+         ToolsList.Add(CreateScuttleShipsCommand(ScuttleShips_Executed));
          //ToolsList.Add(CreateCleanupFreeSpaceCommand(cleanupFreeSpace_Executed));
          //ToolsList.Add(CreateAbandonedDronesCommand(abandondedDrones_Executed));
-         prefsCommand = new Command(PrefsCommand_Executed);
+         ToolsList.Add(DeleteAcceptedMissionsCommand(DeleteMissions_Executed));
+         PrefsCommand = new Command(PrefsCommand_Executed);
          CheckForUpdates = new Command(UpdateCommand_Executed);
       }
 
       #region tools
-
+      internal static Command DeleteAcceptedMissionsCommand(EventHandler<EventArgs> handler)
+      {
+         Command deleteAcceptedMissionsCommand = new()
+         {
+            MenuText = "Delete accepted missions",
+            ID = "DeleteAcceptedMissions"
+         };
+         deleteAcceptedMissionsCommand.Executed += handler;
+         deleteAcceptedMissionsCommand.Enabled = false;
+         return deleteAcceptedMissionsCommand;
+      }
       internal static Command CreateAbandonedDronesCommand(EventHandler<EventArgs> handler)
       {
          Command freeAbandondedDronesCommand = new()
@@ -436,6 +447,11 @@ namespace LaSSI
                   //enablability = data.ClaimGhostShips();
                   break;
                }
+            case "DeleteAcceptedMissions":
+               {
+                  enablability = data.DeleteAcceptedMissions() > 0;
+                  break;
+               }
          }
 
          return enablability;
@@ -755,11 +771,27 @@ namespace LaSSI
       }
       #endregion event handlers
       #region tool event handlers
-      internal void abandondedDrones_Executed(object? sender, EventArgs e)
+      internal void DeleteMissions_Executed(object? sender, EventArgs e)
+      {
+         int deletedMissionCount = MainForm.DataPanel.DeleteAcceptedMissions(true);
+         if (deletedMissionCount > 0)
+         {
+            _ = MessageBox.Show($"{deletedMissionCount} missions deleted", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+         }
+      }
+      internal void ResetStrandedShipPosition_Executed(object? sender, EventArgs e)
+      {
+
+      }
+      internal void TransferBoxedTiddlets_Executed(object? sender, EventArgs e)
+      {
+
+      }
+      internal void AbandondedDrones_Executed(object? sender, EventArgs e)
       {
          //maybe reuse a bunch of stuff from cleanupFreeSpace
       }
-      internal void cleanupFreeSpace_Executed(object? sender, EventArgs e)
+      internal void CleanupFreeSpace_Executed(object? sender, EventArgs e)
       {
          // first check if FreeSpace exists in the "current" layers or the SystemArchive
          // present, I guess, checkboxlist of all Systems with FreeSpace layers
@@ -769,7 +801,7 @@ namespace LaSSI
          //  - salvage
          //  - resources
       }
-      internal void scuttleShips_Executed(object? sender, EventArgs e)
+      internal void ScuttleShips_Executed(object? sender, EventArgs e)
       {
          // find all Friendly and ghost ships, present checkboxlist
 
@@ -778,7 +810,7 @@ namespace LaSSI
             _ = MessageBox.Show("Ships scuttled", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          }
       }
-      internal void claimGhostShip_Executed(object? sender, EventArgs e)
+      internal void ClaimGhostShip_Executed(object? sender, EventArgs e)
       {
          if (MainForm.DataPanel.ClaimGhostShips(true))
          {
