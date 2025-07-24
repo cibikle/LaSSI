@@ -498,6 +498,21 @@ namespace LaSSI
          return nodePathLabel;
       }
 
+      public bool IsChildOf(string parentName)
+      {
+         return GetParent() is not null and Node p && p.Name == parentName;
+      }
+      public bool IsDescendantOf(string ancestorName)
+      {
+         var n = GetParent();
+         bool isDescendantOf = false;
+         while (n is not null && !isDescendantOf)
+         {
+            isDescendantOf = n.Name == ancestorName;
+            n = n.GetParent();
+         }
+         return isDescendantOf;
+      }
       public bool IsHazard()
       {
          if (this.Parent != null && ((Node)Parent).Name == "Hazards" && this.Properties.Contains("Type")) return true;

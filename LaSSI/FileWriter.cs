@@ -33,7 +33,7 @@ namespace LaSSI
       {
          //string arrayPattern = "\\\"\\[i \\d+\\]\\\"";
          bool IsOneLiner;
-         if (item.GetParent() is not null and Node p && p.Name == "Zones")
+         if (item.IsChildOf("Zones"))
          {
             OrderedDictionary dic = item.Properties;
             //if (item.Values[1] is OrderedDictionary dic)
@@ -105,7 +105,8 @@ namespace LaSSI
             && item.Properties.Count <= 10
             && item.Name != "Palette"
             && item.Name != "OurStock"
-            && item.Name != "TheirStock")
+            && item.Name != "TheirStock"
+            && item.Name != "Paint")
          {
             IsOneLiner = true;
          }
@@ -113,6 +114,10 @@ namespace LaSSI
             && item.Properties.Count == 0)
          {
             IsOneLiner = true;
+         }
+         else if (item.Name == "Paint")
+         {
+            IsOneLiner = item.IsChildOf("GridMap") && item.IsDescendantOf("SystemArchives"); // todo: this might become a problem in the future. again.
          }
          else
          {
