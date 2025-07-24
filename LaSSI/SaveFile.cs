@@ -428,21 +428,21 @@ namespace LaSSI
          string CatName;
          switch (n)
          {
-            //case 0:
-            //   {
-
-            //      break;
-            //   }
-            //case 1:
-            //   {
-
-            //      break;
-            //   }
-            //case 2:
-            //   {
-
-            //      break;
-            //   }
+            case 0:
+               {
+                  CatName = "None";
+                  break;
+               }
+            case 1:
+               {
+                  CatName = "Battery"; //according to Louis; I'm curious what this actually means
+                  break;
+               }
+            case 2:
+               {
+                  CatName = "?";
+                  break;
+               }
             case 3:
                {
                   CatName = "Engines";
@@ -458,11 +458,11 @@ namespace LaSSI
                   CatName = "Weapons";
                   break;
                }
-            //case 6:
-            //   {
-
-            //      break;
-            //   }
+            case 6:
+               {
+                  CatName = "Defenses"; //according to Louis; I'm curious what this actually means
+                  break;
+               }
             case 7:
                {
                   CatName = "Life Support";
@@ -480,7 +480,12 @@ namespace LaSSI
                }
             case 10:
                {
-                  CatName = "Other"; //applies to the Generator; not sure what else
+                  CatName = "Stargate"; //applies to the Generator from my testing; Louis reports Stargate
+                  break;
+               }
+            case 11:
+               {
+                  CatName = "Other"; //according to Louis
                   break;
                }
             default:

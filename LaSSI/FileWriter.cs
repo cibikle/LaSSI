@@ -167,7 +167,7 @@ namespace LaSSI
          if (name == "PowerGrid" || name == "Palette")
          {
             int index = 0;
-            if (name == "PowerGrid" && item.Properties.Count > 1) //todo: still kind of a magic number but maybe it's OK now
+            if (name == "PowerGrid" && item.Properties["LayerId"] is not null)
             {
                index = 1;
                text += RenderProperties(item, indentationLevel, true, index);
