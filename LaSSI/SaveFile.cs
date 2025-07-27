@@ -440,7 +440,7 @@ namespace LaSSI
                }
             case 2:
                {
-                  CatName = "?";
+                  CatName = "Reactors"; //according to Louis; I'm curious what this actually means
                   break;
                }
             case 3:

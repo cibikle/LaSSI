@@ -712,14 +712,19 @@ namespace LaSSI
          {
             Debug.WriteLine($"{saveDialog.FileName}");
             DynamicLayout bar = (DynamicLayout)MainForm.Content;
-            FileWriter writer = new FileWriter();
-            bool success = writer.WriteFile(MainForm.saveFile.RootNode, saveDialog.FileName);
-            MainForm.LoadingBar.Visible = false;
+            FileWriter writer = new();
+            writer.WriteFile(MainForm.saveFile.RootNode, saveDialog.FileName).ContinueWith(success =>
+            {
+               Application.Instance.Invoke(() =>
+               {
+                  MainForm.LoadingBar.Visible = false;
 
-            MainForm.DataPanel.ResetDataState();
-            AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
+                  MainForm.DataPanel.ResetDataState();
+                  AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
 
-            LoadFile(saveDialog.FileName, true);
+                  LoadFile(saveDialog.FileName, true); // todo: make async; be sure to await or continuewith
+               });
+            });
          }
          else
          {

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 //using System.Text.RegularExpressions;
 
 namespace LaSSI
@@ -14,20 +15,23 @@ namespace LaSSI
       {
 
       }
-      public bool WriteFile(Node root, string Filename)
+      public async Task<bool> WriteFile(Node root, string Filename)
       {
-         string rootdata = RenderRoot(root.Properties);
-         string text = string.Empty;
-         foreach (Node child in root.Children.Cast<Node>())
+         return await Task.Run(() =>
          {
-            text += RenderLine(child);
-         }
+            string rootdata = RenderRoot(root.Properties);
+            string text = string.Empty;
+            foreach (Node child in root.Children.Cast<Node>())
+            {
+               text += RenderLine(child);
+            }
 
-         string data = Environment.NewLine + rootdata + text;
-         using var sw = new StreamWriter(Filename);
-         sw.Write(data);
+            string data = Environment.NewLine + rootdata + text;
+            using var sw = new StreamWriter(Filename);
+            sw.Write(data);
 
-         return false;
+            return false;
+         });
       }
       private static bool IsOneliner(Node item) // todo: this is a travesty
       {
