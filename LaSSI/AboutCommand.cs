@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Eto.Forms;
+using System;
 using System.Collections.Generic;
-using Eto.Forms;
 
 namespace LaSSI
 {
@@ -15,7 +15,7 @@ namespace LaSSI
          this.parent = parent;
 
          string title = "LaSSI (the Last Starship Save Inspector)";
-         string author = "CIBikle, 2024";
+         string author = "CIBikle, 2025"; //todo: make this not a magic number, etc.
          string tlsOwner = "'The Last Starship' is the property of Introversion Software.";
          string tlsOwnerLink = "https://www.introversion.co.uk/introversion/";
          string disclaimer = "This is a fan-made tool for educational and entertainment purposes.";
