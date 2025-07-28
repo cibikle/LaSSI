@@ -197,6 +197,7 @@ namespace LaSSI
       }
       public static void LoadFile(SaveFilev2 saveFile, string filename)
       {
+         Stopwatch stopwatch = Stopwatch.StartNew();
          if (!File.Exists(filename))
          {
             return;//todo: uh, display a message? throw an exception?
@@ -259,6 +260,8 @@ namespace LaSSI
                   }
             }
          }
+         stopwatch.Stop();
+         Debug.WriteLine($"File load took {stopwatch.ElapsedMilliseconds} ms.");
       }
       private static bool IsSubnode(string subnodeId)
       {

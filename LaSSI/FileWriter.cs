@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-//using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
@@ -19,17 +20,19 @@ namespace LaSSI
       {
          return await Task.Run(() =>
          {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             string rootdata = RenderRoot(root.Properties);
-            string text = string.Empty;
+            StringBuilder sb = new(Environment.NewLine + rootdata);
             foreach (Node child in root.Children.Cast<Node>())
             {
-               text += RenderLine(child);
+               RenderLine(child, sb);
             }
 
-            string data = Environment.NewLine + rootdata + text;
             using var sw = new StreamWriter(Filename);
-            sw.Write(data);
-
+            sw.Write(sb);
+            sw.Flush();
+            stopwatch.Stop();
+            Debug.WriteLine($"File save took {stopwatch.ElapsedMilliseconds} ms.");
             return false;
          });
       }
@@ -130,15 +133,15 @@ namespace LaSSI
 
          return IsOneLiner;
       }
-      private string RenderLine(Node item, int indentationLevel = 0)
+      private void RenderLine(Node item, StringBuilder sb, int indentationLevel = 0)
       {
          if (IsOneliner(item))
          {
-            return RenderOneLiner(item, indentationLevel);
+            RenderOneLiner(item, sb, indentationLevel);
          }
          else
          {
-            return RenderMultiliner(item, indentationLevel);
+            RenderMultiliner(item, sb, indentationLevel);
          }
       }
       private static string CleanName(Node item)
@@ -154,65 +157,61 @@ namespace LaSSI
       {
          return new string(' ', indentationLevel * IndentationAmount);
       }
-      private string RenderOneLiner(Node item, int indentationLevel = 0)
+      private void RenderOneLiner(Node item, StringBuilder sb, int indentationLevel = 0)
       {
          string name = CleanName(item);
          string indent = GetIndentPad(indentationLevel);
-         string text = $"{indent}BEGIN {name}{new string(' ', IndentationAmount)}  {RenderProperties(item)}END{Environment.NewLine}";
-
-         return text;
+         sb.Append($"{indent}BEGIN {name}{new string(' ', IndentationAmount)}");
+         RenderProperties(item, sb);
+         sb.Append($"END{Environment.NewLine}");
       }
-      private string RenderMultiliner(Node item, int indentationLevel = 0)
+      private void RenderMultiliner(Node item, StringBuilder sb, int indentationLevel = 0)
       {
          string name = CleanName(item);
          string indent = GetIndentPad(indentationLevel);
          indentationLevel++;
-         string text = $"{indent}BEGIN {name}{Environment.NewLine}";
+         sb.Append($"{indent}BEGIN {name}{Environment.NewLine}");
          if (name == "PowerGrid" || name == "Palette")
          {
             int index = 0;
             if (name == "PowerGrid" && item.Properties["LayerId"] is not null)
             {
                index = 1;
-               text += RenderProperties(item, indentationLevel, true, index);
+               RenderProperties(item, sb, indentationLevel, true, index);
             }
 
-            text += PropertiesToNodes(item, indentationLevel, index);
+            PropertiesToNodes(item, sb, indentationLevel, index);
          }
          else
          {
-            text += RenderProperties(item, indentationLevel, true);
+            RenderProperties(item, sb, indentationLevel, true);
          }
 
          foreach (Node child in item.Children.Cast<Node>())
          {
-            text += RenderLine(child, indentationLevel);
+            RenderLine(child, sb, indentationLevel);
          }
-         text += $"{indent}END{Environment.NewLine}";
-         return text;
+         sb.Append($"{indent}END{Environment.NewLine}");
       }
-      private string RenderProperties(Node item, int indentationLevel = 0, bool multiline = false, int truncateIndex = -1)
+      private void RenderProperties(Node item, StringBuilder sb, int indentationLevel = 0, bool multiline = false, int truncateIndex = -1)
       {
          int counter = 0;
-         string text = string.Empty;
          string indent = GetIndentPad(indentationLevel);
          foreach (DictionaryEntry entry in item.Properties)
          {
-            text += $"{indent}{entry.Key} {entry.Value}  ";
+            sb.Append($"{indent}{entry.Key} {entry.Value}  ");
 
-            if (multiline) text += Environment.NewLine;
+            if (multiline) sb.Append(Environment.NewLine);
             counter++;
             if (truncateIndex > -1 && counter >= truncateIndex)
             {
                break;
             }
          }
-         return text;
       }
-      private string PropertiesToNodes(Node item, int indentationLevel = 0, int startIndex = 0)
+      private void PropertiesToNodes(Node item, StringBuilder sb, int indentationLevel = 0, int startIndex = 0)
       {
          string name = CleanName(item);
-         string text = string.Empty;
          string indent = GetIndentPad(indentationLevel);
          int counter = 0;
          foreach (DictionaryEntry entry in item.Properties)
@@ -236,10 +235,8 @@ namespace LaSSI
                   value = string.Empty;
                }
             }
-            text += $"{indent}BEGIN {key}{indent}{value}  END{Environment.NewLine}";
+            sb.Append($"{indent}BEGIN {key}{indent}{value}  END{Environment.NewLine}");
          }
-
-         return text;
       }
       private static string RenderRoot(OrderedDictionary dictionary)
       {
