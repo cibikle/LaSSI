@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace LaSSI
 {
@@ -191,77 +192,80 @@ namespace LaSSI
          }
          return searchCollection;
       }
-      public void Load()
+      public async Task Load()
       {
-         LoadFile(this, this.Filename);
+         await LoadFile(this, Filename);
       }
-      public static void LoadFile(SaveFilev2 saveFile, string filename)
+      public static async Task LoadFile(SaveFilev2 saveFile, string filename)
       {
-         Stopwatch stopwatch = Stopwatch.StartNew();
-         if (!File.Exists(filename))
+         await Task.Run(() =>
          {
-            return;//todo: uh, display a message? throw an exception?
-         }
-
-         Stack<Node> nodeStack = new();
-         nodeStack.Push(saveFile.RootNode);
-         Debug.WriteLine(filename);
-         TextReader reader = new StreamReader(filename);
-         string text = reader.ReadToEnd();
-         reader.Dispose();
-         bool quit = false;
-         string newlinechar = GetNewLineChar(text[0..50]);
-         string[] lines = text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-         foreach (string line in lines)
-         {
-            if (line.Length < 1) continue;
-            if (quit)
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            if (!File.Exists(filename))
             {
-               break;
+               return;//todo: uh, display a message? throw an exception?
             }
-            string[] lineParts = line.Split(" ").ToList().Where(x => !string.IsNullOrEmpty(x)).ToArray<string>();
-            switch (lineParts[0])
-            {
-               case "BEGIN":
-                  {
-                     if (lineParts.Length > 2)
-                     {
-                        ProcessComplexLine(nodeStack, lineParts, saveFile);
-                     }
-                     else
-                     {
-                        ProcessSimpleLine(nodeStack, lineParts, saveFile);
-                     }
-                     break;
-                  }
-               case "END":
-                  {
-                     Node node = nodeStack.Pop();
-                     node.AddAddlNameDetails();
-                     break;
-                  }
-               default:
-                  {
-                     if (nodeStack.Peek() == saveFile.RootNode && IsRootNodeProperty(lineParts[0]))
-                     {
-                        saveFile.AddPropertyToRootNode(lineParts[0], lineParts[1]);
-                        continue;
-                     }
-                     Node curNode = nodeStack.Peek();
-                     string key = lineParts[0], value = lineParts[1];
-                     value = line.Replace(lineParts[0] + " ", null).Trim();
 
-                     if (key != string.Empty && value != string.Empty) //is this check neccessary?
+            Stack<Node> nodeStack = new();
+            nodeStack.Push(saveFile.RootNode);
+            Debug.WriteLine(filename);
+            TextReader reader = new StreamReader(filename);
+            string text = reader.ReadToEnd();
+            reader.Dispose();
+            bool quit = false;
+            string newlinechar = GetNewLineChar(text[0..50]);
+            string[] lines = text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (string line in lines)
+            {
+               if (line.Length < 1) continue;
+               if (quit)
+               {
+                  break;
+               }
+               string[] lineParts = line.Split(" ").ToList().Where(x => !string.IsNullOrEmpty(x)).ToArray<string>();
+               switch (lineParts[0])
+               {
+                  case "BEGIN":
                      {
-                        curNode.Properties.Add(key, value);
+                        if (lineParts.Length > 2)
+                        {
+                           ProcessComplexLine(nodeStack, lineParts, saveFile);
+                        }
+                        else
+                        {
+                           ProcessSimpleLine(nodeStack, lineParts, saveFile);
+                        }
+                        break;
                      }
-                     break;
-                  }
+                  case "END":
+                     {
+                        Node node = nodeStack.Pop();
+                        node.AddAddlNameDetails();
+                        break;
+                     }
+                  default:
+                     {
+                        if (nodeStack.Peek() == saveFile.RootNode && IsRootNodeProperty(lineParts[0]))
+                        {
+                           saveFile.AddPropertyToRootNode(lineParts[0], lineParts[1]);
+                           continue;
+                        }
+                        Node curNode = nodeStack.Peek();
+                        string key = lineParts[0], value = lineParts[1];
+                        value = line.Replace(lineParts[0] + " ", null).Trim();
+
+                        if (key != string.Empty && value != string.Empty) //is this check neccessary?
+                        {
+                           curNode.Properties.Add(key, value);
+                        }
+                        break;
+                     }
+               }
             }
-         }
-         stopwatch.Stop();
-         Debug.WriteLine($"File load took {stopwatch.ElapsedMilliseconds} ms.");
+            stopwatch.Stop();
+            Debug.WriteLine($"File load took {stopwatch.ElapsedMilliseconds} ms.");
+         });
       }
       private static bool IsSubnode(string subnodeId)
       {

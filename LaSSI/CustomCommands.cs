@@ -596,7 +596,7 @@ namespace LaSSI
                , "Warning", MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
 
       }
-      internal void LoadFile(string filename, bool IsReloadAfterSave = false)
+      internal async void LoadFile(string filename, bool IsReloadAfterSave = false)
       {
          if (!File.Exists(filename))
          {
@@ -606,7 +606,7 @@ namespace LaSSI
 
          MainForm.saveFilePath = filename;
          MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
-         MainForm.saveFile.Load();
+         await MainForm.saveFile.Load();
          MainForm.UpdateUiAfterLoad();
          EnableSaveAs(MainForm.Menu);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
@@ -722,7 +722,7 @@ namespace LaSSI
                   MainForm.DataPanel.ResetDataState();
                   AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
 
-                  LoadFile(saveDialog.FileName, true); // todo: make async; be sure to await or continuewith
+                  LoadFile(saveDialog.FileName, true);
                });
             });
          }
