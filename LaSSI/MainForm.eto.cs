@@ -22,7 +22,7 @@ namespace LaSSI
    }
    partial class MainForm : Form
    {
-      internal System.Uri savesFolder = GetSavesUri();
+      internal Uri savesFolder = GetSavesUri();
       internal string saveFilePath = string.Empty;
       internal SaveFilev2 saveFile = new();
       internal string backupDirectory = string.Empty;
@@ -76,7 +76,7 @@ namespace LaSSI
          LoadingBar = new ProgressBar()
          {
             Visible = false,
-            Indeterminate = true
+            Indeterminate = false
          };
          Content = InitMainPanel();
 

@@ -35,9 +35,9 @@ namespace LaSSI
          ToolsList.Add(CreateCleanupDeadCrew_Command(CleanupDeadCrew_Executed));
          ToolsList.Add(CreateRemoveHab_Command(RemoveHab_Executed));
          ToolsList.Add(CreateShuttleWaitingCommand(ShuttleWaiting_Executed));
-         ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(markStrandedShipsDerelict_Executed));
-         ToolsList.Add(CreateMissionReassignCommand(missionReassign_Executed));
-         ToolsList.Add(CreateFireCrewCommand(fireCrew_Executed));
+         ToolsList.Add(CreateMarkStrandedShipsDerelictCommand(MarkStrandedShipsDerelict_Executed));
+         ToolsList.Add(CreateMissionReassignCommand(MissionReassign_Executed));
+         ToolsList.Add(CreateFireCrewCommand(FireCrew_Executed));
          ToolsList.Add(CreateClaimGhostShipsCommand(ClaimGhostShip_Executed));
          ToolsList.Add(CreateScuttleShipsCommand(ScuttleShips_Executed));
          //ToolsList.Add(CreateCleanupFreeSpaceCommand(cleanupFreeSpace_Executed));
@@ -116,7 +116,7 @@ namespace LaSSI
       }
       internal static Command CreateMissionReassignCommand(EventHandler<EventArgs> handler)
       {
-         Command command = new Command()
+         Command command = new()
          {
             MenuText = "Reassign missions",
             ID = "ReassignMissions"
@@ -604,9 +604,10 @@ namespace LaSSI
          }
          //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
 
+         Progress<int> progress = new(percent => { MainForm.LoadingBar.Value = percent; });
          MainForm.saveFilePath = filename;
          MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
-         await MainForm.saveFile.Load();
+         await MainForm.saveFile.Load(progress);
          MainForm.UpdateUiAfterLoad();
          EnableSaveAs(MainForm.Menu);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
@@ -673,11 +674,11 @@ namespace LaSSI
       #region event handlers
       private void UpdateCommand_Executed(object? sender, EventArgs e)
       {
-         var foo = MainForm.CheckForUpdatesAsync(true);
+         _ = MainForm.CheckForUpdatesAsync(true);
       }
       private void PrefsCommand_Executed(object? sender, EventArgs e)
       {
-         PrefsDialog f = new PrefsDialog(MainForm.prefs);
+         PrefsDialog f = new(MainForm.prefs);
          f.ShowModal(MainForm);
          MainForm.DataPanel.RefreshTree(); // todo: this should only trigger if the user made a change that requires it
       }
@@ -757,7 +758,7 @@ namespace LaSSI
          string savesDirectory = MainForm.savesFolder.OriginalString;
          if (Directory.Exists(savesDirectory))
          {
-            Process p = new Process();
+            Process p = new();
             p.StartInfo.UseShellExecute = true;
             p.StartInfo.FileName = savesDirectory;
             p.Start();
@@ -768,7 +769,7 @@ namespace LaSSI
          string backupsDirectory = Prefs.GetBackupsDirectory();
          if (Directory.Exists(backupsDirectory))
          {
-            Process p = new Process();
+            Process p = new();
             p.StartInfo.UseShellExecute = true;
             p.StartInfo.FileName = backupsDirectory;
             p.Start();
@@ -822,15 +823,15 @@ namespace LaSSI
             _ = MessageBox.Show("Ghost ships claimed", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          }
       }
-      internal void fireCrew_Executed(object? sender, EventArgs e)
+      internal void FireCrew_Executed(object? sender, EventArgs e)
       {
          MainForm.DataPanel.FireCrew(true);
       }
-      internal void missionReassign_Executed(object? sender, EventArgs e)
+      internal void MissionReassign_Executed(object? sender, EventArgs e)
       {
          MainForm.DataPanel.ReassignMissions(true);
       }
-      internal void markStrandedShipsDerelict_Executed(object? sender, EventArgs e)
+      internal void MarkStrandedShipsDerelict_Executed(object? sender, EventArgs e)
       {
          if (sender is Command c and not null && !MainForm.DataPanel.FindStrandedShips(true))
          {

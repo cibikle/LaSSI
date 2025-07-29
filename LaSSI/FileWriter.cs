@@ -16,15 +16,24 @@ namespace LaSSI
       {
 
       }
-      public async Task<bool> WriteFile(Node root, string Filename)
+      public async Task<bool> WriteFile(Node root, string Filename, IProgress<int>? progressBar = null)
       {
          return await Task.Run(() =>
          {
             Stopwatch stopwatch = Stopwatch.StartNew();
             string rootdata = RenderRoot(root.Properties);
             StringBuilder sb = new(Environment.NewLine + rootdata);
+            int nodeCount = 0;
+            int reportBreakpoint = (int)(root.Children.Count * 0.01);
+            int reportVal = 0;
             foreach (Node child in root.Children.Cast<Node>())
             {
+               nodeCount++;
+               if (nodeCount % reportBreakpoint == 0)
+               {
+                  reportVal++;
+                  progressBar?.Report(reportVal);
+               }
                RenderLine(child, sb);
             }
 

@@ -192,11 +192,11 @@ namespace LaSSI
          }
          return searchCollection;
       }
-      public async Task Load()
+      public async Task Load(IProgress<int>? progressBar = null)
       {
-         await LoadFile(this, Filename);
+         await LoadFile(this, Filename, progressBar);
       }
-      public static async Task LoadFile(SaveFilev2 saveFile, string filename)
+      public static async Task LoadFile(SaveFilev2 saveFile, string filename, IProgress<int>? progressBar = null)
       {
          await Task.Run(() =>
          {
@@ -212,17 +212,21 @@ namespace LaSSI
             TextReader reader = new StreamReader(filename);
             string text = reader.ReadToEnd();
             reader.Dispose();
-            bool quit = false;
             string newlinechar = GetNewLineChar(text[0..50]);
             string[] lines = text.Split(newlinechar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
+            int numLines = lines.Length;
+            int lineCount = 0;
+            int reportBreakpoint = (int)(numLines * 0.01);
+            int reportVal = 0;
             foreach (string line in lines)
             {
-               if (line.Length < 1) continue;
-               if (quit)
+               lineCount++;
+               if (lineCount % reportBreakpoint == 0)
                {
-                  break;
+                  reportVal++;
+                  progressBar?.Report(reportVal);
                }
+               if (line.Length < 1) continue;
                string[] lineParts = line.Split(" ").ToList().Where(x => !string.IsNullOrEmpty(x)).ToArray<string>();
                switch (lineParts[0])
                {
@@ -549,11 +553,11 @@ namespace LaSSI
          }
       }
 
-      public static SaveFilev2 LoadFile(string filename)
-      {
-         SaveFilev2 saveFile = new(filename);
-         LoadFile(saveFile, filename);
-         return saveFile;
-      }
+      /*      public static SaveFilev2 LoadFile(string filename)
+            {
+               SaveFilev2 saveFile = new(filename);
+               LoadFile(saveFile, filename);
+               return saveFile;
+            }*/
    }
 }
