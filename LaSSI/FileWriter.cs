@@ -24,7 +24,7 @@ namespace LaSSI
             string rootdata = RenderRoot(root.Properties);
             StringBuilder sb = new(Environment.NewLine + rootdata);
             int nodeCount = 0;
-            int reportBreakpoint = (int)(root.Children.Count * 0.01);
+            int reportBreakpoint = (int)(root.Children.Count * 0.01) + 1; // avoid dividing by zero
             int reportVal = 0;
             foreach (Node child in root.Children.Cast<Node>())
             {

@@ -2,18 +2,21 @@
 using Eto.Forms;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
    public class CheckBoxListDialog : Dialog
    {
-
+      private readonly bool _allOf;
       public CheckBoxListDialog()
       {
 
       }
-      public CheckBoxListDialog(string title, List<string> options)
+      public CheckBoxListDialog(string title, List<string> options, bool allOf = false)
       {
+         _allOf = allOf;
          CommonSetup(title, options);
          Shown += CheckBoxListDialog_Shown;
       }
@@ -40,7 +43,7 @@ namespace LaSSI
       private void CommonSetup(string title, List<string> options)
       {
          list.Orientation = Orientation.Vertical;
-         foreach (var opt in options)
+         foreach (string opt in options)
          {
             list.Items.Add(opt);
          }
@@ -100,14 +103,14 @@ namespace LaSSI
             Enabled = false,
          };
          OK = ok;
-         this.DefaultButton = ok;
+         DefaultButton = ok;
          Button cancel = new() { Text = "Cancel" };
          cancel.Click += delegate
          {
             Result = DialogResult.Cancel;
             Close();
          };
-         this.AbortButton = cancel;
+         AbortButton = cancel;
          return new StackLayout(ok, cancel) { Orientation = Orientation.Horizontal, Spacing = 5 };
       }
       private StackLayout AllNoneButtonsLayout()
@@ -122,7 +125,74 @@ namespace LaSSI
          Button none = new() { Text = "None", Enabled = false };
          none.Click += (sender, e) => { list.SelectedValues = null; };
          None = none;
-         return new StackLayout(all, none) { Orientation = Orientation.Horizontal, Spacing = 5 };
+
+         StackLayout? allOf = null;
+         if (_allOf)
+         {
+            allOf = AllOffLayout();
+         }
+         return new StackLayout(all, none, allOf) { Orientation = Orientation.Horizontal, Spacing = 5 };
+      }
+      private StackLayout AllOffLayout()
+      {
+         DropDown allOfType = PrefsDialog.CreateDropDown("allOfType", OptionsToAllOfTypes().ToArray());
+         Label allOf = new()
+         {
+            Text = "All of",
+         };
+         allOfType.SelectedIndexChanged += (sender, e) =>
+         {
+            if (allOfType.SelectedIndex >= 0) { string value = allOfType.SelectedValue.ToString()!; Regex r = new(value + @"(,|\))"); list.SelectedValues = list.Items.Where(n => r.IsMatch(n.Text)); }
+         };
+
+         return new StackLayout(allOf, allOfType) { Orientation = Orientation.Horizontal, Spacing = 5 };
+      }
+      private List<string> OptionsToAllOfTypes()
+      {
+         List<string> strings = new();
+         List<string> missionTypes = new();
+         List<string> pickUp = new();
+         List<string> dropOff = new();
+
+         foreach (var option in list.Items)
+         {
+            string[] details = option.Text.TrimEnd(')').Split('(')[1].Split(',');
+            for (int i = 0; i < details.Length; i++)
+            {
+               if (i == 1)
+               {
+                  i++; // skip the cargo type details
+               }
+               string detail = details[i].Trim();
+
+               if (detail.StartsWith("pick-up"))
+               {
+                  if (!pickUp.Contains(detail))
+                  {
+                     pickUp.Add(detail);
+                  }
+               }
+               else if (detail.StartsWith("drop-off"))
+               {
+                  if (!dropOff.Contains(detail))
+                  {
+                     dropOff.Add(detail);
+                  }
+               }
+               else
+               {
+                  if (!missionTypes.Contains(detail))
+                  {
+                     missionTypes.Add(detail);
+                  }
+               }
+            }
+         }
+         missionTypes.Sort();
+         strings.AddRange(missionTypes);
+         strings.AddRange(pickUp.OrderBy(c => c.Length).ThenBy(c => c));
+         strings.AddRange(dropOff.OrderBy(c => c.Length).ThenBy(c => c));
+         return strings;
       }
       private void OK_clicked(object? sender, EventArgs e)
       {
@@ -134,7 +204,7 @@ namespace LaSSI
       private Button? OK;
       private Button? All;
       private Button? None;
-      private Scrollable scrollable = new();
+      private readonly Scrollable scrollable = new();
    }
 }
 

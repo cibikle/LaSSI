@@ -27,7 +27,7 @@ namespace LaSSI
       internal SaveFilev2 saveFile = new();
       internal string backupDirectory = string.Empty;
       internal List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
-      internal readonly string FileFormat = "Last Starship save files|*.space";
+      internal readonly string FileFormat = "Last Starship save files|.space";
       internal ProgressBar LoadingBar = new();
       internal DataPanel DataPanel;
       internal CustomCommands? CustomCommands;
@@ -37,6 +37,7 @@ namespace LaSSI
       internal string version = Assembly.GetExecutingAssembly().GetName().Version!.ToString();
       //private const string AssemblyName = "LaSSI";
       static readonly HttpClient client = new();
+      private readonly string ReleaseUrl = "https://api.github.com/repos/cibikle/LaSSI/releases/latest";
       void InitializeComponent()
       {
          Closing += MainForm_Closing;
@@ -104,9 +105,9 @@ namespace LaSSI
          {
             client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
-            client.DefaultRequestHeaders.UserAgent.TryParseAdd("request");//Set the User Agent to "request"
+            _ = client.DefaultRequestHeaders.UserAgent.TryParseAdd("request");
 
-            HttpResponseMessage response = await client.GetAsync("https://api.github.com/repos/cibikle/LaSSI/releases/latest");
+            HttpResponseMessage response = await client.GetAsync(ReleaseUrl);
 
             response.EnsureSuccessStatusCode();
 
@@ -126,8 +127,8 @@ namespace LaSSI
                {
                   Modal m = new(new List<string> { $"A newer version of LaSSI (v{tag}) is available:" }, "New version available!", new List<string> { url });
 
-                  this.SetParent(m);
-                  m.ShowModal(this.Parent);
+                  SetParent(m);
+                  m.ShowModal(Parent);
                }
                else
                {

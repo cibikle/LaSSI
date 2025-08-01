@@ -1446,7 +1446,7 @@ namespace LaSSI
             return missionCount;
          }
 
-         CheckBoxListDialog chooseMissionsToDelete = new("Choose missions to delete", acceptedMissions.Select((Node n) => n.Name).ToList());
+         CheckBoxListDialog chooseMissionsToDelete = new("Choose missions to delete", acceptedMissions.Select(n => n.Name).ToList(), allOf: true);
          chooseMissionsToDelete.ShowModal(mainForm);
          if (chooseMissionsToDelete.GetDialogResult() != DialogResult.Ok)
          {
@@ -1533,7 +1533,7 @@ namespace LaSSI
                _ = MessageBox.Show("Found no friendly ships", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
                return false;
             }
-            CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select((Node n) => n.Name).ToList());
+            CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select(n => n.Name).ToList(), true);
             chooseMissionsToReassign.ShowModal(mainForm);
             if (chooseMissionsToReassign.GetDialogResult() == DialogResult.Ok)
             {

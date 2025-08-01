@@ -160,7 +160,7 @@ namespace LaSSI
       }
    }
 
-   internal class PrefsDialog : Dialog
+   public class PrefsDialog : Dialog
    {
       //public event EventHandler? UiRefreshRequired;
 
@@ -351,7 +351,7 @@ namespace LaSSI
          }
       }
 
-      internal static DropDown CreateDropDown(string id, Array options, string defaultValue)
+      public static DropDown CreateDropDown(string id, Array options, string defaultValue = "")
       {
          DropDown dropDownList = new()
          {
