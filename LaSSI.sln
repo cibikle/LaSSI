@@ -4,6 +4,11 @@ VisualStudioVersion = 17.7.34018.315
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaSSI", "LaSSI\LaSSI.csproj", "{25E1408A-D99F-4684-A0A0-64E2F6AADF64}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,21 +42,18 @@ Global
 		Policies = $0
 		$0.DotNetNamingPolicy = $1
 		$1.DirectoryNamespaceAssociation = PrefixedHierarchical
-		$0.TextStylePolicy = $2
+		$0.TextStylePolicy = $6
 		$2.inheritsSet = null
 		$2.scope = text/x-csharp
 		$0.CSharpFormattingPolicy = $3
 		$3.scope = text/x-csharp
-		$0.TextStylePolicy = $4
 		$4.FileWidth = 80
 		$4.TabWidth = 3
 		$4.TabsToSpaces = True
 		$4.IndentWidth = 3
 		$4.scope = text/plain
-		$0.TextStylePolicy = $5
 		$5.inheritsSet = null
 		$5.scope = application/x-sh
-		$0.TextStylePolicy = $6
 		$6.inheritsSet = null
 		$6.scope = application/x-msbuild
 		$0.XmlFormattingPolicy = $7

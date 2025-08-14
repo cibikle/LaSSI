@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -20,10 +21,19 @@ namespace LaSSI
       ChildEdited,
       Deleted
    }
+   enum SaveFileLocation
+   {
+      NoFileLoaded,
+      Local,
+      SteamCloud
+   }
    partial class MainForm : Form
    {
       internal Uri savesFolder = GetSavesUri();
+      internal string steamCloudSavesRelativePath = "1857080\\remote\\saves";
+      internal Uri? steamCloudSavesPath;
       internal string saveFilePath = string.Empty;
+      internal SaveFileLocation saveFileLocation = SaveFileLocation.NoFileLoaded;
       internal SaveFilev2 saveFile = new();
       internal string backupDirectory = string.Empty;
       internal List<InventoryGridItem> InventoryMasterList = LoadInventoryMasterList();
@@ -32,12 +42,14 @@ namespace LaSSI
       internal DataPanel DataPanel;
       internal CustomCommands? CustomCommands;
       internal SubMenuItem fileMenu;
+      internal SubMenuItem steamCloud;
       internal Prefs prefs;
       internal char WindowsMenuPrefix = '&';
       internal string version = Assembly.GetExecutingAssembly().GetName().Version!.ToString();
       //private const string AssemblyName = "LaSSI";
       static readonly HttpClient client = new();
       private readonly string ReleaseUrl = "https://api.github.com/repos/cibikle/LaSSI/releases/latest";
+      internal bool IsSteamCloudPresent;
       void InitializeComponent()
       {
          Closing += MainForm_Closing;
@@ -55,6 +67,11 @@ namespace LaSSI
          fileMenu.Items.AddRange(CustomCommands.FileCommands);
          SubMenuItem toolsMenu = new() { Text = "&Tools" }; //the & is used in Windows only, ignored in Mac, and stripped out in Linux
          toolsMenu.Items.AddRange(CustomCommands.ToolsList);
+         IsSteamCloudPresent = false;// TryGetSteamCloudPath(out steamCloudSavesPath); // todo: put this back once the feature is finished!
+         if (IsSteamCloudPresent)
+         {
+            SetUpSteamCloudSubmenu(steamCloud);
+         }
          Menu = new MenuBar
          {
             Items =
@@ -85,7 +102,19 @@ namespace LaSSI
 
          Startup();
       }
-
+      private bool TryGetSteamCloudPath(out Uri? steamCloudSavesPath)
+      {
+         steamCloudSavesPath = GetSteamCloudSavesUri();
+         bool isSteamCloudPresent = steamCloudSavesPath is not null && !string.IsNullOrEmpty(steamCloudSavesPath.ToString());
+         return isSteamCloudPresent;
+      }
+      private void SetUpSteamCloudSubmenu(SubMenuItem steamCloudSubmenu)
+      {
+         steamCloudSubmenu = new() { Text = "Steam cloud" };
+         steamCloudSubmenu.Items.AddRange(CustomCommands!.SteamCloudCommands);
+         fileMenu.Items.Add(steamCloudSubmenu);
+         CustomCommands!.EnableDisableSteamCloudMenuItems(saveFileLocation);
+      }
       private static string GetToken(JObject data, string tokenName)
       {
          if (data[tokenName] is not null and JToken token && token is not null)
@@ -158,7 +187,6 @@ namespace LaSSI
             e.Cancel = !CustomCommands.ReadyForQuit();
          }
       }
-
       internal void Startup()
       {
          if (CustomCommands is not null)
@@ -186,13 +214,17 @@ namespace LaSSI
                      {
                         if (prefs.FindPref("Startup file") is not null and Pref startupFile && startupFile.value is not null and string filename && !string.IsNullOrEmpty(filename))
                         {
-                           CustomCommands.LoadFile(Path.Combine(savesFolder.OriginalString, filename));
+                           CustomCommands.LoadFile(filename);
                         }
                         break;
                      }
                }
             }
          }
+      }
+      private static string GetMacApplicationSupportFolder()
+      {
+         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support");
       }
       /// <summary>
       /// This method takes care of any platform-specific setup/steps at the end of the mainform init phase
@@ -218,7 +250,6 @@ namespace LaSSI
             //releaseDownloadPattern = "linux64"; // todo: double check this
          }
       }
-
       private static List<InventoryGridItem> LoadInventoryMasterList()
       {
          var InventoryMasterList = new List<InventoryGridItem>();
@@ -238,7 +269,7 @@ namespace LaSSI
          string savesFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
          if (EtoEnvironment.Platform.IsMac)
          {
-            savesFolderPath = Path.Combine(savesFolderPath, "Library", "Application Support");
+            savesFolderPath = GetMacApplicationSupportFolder();
          }
          else if (EtoEnvironment.Platform.IsWindows)
          {
@@ -254,6 +285,37 @@ namespace LaSSI
          Uri SavesUri = new(savesFolderPath);
          return SavesUri;
       }
+      private Uri? GetSteamCloudSavesUri()
+      {
+         string steamCloudSavesFolderPath = string.Empty;
+         if (EtoEnvironment.Platform.IsMac)
+         {
+            steamCloudSavesFolderPath = GetMacApplicationSupportFolder();
+         }
+         else if (EtoEnvironment.Platform.IsWindows)
+         {
+            steamCloudSavesFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+         }
+         else if (EtoEnvironment.Platform.IsLinux)
+         {
+            //todo
+         }
+         steamCloudSavesFolderPath = Path.Combine(steamCloudSavesFolderPath, "Steam", "userdata");
+         string[] steamUsers = Directory.GetDirectories(steamCloudSavesFolderPath);
+         foreach (string steamUser in steamUsers)
+         {
+            string pathToCheck = Path.Combine(steamCloudSavesFolderPath, steamUser, steamCloudSavesRelativePath);
+            if (Directory.Exists(pathToCheck))
+            {
+               steamCloudSavesFolderPath = pathToCheck; //todo: this could be a problem on a system with >1 users who play The Last Starship
+            }
+         }
+         Debug.WriteLine($"Steam cloud saves path: {steamCloudSavesFolderPath}");
+
+         return !string.IsNullOrEmpty(steamCloudSavesFolderPath) && steamCloudSavesFolderPath.EndsWith("saves")
+            ? new Uri(steamCloudSavesFolderPath)
+            : null;
+      }
       private static Point GetScreenCenter()
       {
          var screenBounds = Screen.PrimaryScreen.Bounds;
@@ -268,10 +330,21 @@ namespace LaSSI
          var adjustedCenter = new Point(screenCenter.X - (formSize.Width / 2), screenCenter.Y - (formSize.Height / 2));
          return adjustedCenter;
       }
-      internal void UpdateUiAfterLoad()
+      internal void UpdateUiAfterLoad(bool steamCloudSave = false)
       {
-         _ = UpdateTextbox("saveFileTextbox", TrimFilePathForSafety(saveFilePath));
+         string displayPath = saveFilePath;
+         if (steamCloudSave)
+         {
+            saveFileLocation = SaveFileLocation.SteamCloud;
+         }
+         else
+         {
+            displayPath = TrimFilePathForSafety(displayPath);
+            saveFileLocation = SaveFileLocation.Local;
+         }
+         _ = UpdateTextbox("saveFileTextbox", displayPath);
          LoadingBar.Visible = false;
+         CustomCommands!.EnableDisableSteamCloudMenuItems(saveFileLocation);
          DataPanel.UpdateUiAfterLoad(saveFile.RootNode);
       }
       internal static string TrimFilePathForSafety(string filepath)

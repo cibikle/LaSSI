@@ -298,7 +298,7 @@ namespace LaSSI
                      Spacing = 5
                   };
                   stack.Items.Add(startingSaveFileBox);
-                  stack.Items.Add(pickStartingSave);
+                  //stack.Items.Add(pickStartingSave);
                   control = stack;
                   break;
                }

@@ -9,11 +9,18 @@ using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
+   enum CommandType
+   {
+      File,
+      Tool,
+      SteamCloud
+   }
    internal class CustomCommands
    {
       internal List<Command> FileCommands { get; set; } = new List<Command>();
       internal Command QuitCommand { get; set; }
       internal List<Command> ToolsList { get; set; } = new List<Command>();
+      internal List<Command> SteamCloudCommands { get; set; } = new List<Command>();
       internal MainForm MainForm;
       internal Command PrefsCommand { get; }
       internal Command CheckForUpdates { get; }
@@ -22,7 +29,11 @@ namespace LaSSI
       {
          MainForm = mainForm;
          FileCommands.Add(CreateOpenFileCommand(OpenFileCommand_Executed));
+         SteamCloudCommands.Add(CreateOpenSteamCloudFileCommand(OpenFileCommand_Executed));
          FileCommands.Add(CreateSaveFileAsCommand(SaveFileAsCommand_Executed));
+         SteamCloudCommands.Add(CreateSaveToLocalCommand(SaveToLocalCommand_Executed));
+         SteamCloudCommands.Add(CreateSaveToSteamCloudCommand(SaveToSteamCloudCommand_Executed));
+         SteamCloudCommands.Add(CreateBrowseSteamCloudSavesCommand(BrowseSavesCommand_Executed));
          FileCommands.Add(CreateBrowseSavesCommand(BrowseSavesCommand_Executed));
          FileCommands.Add(CreateBrowseBackupsCommand(BrowseBackupsCommand_Executed));
          QuitCommand = CreateQuitCommand(QuitCommand_Executed);
@@ -290,17 +301,52 @@ namespace LaSSI
          openFileCommand.Executed += OpenFileCommand_Executed;
          return openFileCommand;
       }
+      internal static Command CreateOpenSteamCloudFileCommand(EventHandler<EventArgs> OpenSteamCloudFileCommandFileCommand_Executed)
+      {
+         var openSteamCloudFileCommand = new Command
+         {
+            MenuText = "Open Steam cloud file",
+            Shortcut = Application.Instance.CommonModifier | Keys.Shift | Keys.O,
+            ID = "OpenSteamCloudFileCommand"
+         };
+         openSteamCloudFileCommand.Executed += OpenSteamCloudFileCommandFileCommand_Executed;
+         return openSteamCloudFileCommand;
+      }
       internal static Command CreateSaveFileAsCommand(EventHandler<EventArgs> SaveFileAsCommand_Executed)
       {
          var saveFileAsCommand = new Command
          {
-            MenuText = "Save As",
+            MenuText = "Save as",
             Shortcut = Application.Instance.CommonModifier | /*Keys.Shift |*/ Keys.S, // todo: after Save is implemented, put the Shift back
             Enabled = false,
             ID = "SaveFileAsCommand"
          };
          saveFileAsCommand.Executed += SaveFileAsCommand_Executed;
          return saveFileAsCommand;
+      }
+      internal static Command CreateSaveToLocalCommand(EventHandler<EventArgs> SaveToLocalCommand_Executed)
+      {
+         var saveToLocalAsCommand = new Command
+         {
+            MenuText = "Save to local",
+            Shortcut = Application.Instance.CommonModifier | Application.Instance.AlternateModifier | Keys.S,
+            Enabled = false,
+            ID = "SaveToLocalCommand"
+         };
+         saveToLocalAsCommand.Executed += SaveToLocalCommand_Executed;
+         return saveToLocalAsCommand;
+      }
+      internal static Command CreateSaveToSteamCloudCommand(EventHandler<EventArgs> SaveToSteamCloudCommand_Executed)
+      {
+         var saveToSteamCloudCommand = new Command
+         {
+            MenuText = "Save to Steam cloud",
+            Shortcut = Application.Instance.CommonModifier | Application.Instance.AlternateModifier | Keys.Shift | Keys.S,
+            Enabled = false,
+            ID = "SaveToSteamCloudCommand"
+         };
+         saveToSteamCloudCommand.Executed += SaveToSteamCloudCommand_Executed;
+         return saveToSteamCloudCommand;
       }
       internal static Command CreateBrowseSavesCommand(EventHandler<EventArgs> BrowseSavesCommand_Executed)
       {
@@ -313,6 +359,18 @@ namespace LaSSI
          };
          browseBackupsCommand.Executed += BrowseSavesCommand_Executed;
          return browseBackupsCommand;
+      }
+      internal static Command CreateBrowseSteamCloudSavesCommand(EventHandler<EventArgs> BrowseSavesSteamCloudCommand_Executed)
+      {
+         var browseSteamCloudBackupsCommand = new Command
+         {
+            MenuText = "Browse Steam cloud saves",
+            Shortcut = Application.Instance.CommonModifier | Application.Instance.AlternateModifier | Keys.Shift | Keys.B,
+            Enabled = true,
+            ID = "BrowseSteamCloudSavesCommand"
+         };
+         browseSteamCloudBackupsCommand.Executed += BrowseSavesSteamCloudCommand_Executed;
+         return browseSteamCloudBackupsCommand;
       }
       internal static Command CreateBrowseBackupsCommand(EventHandler<EventArgs> BrowseBackupsCommand_Executed)
       {
@@ -327,13 +385,51 @@ namespace LaSSI
          return browseBackupsCommand;
       }
       #endregion commands
-      internal void OpenFileExecute()
+      /*internal void OpenFileExecute()
       {
          Command openfile = FileCommands.First(x => x.ID == "OpenFileCommand");
          openfile.Execute();
-      }
+      }*/
 
       #region utility
+      internal void EnableDisableSteamCloudMenuItems(SaveFileLocation saveFileLocation)
+      {
+         switch (saveFileLocation)
+         {
+            case SaveFileLocation.NoFileLoaded:
+               SetControlEnabled("SaveToLocalCommand", CommandType.SteamCloud, enabled: false);
+               SetControlEnabled("SaveToSteamCloudCommand", CommandType.SteamCloud, enabled: false);
+               break;
+            case SaveFileLocation.Local:
+               SetControlEnabled("SaveToLocalCommand", CommandType.SteamCloud, enabled: false);
+               SetControlEnabled("SaveToSteamCloudCommand", CommandType.SteamCloud, enabled: true);
+               break;
+            case SaveFileLocation.SteamCloud:
+               SetControlEnabled("SaveToLocalCommand", CommandType.SteamCloud, enabled: true);
+               SetControlEnabled("SaveToSteamCloudCommand", CommandType.SteamCloud, enabled: false);
+               break;
+         }
+      }
+      internal void SetControlEnabled(string controlId, CommandType commandType = CommandType.SteamCloud, bool enabled = true)
+      {
+         List<Command>? commandsList = null;
+         switch (commandType)
+         {
+            case CommandType.File:
+               commandsList = FileCommands;
+               break;
+            case CommandType.Tool:
+               commandsList = ToolsList;
+               break;
+            case CommandType.SteamCloud:
+               commandsList = SteamCloudCommands;
+               break;
+         }
+         if (commandsList is not null)
+         {
+            commandsList.First(c => c.ID.Equals(controlId)).Enabled = enabled;
+         }
+      }
       internal static void EnableSaveAs(MenuBar menu)
       {
          string menuItemText = "File";
@@ -470,7 +566,8 @@ namespace LaSSI
                      {
                         if (MainForm.prefs.FindPref("Startup file") is not null and Pref startupFile)
                         {
-                           startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
+                           //startupFile.SetValue(Path.GetFileName(MainForm.saveFilePath));
+                           startupFile.SetValue(MainForm.saveFilePath);
                         }
                      }
                      break;
@@ -608,7 +705,7 @@ namespace LaSSI
          MainForm.saveFilePath = filename;
          MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
          await MainForm.saveFile.Load(progress);
-         MainForm.UpdateUiAfterLoad();
+         MainForm.UpdateUiAfterLoad(IsFileSteamCloudSave(filename));
          EnableSaveAs(MainForm.Menu);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
          MainForm.DataPanel.ResetDataState();
@@ -619,6 +716,10 @@ namespace LaSSI
             Debug.WriteLine($"Backup started in {MainForm.backupDirectory}");
          }
 
+      }
+      internal bool IsFileSteamCloudSave(string filename)
+      {
+         return filename.Contains(MainForm.steamCloudSavesRelativePath);
       }
       internal static string StartBackup(string filename)
       {
@@ -732,30 +833,52 @@ namespace LaSSI
             MainForm.LoadingBar.Visible = false;
          }
       }
+
+      private void SaveToLocalCommand_Executed(object? sender, EventArgs e)
+      {
+         throw new NotImplementedException();
+      }
+      private void SaveToSteamCloudCommand_Executed(object? sender, EventArgs e)
+      {
+         throw new NotImplementedException();
+      }
       private void OpenFileCommand_Executed(object? sender, EventArgs e)
       {
          if (!ReadyForQuit())
          {
             return;
          }
-         OpenFileDialog openDialog = new()
+         OpenFileDialog openDialog = new();
+
+         if (sender is not null and Command c)
          {
-            Directory = MainForm.savesFolder
-         };
-         openDialog.Filters.Add(MainForm.FileFormat);
-         MainForm.LoadingBar.Visible = true;
-         if (openDialog.ShowDialog(MainForm) == DialogResult.Ok)
-         {
-            LoadFile(openDialog.FileName);
-         }
-         else
-         {
-            MainForm.LoadingBar.Visible = false;
+            if (c.ID == "OpenFileCommand")
+            {
+               openDialog.Directory = MainForm.savesFolder;
+            }
+            else if (c.ID == "OpenSteamCloudFileCommand")
+            {
+               openDialog.Directory = MainForm.steamCloudSavesPath;
+            }
+            openDialog.Filters.Add(MainForm.FileFormat);
+            MainForm.LoadingBar.Visible = true;
+            if (openDialog.ShowDialog(MainForm) == DialogResult.Ok)
+            {
+               LoadFile(openDialog.FileName);
+            }
+            else
+            {
+               MainForm.LoadingBar.Visible = false;
+            }
          }
       }
       private void BrowseSavesCommand_Executed(object? sender, EventArgs e)
       {
          string savesDirectory = MainForm.savesFolder.OriginalString;
+         if (sender is not null and Command s && s.ID == "BrowseSteamCloudSavesCommand" && MainForm.steamCloudSavesPath is not null)
+         {
+            savesDirectory = MainForm.steamCloudSavesPath.OriginalString;
+         }
          if (Directory.Exists(savesDirectory))
          {
             Process p = new();
