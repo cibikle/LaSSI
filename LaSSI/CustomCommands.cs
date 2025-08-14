@@ -936,7 +936,7 @@ namespace LaSSI
 
          if (MainForm.DataPanel.ScuttleShips(true))
          {
-            _ = MessageBox.Show("Ships scuttled", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show("Ships scuttled", "Success", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          }
       }
       internal void ClaimGhostShip_Executed(object? sender, EventArgs e)
