@@ -1533,7 +1533,7 @@ namespace LaSSI
                _ = MessageBox.Show("Found no friendly ships", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
                return false;
             }
-            CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select(n => n.Name).ToList(), true);
+            CheckBoxListDialog chooseMissionsToReassign = new("Choose missions to reassign", assignedMissions.Select(n => n.Name).ToList(), allOf: true, new List<int> { 0, 2, 3 });
             chooseMissionsToReassign.ShowModal(mainForm);
             if (chooseMissionsToReassign.GetDialogResult() == DialogResult.Ok)
             {
@@ -1773,7 +1773,7 @@ namespace LaSSI
                _ = MessageBox.Show("No ships to scuttle. Somehow.", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
                return actionTaken;
             }
-            CheckBoxListDialog scuttleShipsSelection = new("Select ghost ships or friendies to scuttle", shipNames);
+            CheckBoxListDialog scuttleShipsSelection = new("Select ghost ships or friendies to scuttle", shipNames, allOf: true, new List<int> { 2 });
             scuttleShipsSelection.ShowModal(mainForm);
             if (scuttleShipsSelection.GetDialogResult() == DialogResult.Ok)
             {

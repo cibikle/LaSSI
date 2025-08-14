@@ -10,12 +10,14 @@ namespace LaSSI
    public class CheckBoxListDialog : Dialog
    {
       private readonly bool _allOf;
+      private readonly List<int>? _indices;
       public CheckBoxListDialog()
       {
 
       }
-      public CheckBoxListDialog(string title, List<string> options, bool allOf = false)
+      public CheckBoxListDialog(string title, List<string> options, bool allOf = false, List<int>? indices = null) // todo: introduce List<int> indices
       {
+         _indices = indices;// ?? new List<int>();
          _allOf = allOf;
          CommonSetup(title, options);
          Shown += CheckBoxListDialog_Shown;
@@ -150,22 +152,55 @@ namespace LaSSI
       private List<string> OptionsToAllOfTypes()
       {
          List<string> strings = new();
-         List<string> missionTypes = new();
-         List<string> pickUp = new();
-         List<string> dropOff = new();
+         List<List<string>> allOfOptions = new();
+         bool selectIndices = _indices is not null;
+         int indexCount = list.Items[0].Text.TrimEnd(')').Split('(')[1].Split(',').Length;
+         int currentIndex = 0;
+         if (selectIndices)
+         {
+            indexCount = _indices!.Count;
+         }
+         for (int i = 0; i < indexCount; i++)
+         {
+            allOfOptions.Add(new List<string>());
+         }
+         /* List<string> missionTypes = new(); // todo: replace these three with List<List<string>>
+          List<string> pickUp = new();
+          List<string> dropOff = new();*/
 
          foreach (var option in list.Items)
          {
+            currentIndex = 0;
             string[] details = option.Text.TrimEnd(')').Split('(')[1].Split(',');
             for (int i = 0; i < details.Length; i++)
             {
-               if (i == 1)
+               if (_indices is not null) // skip indices not in the list of indices to include
                {
-                  i++; // skip the cargo type details
+                  while (!_indices.Contains(i) && i < details.Length)
+                  {
+                     i++;
+                  }
+                  if (i >= details.Length)
+                  {
+                     continue;
+                  }
                }
                string detail = details[i].Trim();
+               if (selectIndices)
+               {
+                  currentIndex = _indices!.IndexOf(i);
+               }
+               else
+               {
+                  currentIndex = i;
+               }
+               if (!allOfOptions[currentIndex].Contains(detail))
+               {
+                  allOfOptions[currentIndex].Add(detail);
+               }
 
-               if (detail.StartsWith("pick-up"))
+
+               /*if (detail.StartsWith("pick-up")) // uh-oh. do we actually need a dictionary or map or something or can we do without this? like, just use the index?
                {
                   if (!pickUp.Contains(detail))
                   {
@@ -185,13 +220,17 @@ namespace LaSSI
                   {
                      missionTypes.Add(detail);
                   }
-               }
+               }*/
             }
          }
-         missionTypes.Sort();
-         strings.AddRange(missionTypes);
+         foreach (var detailList in allOfOptions)
+         {
+            strings.AddRange(detailList.OrderBy(c => c.Length).ThenBy(c => c));
+         }
+         // missionTypes.Sort(); // todo: down the line maybe introduce sorting rules for each index
+         /*strings.AddRange(missionTypes.OrderBy(c => c.Length).ThenBy(c => c));
          strings.AddRange(pickUp.OrderBy(c => c.Length).ThenBy(c => c));
-         strings.AddRange(dropOff.OrderBy(c => c.Length).ThenBy(c => c));
+         strings.AddRange(dropOff.OrderBy(c => c.Length).ThenBy(c => c));*/
          return strings;
       }
       private void OK_clicked(object? sender, EventArgs e)
