@@ -627,9 +627,19 @@ namespace LaSSI
       }
       public static string GetHazardName(string id) //todo: replace with enum
       {
-         string HazardName = String.Empty;
-         if (id == "1") HazardName = "asteroid field";
-         else if (id == "2") HazardName = "gas cloud";
+         string HazardName = string.Empty;
+         switch (id)
+         {
+            case "1":
+               HazardName = "asteroid field";
+               break;
+            case "2":
+               HazardName = "gas cloud, metreon";
+               break;
+            case "3":
+               HazardName = "gas cloud, zeleon";
+               break;
+         }
          return HazardName;
       }
       public static string GetStarSystemSummary(Node node)
