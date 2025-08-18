@@ -1139,7 +1139,7 @@ namespace LaSSI
       {
          if (GetRoot() is not null and Node root)
          {
-            weatherReports = Node.FindChildNodesWithProperties(root, "Weather", false, new List<string> { "Meteors" });
+            weatherReports = Node.FindChildNodesWithProperties(root, "Weather", looseMatch: true, new List<string> { "Meteors" });
             return weatherReports.Count > 0;
          }
          return false;
