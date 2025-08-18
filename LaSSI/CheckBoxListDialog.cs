@@ -58,7 +58,7 @@ namespace LaSSI
          };
          Content = layout;
          scrollable.Content = list;
-         if (list.Items.Count > 3)
+         if (list.Items.Count > 1)
          {
             layout.BeginHorizontal();
             layout.Add(AllNoneButtonsLayout(), true);

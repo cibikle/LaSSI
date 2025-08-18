@@ -62,6 +62,7 @@ namespace LaSSI
       private List<Node>? weatherReports = null;
       private List<Node>? deadCrew = null;
       private List<Node>? friendlyShips = null;
+      private List<Node>? allShipsInTheGalaxy = null;
       private List<Node>? assignedMissions = null;
       public DataPanel()
       {
@@ -757,17 +758,17 @@ namespace LaSSI
       }
       private DynamicLayout GetPanel2PrimeLayout()
       {
-         return (DynamicLayout)this.Children.Where<Control>(x => x.ID == "Panel2PrimeLayout").First();
+         return (DynamicLayout)Children.First(x => x.ID == "Panel2PrimeLayout");
          // pretty sure this blows up if the prime layout isn't found
       }
       private DynamicLayout GetPanel2DetailsLayout()
       {
-         return (DynamicLayout)this.FindChild("Panel2DetailsLayout");
+         return (DynamicLayout)FindChild("Panel2DetailsLayout");
          // pretty sure this blows up if the details layout isn't found
       }
       private TreeGridView GetTreeGridView()
       {
-         return (TreeGridView)this.Children.Where<Control>(x => x.ID == "DataTreeView").First();
+         return (TreeGridView)Children.First(x => x.ID == "DataTreeView");
          // pretty sure this blows up if the data tree isn't found
       }
       private static bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
@@ -903,16 +904,19 @@ namespace LaSSI
             {"Id", "" },
             { "Type", "" }
          };
+
          if (GetRoot() is not null and Node root)
          {
-            foreach (Node item in root.Children)
+            List<Node> ships = SaveFilev2.GetAllShipsInTheGalaxy(root);
+
+            foreach (Node ship in ships)
             {
-               if (item.TryGetProperties(properyNamesAndValues)
+               if (ship.TryGetProperties(properyNamesAndValues)
                   && properyNamesAndValues["Id"] == LayerId
                   //&& values["Class"] == "Ship"
                   && (properyNamesAndValues["Type"] == disposition.ToString() || disposition == ShipDisposition.Any))
                {
-                  return item;
+                  return ship;
                }
             }
          }
@@ -925,16 +929,14 @@ namespace LaSSI
             {"Id", "" },
             { "Type", "" }
          };
-         if (GetRoot() is not null and Node root)
+         List<Node> ships = GetAllShipsInTheGalaxy();
+         foreach (Node ship in ships)
          {
-            foreach (Node item in root.Children)
+            if (ship.TryGetProperties(properyNamesAndValues)
+               //&& values.ContainsKey("Class") && values["Class"] == "Ship"
+               && ShipDispositionMatches(disposition, StringDescToShipDisposition(properyNamesAndValues["Type"])))
             {
-               if (item.TryGetProperties(properyNamesAndValues)
-                  //&& values.ContainsKey("Class") && values["Class"] == "Ship"
-                  && ShipDispositionMatches(disposition, StringDescToShipDisposition(properyNamesAndValues["Type"])))
-               {
-                  return item;
-               }
+               return ship;
             }
          }
          return null;
@@ -947,7 +949,7 @@ namespace LaSSI
          }
          return false;
       }
-      private bool DerelictsPresent(Node item)
+      private static bool DerelictsPresent(Node item)
       {
          if (item.Children.Count == 0)
          {
@@ -1388,15 +1390,13 @@ namespace LaSSI
       }
       internal List<Node> GetFriendlyShips()
       {
-         if (friendlyShips is null)
-         {
-            friendlyShips = new List<Node>();
-            if (GetRoot() is not null and Node root)
-            {
-               friendlyShips = root.Children.Where(x => ((Node)x).TryGetProperty("Type", out string value) && "FriendlyShip".Equals(value)).Cast<Node>().ToList();
-            }
-         }
+         friendlyShips ??= GetAllShipsInTheGalaxy().Where(x => x.TryGetProperty("Type", out string value) && "FriendlyShip".Equals(value)).ToList();
          return friendlyShips;
+      }
+      internal List<Node> GetAllShipsInTheGalaxy()
+      {
+         allShipsInTheGalaxy ??= SaveFilev2.GetAllShipsInTheGalaxy(GetRoot()!);
+         return allShipsInTheGalaxy;
       }
       internal List<Node> GetFriendlyShips(out List<string> shipNames)
       {
@@ -1407,6 +1407,10 @@ namespace LaSSI
             shipNames.Add(s.Name);
          }
          return ships;
+      }
+      internal Node? GetFriendlyShip(string LayerId)
+      {
+         return GetFriendlyShips().FirstOrDefault(x => x.Name.StartsWith($"Layer ({LayerId},"));
       }
       internal List<Node> GetAcceptedMissions()
       {
@@ -1446,7 +1450,7 @@ namespace LaSSI
             return missionCount;
          }
 
-         CheckBoxListDialog chooseMissionsToDelete = new("Choose missions to delete", acceptedMissions.Select(n => n.Name).ToList(), allOf: true);
+         CheckBoxListDialog chooseMissionsToDelete = new("Choose missions to delete", acceptedMissions.Select(n => n.Name).ToList(), allOf: true, new List<int> { 0, 2, 3 });
          chooseMissionsToDelete.ShowModal(mainForm);
          if (chooseMissionsToDelete.GetDialogResult() != DialogResult.Ok)
          {
@@ -1455,11 +1459,9 @@ namespace LaSSI
          //todo: are you sure?
          ProcessMissionsToDelete(chooseMissionsToDelete.GetSelectedItems(), acceptedMissions);
 
-         ClearDetails();
          AddUnsavedToDataState();
          Rebuild();
          acceptedMissions = GetAcceptedMissions();
-         //todo: update enabledness of delete missions and reassign missions. frankly, I don't know a good way
          return missionCount - acceptedMissions.Count;
       }
       internal void ProcessMissionsToDelete(IEnumerable<string> missionsToDelete, List<Node> missions)
@@ -1469,13 +1471,13 @@ namespace LaSSI
             Node mission = missions.First(x => x.Name == missionToDelete);
             if (mission.GetParent() is not null and Node missionsSubnode)
             {
-               if (mission.HasProperty("Items")) // todo: test this
+               if (mission.HasProperty("Items"))
                {
                   RemoveMissionItems(mission);
                }
-               if (HasSpawnedShip(mission)) // this is for rescue missions
+               if (mission.HasProperty("ShipSpawned")) // this is for rescue missions
                {
-                  SetSpawnedShipToDerelict(mission);
+                  _ = SetSpawnedShipToDerelict(mission);
                }
                missionsSubnode.RemoveChild(mission);
             }
@@ -1495,10 +1497,6 @@ namespace LaSSI
          }
          return false;
       }
-      private static bool HasSpawnedShip(Node mission)
-      {
-         return mission.HasProperty("ShipSpawned");
-      }
       internal void RemoveMissionItems(Node mission)
       {
          List<string> itemIds = mission.GetItems();
@@ -1515,9 +1513,16 @@ namespace LaSSI
          }
          else
          {
-            if (mission.TryGetProperty("AssignedLayerId", out string AssignedLayerId) && FindShip(AssignedLayerId) is not null and Node assignedShip)
+            if (mission.TryGetProperty("AssignedLayerId", out string AssignedLayerId) && GetFriendlyShip(AssignedLayerId) is not null and Node assignedShip)
             {
-               assignedShip.RemoveItems(itemIds);
+               assignedShip.RemoveLayerObjects(itemIds);
+            }
+            else //rescue missions are not assigned to any one ship, which makes sense; unforunately, searching every friendly ship is not super efficient
+            {
+               foreach (Node ship in GetFriendlyShips())
+               {
+                  ship.RemoveLayerObjects(itemIds);
+               }
             }
          }
       }
@@ -1892,6 +1897,8 @@ namespace LaSSI
          freespaceObjectsWithComet = null;
          friendlyShips = null;
          assignedMissions = null;
+         allShipsInTheGalaxy = null;
+         CustomCommands.EnableTools(mainForm!.Menu, this);
       }
       private void ClearDetails()
       {

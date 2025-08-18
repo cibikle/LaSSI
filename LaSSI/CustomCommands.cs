@@ -905,7 +905,8 @@ namespace LaSSI
          int deletedMissionCount = MainForm.DataPanel.DeleteAcceptedMissions(true);
          if (deletedMissionCount > 0)
          {
-            _ = MessageBox.Show($"{deletedMissionCount} missions deleted", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            string msg = deletedMissionCount == 1 ? "mission deleted" : "missions deleted";
+            _ = MessageBox.Show($"{deletedMissionCount} {msg}", "Success", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
          }
       }
       internal void ResetStrandedShipPosition_Executed(object? sender, EventArgs e)

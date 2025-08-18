@@ -30,8 +30,6 @@ namespace LaSSI
       public ITreeGridItem? Parent { get; set; }
 
       public Node this[int index] => GetChild(index);
-
-
       private Node GetChild(int index)
       {
          if (index >= 0 && index < Children.Count && Children[index] is Node node)
@@ -339,7 +337,7 @@ namespace LaSSI
       }
       public static List<string> CommaSeparatedStringToList(string list)
       {
-         return list.Replace(@"\", "").Replace("[", "").Replace("]", "").Split(", ").ToList<string>();
+         return list.TrimStart(new char[] { '\\', '"', '[' }).TrimEnd(new char[] { ']', '"', '\\' }).Split(", ").ToList();
       }
       public List<string> GetItems()
       {
@@ -352,7 +350,6 @@ namespace LaSSI
       }
       public void RemoveItems(List<string> itemIds)
       {
-         //List<string> items = GetItems();
          foreach (string itemId in itemIds)
          {
             if (FindChild("Id", itemId) is not null and Node item)
@@ -361,10 +358,20 @@ namespace LaSSI
             }
          }
       }
-      //public void RemoveObjects(string[] objectIds)
-      //{
-      //   Get
-      //}
+      public void RemoveLayerObjects(List<string> layerObjectsToRemove)
+      {
+         Node layerObjectsNode = (Node)Children.First(x => ((Node)x).Name.Equals("Objects"));
+         if (layerObjectsNode != null)
+         {
+            foreach (string layerObject in layerObjectsToRemove)
+            {
+               if (layerObjectsNode.FindChild(layerObject, looseMatch: true) is not null and Node item)
+               {
+                  layerObjectsNode.RemoveChild(item);
+               }
+            }
+         }
+      }
 
       public static Node? GetGalaxyNode(Node root)
       {
@@ -644,7 +651,7 @@ namespace LaSSI
       }
       public static string GetStarSystemSummary(Node node)
       {
-         string Summary = String.Empty;
+         string Summary = string.Empty;
          Summary += node.Properties["Name"];
          if (node.Properties.Contains("Colony")) Summary += ", Colony";
          if (node.Properties.Contains("Shipyard")) Summary += ", Shipyard";
@@ -658,6 +665,10 @@ namespace LaSSI
          string details = Properties["Type"]!.ToString()!;
          string missionType = details;
 
+         if ("true".Equals(Properties["Accepted"]))
+         {
+            details = $"Accepted: {details}";
+         }
          if (missionType == "Combat")
          {
             details += GetCombatMissionDetails();

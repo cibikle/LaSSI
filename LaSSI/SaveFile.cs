@@ -559,5 +559,16 @@ namespace LaSSI
                LoadFile(saveFile, filename);
                return saveFile;
             }*/
+      public static List<Node> GetAllShipsInTheGalaxy(Node root)
+      {
+         List<Node> ships = new();
+         ships.AddRange(root.Children.Cast<Node>().Where(x => x.BaseName.Equals("Layer")));
+         foreach (Node node in Node.GetSystemArchives(root)!.Children.Cast<Node>())
+         {
+            ships.AddRange(node.Children.Cast<Node>().Where(x => x.BaseName.Equals("Layer")));
+         }
+
+         return ships;
+      }
    }
 }
