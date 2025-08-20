@@ -32,7 +32,10 @@ namespace LaSSI
                if (nodeCount % reportBreakpoint == 0)
                {
                   reportVal++;
-                  progressBar?.Report(reportVal);
+                  if (progressBar is not null)
+                  {
+                     progressBar.Report(reportVal);
+                  }
                }
                RenderLine(child, sb);
             }

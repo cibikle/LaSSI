@@ -11,11 +11,19 @@ namespace LaSSI
    {
       private readonly bool _allOf;
       private readonly List<int>? _indices;
+      private readonly CheckBoxList list = new();
+      private DialogResult Result = DialogResult.None;
+      private Button? OK;
+      private Button? All;
+      private Button? None;
+      private readonly Scrollable scrollable = new();
+
       public CheckBoxListDialog()
       {
 
       }
-      public CheckBoxListDialog(string title, List<string> options, bool allOf = false, List<int>? indices = null) // todo: introduce List<int> indices
+      public CheckBoxListDialog(string title, List<string> options
+         , bool allOf = false, List<int>? indices = null)
       {
          _indices = indices;// ?? new List<int>();
          _allOf = allOf;
@@ -28,9 +36,7 @@ namespace LaSSI
          if (Height > Owner.Height)
          {
             Height = Owner.Height;
-
             scrollable.Height = scrollable.Parent.Height - 80;
-            //Width += 40;
          }
       }
 
@@ -50,25 +56,22 @@ namespace LaSSI
             list.Items.Add(opt);
          }
          Title = title;
-         //Scrollable scrollable = new();
-         //Content = scrollable;
          DynamicLayout layout = new()
          {
             Padding = new Padding(5, 0)
          };
          Content = layout;
          scrollable.Content = list;
+         scrollable.Padding = 5;
          if (list.Items.Count > 1)
          {
             layout.BeginHorizontal();
             layout.Add(AllNoneButtonsLayout(), true);
             layout.EndHorizontal();
          }
-         layout.BeginCentered(new Padding(5, 5, 20, 0));
-         //layout.BeginScrollable();
+         layout.BeginCentered(new Padding(0, 5, 0, 0));
          layout.Add(scrollable, false, false);
          layout.AddSpace();
-         //layout.EndScrollable();
          layout.EndCentered();
          layout.BeginCentered(new Padding(5, 5));
          layout.AddCentered(ButtonsLayout());
@@ -117,23 +120,30 @@ namespace LaSSI
       }
       private StackLayout AllNoneButtonsLayout()
       {
-         Button all = new()
-         {
-            Text = "All",
-            Enabled = true,
-         };
-         all.Click += (sender, e) => { list.SelectedValues = list.Items; };
-         All = all;
-         Button none = new() { Text = "None", Enabled = false };
-         none.Click += (sender, e) => { list.SelectedValues = null; };
-         None = none;
-
          StackLayout? allOf = null;
          if (_allOf)
          {
             allOf = AllOffLayout();
          }
-         return new StackLayout(all, none, allOf) { Orientation = Orientation.Horizontal, Spacing = 5 };
+         Button all = new()
+         {
+            Text = "All",
+            Enabled = true,
+         };
+         all.Click += (sender, e) =>
+         {
+            list.SelectedValues = list.Items;
+            ResetAllOfDropDown(allOf);
+         };
+         All = all;
+         Button none = new() { Text = "None", Enabled = false };
+         none.Click += (sender, e) =>
+         {
+            list.SelectedValues = null;
+            ResetAllOfDropDown(allOf);
+         };
+         None = none;
+         return new StackLayout(all, none, allOf) { Orientation = Orientation.Horizontal, Spacing = 5, Padding = new Padding(0, 5, 0, 0) };
       }
       private StackLayout AllOffLayout()
       {
@@ -147,7 +157,7 @@ namespace LaSSI
             if (allOfType.SelectedIndex >= 0) { string value = allOfType.SelectedValue.ToString()!; Regex r = new(value + @"(,|\))"); list.SelectedValues = list.Items.Where(n => r.IsMatch(n.Text)); }
          };
 
-         return new StackLayout(allOf, allOfType) { Orientation = Orientation.Horizontal, Spacing = 5 };
+         return new StackLayout(allOf, allOfType) { Orientation = Orientation.Horizontal, Spacing = 5, Padding = new Padding(5, 0, 0, 0) };
       }
       private List<string> OptionsToAllOfTypes()
       {
@@ -164,9 +174,6 @@ namespace LaSSI
          {
             allOfOptions.Add(new List<string>());
          }
-         /* List<string> missionTypes = new(); // todo: replace these three with List<List<string>>
-          List<string> pickUp = new();
-          List<string> dropOff = new();*/
 
          foreach (var option in list.Items)
          {
@@ -198,52 +205,23 @@ namespace LaSSI
                {
                   allOfOptions[currentIndex].Add(detail);
                }
-
-
-               /*if (detail.StartsWith("pick-up")) // uh-oh. do we actually need a dictionary or map or something or can we do without this? like, just use the index?
-               {
-                  if (!pickUp.Contains(detail))
-                  {
-                     pickUp.Add(detail);
-                  }
-               }
-               else if (detail.StartsWith("drop-off"))
-               {
-                  if (!dropOff.Contains(detail))
-                  {
-                     dropOff.Add(detail);
-                  }
-               }
-               else
-               {
-                  if (!missionTypes.Contains(detail))
-                  {
-                     missionTypes.Add(detail);
-                  }
-               }*/
             }
          }
          foreach (var detailList in allOfOptions)
          {
             strings.AddRange(detailList.OrderBy(c => c.Length).ThenBy(c => c));
          }
-         // missionTypes.Sort(); // todo: down the line maybe introduce sorting rules for each index
-         /*strings.AddRange(missionTypes.OrderBy(c => c.Length).ThenBy(c => c));
-         strings.AddRange(pickUp.OrderBy(c => c.Length).ThenBy(c => c));
-         strings.AddRange(dropOff.OrderBy(c => c.Length).ThenBy(c => c));*/
          return strings;
+      }
+      private static void ResetAllOfDropDown(StackLayout? allOf)
+      {
+         if (allOf is not null && allOf.FindChild("allOfType") is not null and DropDown d) { d.SelectedIndex = -1; }
       }
       private void OK_clicked(object? sender, EventArgs e)
       {
          Result = DialogResult.Ok;
          Close();
       }
-      private readonly CheckBoxList list = new();
-      private DialogResult Result = DialogResult.None;
-      private Button? OK;
-      private Button? All;
-      private Button? None;
-      private readonly Scrollable scrollable = new();
    }
 }
 

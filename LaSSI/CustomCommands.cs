@@ -688,7 +688,6 @@ namespace LaSSI
       }
       internal static DialogResult PromptForSave(string state, string action1, string action2)
       {
-
          return MessageBox.Show($"There are {state} changes!{Environment.NewLine}{action1} before {action2}?{Environment.NewLine}{state} changes will be discarded."
                , "Warning", MessageBoxButtons.YesNoCancel, MessageBoxType.Warning, MessageBoxDefaultButton.Yes);
 
@@ -700,15 +699,15 @@ namespace LaSSI
             return;
          }
          //this.Cursor = Cursors.; they don't have a waiting cursor; todo: guess I'll add my own--later!
-
-         Progress<int> progress = new(percent => { MainForm.LoadingBar.Value = percent; });
+         MainForm.LoadingBar.Visible = true;
          MainForm.saveFilePath = filename;
          MainForm.saveFile = new SaveFilev2(MainForm.saveFilePath);
-         await MainForm.saveFile.Load(progress);
+         await MainForm.saveFile.Load(new Progress<int>(percent => { MainForm.LoadingBar.Value = percent; }));
          MainForm.UpdateUiAfterLoad(IsFileSteamCloudSave(filename));
          EnableSaveAs(MainForm.Menu);
          EnableTools(MainForm.Menu, MainForm.DataPanel);
          MainForm.DataPanel.ResetDataState();
+         MainForm.ResetLoadingBar();
 
          if (!IsReloadAfterSave)
          {
@@ -809,17 +808,16 @@ namespace LaSSI
             FileName = proposedfilename,
          };
          saveDialog.Filters.Add(MainForm.FileFormat);
-         MainForm.LoadingBar.Visible = true;
          if (saveDialog.ShowDialog(MainForm) == DialogResult.Ok)
          {
+            MainForm.LoadingBar.Visible = true;
             Debug.WriteLine($"{saveDialog.FileName}");
-            DynamicLayout bar = (DynamicLayout)MainForm.Content;
             FileWriter writer = new();
-            writer.WriteFile(MainForm.saveFile.RootNode, saveDialog.FileName).ContinueWith(success =>
+            _ = writer.WriteFile(MainForm.saveFile.RootNode, saveDialog.FileName, new Progress<int>(percent => { MainForm.LoadingBar.Value = percent; })).ContinueWith(success =>
             {
                Application.Instance.Invoke(() =>
                {
-                  MainForm.LoadingBar.Visible = false;
+                  MainForm.ResetLoadingBar();
 
                   MainForm.DataPanel.ResetDataState();
                   AddToBackup(MainForm.backupDirectory, saveDialog.FileName);
@@ -830,10 +828,9 @@ namespace LaSSI
          }
          else
          {
-            MainForm.LoadingBar.Visible = false;
+            MainForm.ResetLoadingBar();
          }
       }
-
       private void SaveToLocalCommand_Executed(object? sender, EventArgs e)
       {
          throw new NotImplementedException();
@@ -861,15 +858,15 @@ namespace LaSSI
                openDialog.Directory = MainForm.steamCloudSavesPath;
             }
             openDialog.Filters.Add(MainForm.FileFormat);
-            MainForm.LoadingBar.Visible = true;
+            //MainForm.LoadingBar.Visible = true;
             if (openDialog.ShowDialog(MainForm) == DialogResult.Ok)
             {
                LoadFile(openDialog.FileName);
             }
-            else
-            {
-               MainForm.LoadingBar.Visible = false;
-            }
+            //else
+            //{
+            //   MainForm.LoadingBar.Visible = false;
+            //}
          }
       }
       private void BrowseSavesCommand_Executed(object? sender, EventArgs e)

@@ -343,9 +343,14 @@ namespace LaSSI
             saveFileLocation = SaveFileLocation.Local;
          }
          _ = UpdateTextbox("saveFileTextbox", displayPath);
-         LoadingBar.Visible = false;
+         ResetLoadingBar();
          CustomCommands!.EnableDisableSteamCloudMenuItems(saveFileLocation);
          DataPanel.UpdateUiAfterLoad(saveFile.RootNode);
+      }
+      public void ResetLoadingBar()
+      {
+         LoadingBar.Visible = false;
+         LoadingBar.Value = 0;
       }
       internal static string TrimFilePathForSafety(string filepath)
       {
