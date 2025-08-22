@@ -69,8 +69,9 @@ namespace LaSSI
             layout.Add(AllNoneButtonsLayout(), true);
             layout.EndHorizontal();
          }
-         layout.BeginCentered(new Padding(0, 5, 0, 0));
-         layout.Add(scrollable, false, false);
+         /*scrollable.*/
+         layout.BeginCentered(new Padding(0, 5, 20, 0)); // that 20 on the right is there to make room for the scrollbar should it be needed
+         layout.Add(scrollable, false, false);           // todo: something more elegant than just hardcoding the extra padding
          layout.AddSpace();
          layout.EndCentered();
          layout.BeginCentered(new Padding(5, 5));

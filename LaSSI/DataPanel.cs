@@ -64,6 +64,9 @@ namespace LaSSI
       private List<Node>? friendlyShips = null;
       private List<Node>? allShipsInTheGalaxy = null;
       private List<Node>? assignedMissions = null;
+      private List<MenuItem>? dataGridContextMenuItemsThatRequireATarget = null;
+      private List<MenuItem>? dataGridContextMenuItemsThatDoNotRequireATarget = null;
+      private ContextMenu? dataGridContextMenu = null;
       public DataPanel()
       {
 
@@ -452,7 +455,7 @@ namespace LaSSI
             AllowMultipleSelection = false,
             GridLines = GridLines.Both,
             ID = "DefaultGridView",
-            ContextMenu = new ContextMenu(CopyMenuItems(), PasteGridViewRowKeyValue(), SearchMenuItems(), EditGridViewRow(), AddGridViewRow(), DeleteGridViewRow()),
+            ContextMenu = GetDataGridContextMenu(),
          };
          defaultGridView.Columns.Add(new GridColumn
          {
@@ -476,8 +479,29 @@ namespace LaSSI
          defaultGridView.Shown += DefaultGridView_Shown;
          defaultGridView.CellEditing += DefaultGridView_CellEditing;
          defaultGridView.CellEdited += DefaultGridView_CellEdited;
+         defaultGridView.ContextMenu.Opening += ContextMenu_Opening;
          observableProperties.CollectionChanged += GridViewProperties_CollectionChanged;
          return defaultGridView;
+      }
+
+      private void ContextMenu_Opening(object? sender, EventArgs e)
+      {
+         if (sender is not null and ContextMenu c)
+         {
+            int selectedRow = GetDefaultGridView().SelectedRow;
+            foreach (var f in GetDataGridContextMenuItemsThatRequireATarget())
+            {
+               f.Enabled = selectedRow > -1;
+            }
+            foreach (var f in GetDataGridContextMenuItemsThatDoNotRequireATarget())
+            {
+               if ("PasteAsNewRow".Equals(f.ID))
+               {
+                  string cliptext = Clipboard.Instance.Text;
+                  f.Enabled = !string.IsNullOrWhiteSpace(cliptext) && Regex.Match(cliptext, ".+:.+").Success;
+               }
+            }
+         }
       }
       private Command EditGridViewRow()
       {
@@ -523,7 +547,7 @@ namespace LaSSI
       }
       private Command PasteGridViewRowKeyValue()
       {
-         Command pasteRowKeyValue = new() { MenuText = "Paste key/value as new row" };
+         Command pasteRowKeyValue = new() { MenuText = "Paste key/value as new row", ID = "PasteAsNewRow" };
          pasteRowKeyValue.Executed += PasteRowKeyValue_Executed;
          return pasteRowKeyValue;
       }
@@ -1398,6 +1422,34 @@ namespace LaSSI
          allShipsInTheGalaxy ??= SaveFilev2.GetAllShipsInTheGalaxy(GetRoot()!);
          return allShipsInTheGalaxy;
       }
+      private List<MenuItem> GetDataGridContextMenuItemsThatRequireATarget()
+      {
+         dataGridContextMenuItemsThatRequireATarget ??= new List<MenuItem>
+            {
+               CopyMenuItems(), SearchMenuItems(), EditGridViewRow(), DeleteGridViewRow()
+            };
+         return dataGridContextMenuItemsThatRequireATarget;
+      }
+      private List<MenuItem> GetDataGridContextMenuItemsThatDoNotRequireATarget()
+      {
+         dataGridContextMenuItemsThatDoNotRequireATarget ??= new List<MenuItem>
+            {
+               AddGridViewRow(), PasteGridViewRowKeyValue()
+            };
+         return dataGridContextMenuItemsThatDoNotRequireATarget;
+      }
+      private List<MenuItem> GetDataGridContextMenuItems()
+      {
+         var foo = new List<MenuItem>();
+         foo.AddRange(GetDataGridContextMenuItemsThatRequireATarget());
+         foo.AddRange(GetDataGridContextMenuItemsThatDoNotRequireATarget());
+         return foo;
+      }
+      private ContextMenu GetDataGridContextMenu()
+      {
+         dataGridContextMenu ??= new ContextMenu(GetDataGridContextMenuItems());
+         return dataGridContextMenu;
+      }
       internal List<Node> GetFriendlyShips(out List<string> shipNames)
       {
          shipNames = new();
@@ -1955,7 +2007,7 @@ namespace LaSSI
             }
          } while (ok && keyInUse);
 
-         return !Oncler.IsKeyAlreadyInUse(onclers, newKey);
+         return ok && !Oncler.IsKeyAlreadyInUse(onclers, newKey);
       }
 
       private static void KeyInUseErrorMessage()
@@ -2205,20 +2257,6 @@ namespace LaSSI
          GridView grid = GetDefaultGridView();
          ObservableCollection<Oncler> onclers = (ObservableCollection<Oncler>)grid.DataStore;
          int i = onclers.Count;
-
-         //TextInputDialog dialog = new("New row", "Key");
-         //dialog.ShowModal(this);
-         //if (dialog.GetDialogResult() != DialogResult.Ok)
-         //{
-         //   return;
-         //}
-         //string newkey = dialog.GetInput();
-         //if (Oncler.IsKeyAlreadyInUse(onclers, newkey))
-         //{
-         //   MessageBox.Show("That key is already in use", "Error", MessageBoxButtons.OK, MessageBoxType.Error, MessageBoxDefaultButton.OK);
-         //}
-         //else
-         //{
          if (PromptForNewKey(onclers, out string newKey))
          {
             Oncler newRow = new(newKey);
