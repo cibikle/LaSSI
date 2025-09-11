@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Eto.Drawing;
 using Eto.Forms;
 
 namespace LaSSI
@@ -20,6 +21,7 @@ namespace LaSSI
          Status = State.Unmodified;
          Height = 250;
          Width = 250;
+         Spacing = new Size(0, 5);
       }
 
    }

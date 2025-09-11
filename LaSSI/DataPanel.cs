@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace LaSSI
 {
-   public class DataPanel : Panel
+   public class DataPanel : BaseDataPanel
    {
       public enum DerelictsCleaningMode
       {
@@ -28,34 +28,13 @@ namespace LaSSI
          Derelict,
          ForSale
       }
-      public enum DataState
-      {
-         Unchanged,
-         Unapplied,
-         Unsaved,
-         UnsavedAndUnapplied
-      }
-      private readonly MainForm? mainForm;
-      private DataState dataState = DataState.Unchanged;
-      internal bool dirtyBit = false;
-      private readonly Dictionary<Node, DetailsLayout> DetailPanelsCache = new();
+
       private Size DetailsPanelInitialSize = new(0, 0);
       private readonly List<InventoryGridItem>? InventoryMasterList;
       private Node? Root { get; set; }
       private readonly int ParentWidth;
       private PreviousEntry? CurrentValues;
-      private readonly Button Apply = new()
-      {
-         Text = "Apply",
-         ID = "DetailsApplyButton",
-         Enabled = false
-      };
-      private readonly Button Revert = new()
-      {
-         Text = "Revert",
-         ID = "DetailsRevertButton",
-         Enabled = false
-      };
+
       //private DetailsLayout? CurrentDetails;
       private List<Node>? freespaceObjectsWithComet = null;
       private List<Node>? crossSectorMissions = null;
@@ -71,101 +50,67 @@ namespace LaSSI
       {
 
       }
-      public DataPanel(MainForm mainform, Node root, List<InventoryGridItem> inventoryMasterList, int parentWidth)
+      public DataPanel(MainForm mainform, Node root, List<InventoryGridItem> inventoryMasterList, int parentWidth) : base(mainform, root, parentWidth)
       {
-         mainForm = mainform;
          InventoryMasterList = inventoryMasterList;
-         ParentWidth = parentWidth;
-         TableLayout primaryLayout = InitPrimaryPanel();
-         Root = root;
-         Content = primaryLayout;
       }
-      public DataPanel(MainForm mainform, List<InventoryGridItem> inventoryMasterList, int parentWidth)
+      public DataPanel(MainForm mainform, List<InventoryGridItem> inventoryMasterList, int parentWidth) : base(mainform, parentWidth)
       {
-         mainForm = mainform;
          InventoryMasterList = inventoryMasterList;
-         ParentWidth = parentWidth;
-         TableLayout primaryLayout = InitPrimaryPanel();
-         Content = primaryLayout;
       }
-      private TableLayout InitPrimaryPanel() // any particular reason this is a TableLayout?
-      {
-         Apply.Click += ApplyButton_Click;
-         Revert.Click += RevertButton_Click;
+      /*      private TableLayout CreateTreeView(*//*int width*//*)
+            {
+               TableLayout lefthandLayout = new()
+               {
+                  Spacing = new Size(5, 5),
+                  Size = new Size(-1, -1)
+               };
+               DynamicLayout searchLayout = new()
+               {
+                  Spacing = new Size(5, 5),
+                  Padding = new Padding(2, 0)
+               };
+               TextBox search = new()
+               {
+                  ID = "searchTextbox",
+                  Enabled = true,
+                  PlaceholderText = "Search...",
+               };
+               search.TextChanged += Search_TextChanged;
 
-         Splitter sp = CreateSplitter();
-         sp.Panel1 = CreateTreeView(/*ParentWidth / 2*/);
-         sp.Panel1.Width = ParentWidth / 2;
-         sp.Panel2 = CreatePanel2Layout();
+               Button clearSearch = new()
+               {
+                  Text = "Clear"
+               };
+               clearSearch.Click += ClearSearch_Click;
+               searchLayout.BeginHorizontal();
+               searchLayout.Add(search, true);
+               searchLayout.Add(clearSearch, false);
+               searchLayout.EndHorizontal();
+               lefthandLayout.Rows.Add(searchLayout);
 
-         GroupBox box = new()
-         {
-            Content = sp
-         };
+               TreeGridView treeView = new()
+               {
+                  Tag = "DataTreeView",
+                  ID = "DataTreeView",
+                  ShowHeader = false,
+                  AllowEmptySelection = true,
+                  //Width = width
+                  AllowMultipleSelection = true,
+                  ContextMenu = new ContextMenu(DeleteNode())
+               };
+               treeView.SelectedItemChanged += TreeView_SelectedItemChanged;
+               treeView.SelectedItemsChanged += TreeView_SelectedItemsChanged;
+               treeView.CellFormatting += TreeView_CellFormatting;
 
-         TableLayout dataLayout = new();
-         dataLayout.Rows.Add(box);
+               lefthandLayout.Rows.Add(treeView);
 
-         return dataLayout;
-      }
-      internal TextBox GetSearchBox()
-      {
-         TableLayout lefthandLayout = (TableLayout)GetTreeGridView().Parent;
-         return (TextBox)lefthandLayout.FindChild("searchTextbox");
-      }
-      private TableLayout CreateTreeView(/*int width*/)
-      {
-         TableLayout lefthandLayout = new()
-         {
-            Spacing = new Size(5, 5),
-            Size = new Size(-1, -1)
-         };
-         DynamicLayout searchLayout = new()
-         {
-            Spacing = new Size(5, 5),
-            Padding = new Padding(2, 0)
-         };
-         TextBox search = new()
-         {
-            ID = "searchTextbox",
-            Enabled = true,
-            PlaceholderText = "Search...",
-         };
-         search.TextChanged += Search_TextChanged;
-
-         Button clearSearch = new()
-         {
-            Text = "Clear"
-         };
-         clearSearch.Click += ClearSearch_Click;
-         searchLayout.BeginHorizontal();
-         searchLayout.Add(search, true);
-         searchLayout.Add(clearSearch, false);
-         searchLayout.EndHorizontal();
-         lefthandLayout.Rows.Add(searchLayout);
-
-         TreeGridView treeView = new()
-         {
-            Tag = "DataTreeView",
-            ID = "DataTreeView",
-            ShowHeader = false,
-            AllowEmptySelection = true,
-            //Width = width
-            AllowMultipleSelection = true,
-            ContextMenu = new ContextMenu(DeleteNode())
-         };
-         treeView.SelectedItemChanged += TreeView_SelectedItemChanged;
-         treeView.SelectedItemsChanged += TreeView_SelectedItemsChanged;
-         treeView.CellFormatting += TreeView_CellFormatting;
-
-         lefthandLayout.Rows.Add(treeView);
-
-         //stack.Width = width;
-         //stack.Size = new Size(-1, -1);
-         //stack.Items.Add(search);
-         //stack.Items.Add(treeView);
-         return lefthandLayout;
-      }
+               //stack.Width = width;
+               //stack.Size = new Size(-1, -1);
+               //stack.Items.Add(search);
+               //stack.Items.Add(treeView);
+               return lefthandLayout;
+            }*/
 
       private void ClearSearch_Click(object? sender, EventArgs e)
       {
@@ -202,7 +147,7 @@ namespace LaSSI
          };
          return sp;
       }
-      private DynamicLayout CreatePanel2Layout()
+      /*private DynamicLayout CreatePanel2Layout()
       {
          DynamicLayout Panel2Layout = new()
          {
@@ -230,7 +175,7 @@ namespace LaSSI
          ApplyRevertLayout.Items.Add(Revert);
 
          return ApplyRevertLayout;
-      }
+      }*/
       private ListBuilder CreateListBuilder(Node item)
       {
          ObservableCollection<InventoryGridItem> RemainingItems = new ObservableCollection<InventoryGridItem>();
@@ -270,13 +215,10 @@ namespace LaSSI
          InvItem.Count = int.Parse(entry.Value!.ToString()!);
          InStock.Add(InvItem);
       }
-      private DetailsLayout CreateDetailsLayout(Node item)
+      protected override DetailsLayout CreateDetailsLayout(Node item)
       {
-         DetailsLayout detailsLayout = new()
-         {
-            //Padding = new Padding(5, 0),
-            Spacing = new Size(0, 5)
-         };
+         DetailsLayout detailsLayout = base.CreateDetailsLayout(item);
+
          //detailsLayout.Add(GetNodePathLabel(item));
          Scrollable s = new Scrollable();
          s.Content = GetNodePathButtons(item);
@@ -521,12 +463,6 @@ namespace LaSSI
          deleteRow.Executed += DeleteRow_Executed;
          return deleteRow;
       }
-      private Command DeleteNode()
-      {
-         Command deleteNode = new() { MenuText = "Delete node" };
-         deleteNode.Executed += DeleteNode_Executed;
-         return deleteNode;
-      }
       private Command CopyGridViewRowValue()
       {
          Command copyRowValue = new() { MenuText = "Copy value" };
@@ -571,11 +507,11 @@ namespace LaSSI
       }
       private GridView GetDefaultGridView()
       {
-         return (GridView)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("DefaultGridView");
+         return (GridView)FindChild("DefaultGridView");
       }
       private ListBuilder GetListBuilder()
       {
-         return (ListBuilder)((DetailsLayout)GetPanel2DetailsLayout().Content).FindChild("ListBuilder");
+         return (ListBuilder)((DetailsLayout)GetRightPanelDetailsLayout().Content).FindChild("ListBuilder");
       }
       private static Label CreateDetailLabel(string text)
       {
@@ -709,30 +645,8 @@ namespace LaSSI
          };
       }
 
-      private void UpdateDetailsPanel(Node item, bool clearPreexisting = false)
-      {
-         if (item is not null)
-         {
-            if (clearPreexisting)
-            {
-               ClearItemFromCache(item);
-            }
-            DynamicLayout detailslayout = GetPanel2DetailsLayout();
-            if (!DetailPanelsCache.ContainsKey(item))
-            {
-               DetailPanelsCache.Add(item, CreateDetailsLayout(item));
-            }
-            detailslayout.Content = DetailPanelsCache[item];
-            UpdateApplyRevertButtons(DetailPanelsCache[item].Status);
-         }
-      }
-      private void ClearItemFromCache(Node item)
-      {
-         if (item is not null && DetailPanelsCache.ContainsKey(item))
-         {
-            DetailPanelsCache.Remove(item);
-         }
-      }
+
+
       //private void UpdateTreeGridItemStatus(TreeGridItem item, NodeStatus status)
       //{
       //   item.Values[2] = status;
@@ -758,43 +672,14 @@ namespace LaSSI
 
       //   }
       //}
-      private void UpdateApplyRevertButtons(DetailsLayout.State status)
-      {
-         switch (status)
-         {
-            case DetailsLayout.State.Unmodified:
-               {
-                  Apply.Enabled = Revert.Enabled = false;
-                  break;
-               }
-            case DetailsLayout.State.Modified:
-               {
-                  Apply.Enabled = Revert.Enabled = true;
-                  break;
-               }
-            case DetailsLayout.State.Applied:
-               {
-                  Apply.Enabled = Revert.Enabled = false;//todo: if the user wants to undo an applied change, they need to reload the node
-                                                         //todo: add a way to reload the node
-                  break;
-               }
-         }
-      }
+
       private DynamicLayout GetPanel2PrimeLayout()
       {
          return (DynamicLayout)Children.First(x => x.ID == "Panel2PrimeLayout");
          // pretty sure this blows up if the prime layout isn't found
       }
-      private DynamicLayout GetPanel2DetailsLayout()
-      {
-         return (DynamicLayout)FindChild("Panel2DetailsLayout");
-         // pretty sure this blows up if the details layout isn't found
-      }
-      private TreeGridView GetTreeGridView()
-      {
-         return (TreeGridView)Children.First(x => x.ID == "DataTreeView");
-         // pretty sure this blows up if the data tree isn't found
-      }
+
+
       private static bool ShipDispositionMatches(ShipDisposition required, ShipDisposition actual)
       {
          if (required == actual || required == ShipDisposition.Any)
@@ -1014,7 +899,7 @@ namespace LaSSI
       }
       public void CleanDerelicts(DerelictsCleaningMode mode)  // todo: this whole thing kinda sucks. Works though!
       {
-         TreeGridItemCollection items = (TreeGridItemCollection)GetTreeGridView().DataStore;
+         TreeGridItemCollection items = GetTreeGridItems();
          List<Node> toRemove;
          Node root = (Node)items.First();
          TreeGridItemCollection sysArchChildren = root[1][2].Children;
@@ -1057,7 +942,7 @@ namespace LaSSI
                //      break;
                //   }
          }
-         GetTreeGridView().DataStore = items;
+         SetTreeGridItems(items);
          ClearDetails();
       }
       //public List<Node> GetFreeSpaceCollection()
@@ -1924,60 +1809,8 @@ namespace LaSSI
          }
          return sysId;
       }
-      private Node? GetRoot()
-      {
-         if (mainForm is not null)
-         {
-            return mainForm.saveFile.RootNode;
-         }
-         return null;
-      }
-      public void Rebuild()
-      {
-         if (GetRoot() is not null and Node root)
-         {
-            Rebuild(root);
-         }
-      }
-      public void Rebuild(Node root)
-      {
-         DetailPanelsCache.Clear();
-         ClearDetails();
-         Root = root;
-         RebuildTreeView(Root);
-         crossSectorMissions = null;
-         freespaceObjectsWithComet = null;
-         friendlyShips = null;
-         assignedMissions = null;
-         allShipsInTheGalaxy = null;
-         CustomCommands.EnableTools(mainForm!.Menu, this);
-      }
-      private void ClearDetails()
-      {
-         DynamicLayout s = GetPanel2DetailsLayout();
-         s.Content = null;
-         UpdateApplyRevertButtons(DetailsLayout.State.Unmodified);
-      }
-      private void RebuildTreeView(Node root)
-      {
-         TreeGridView treeView = GetTreeGridView();
-         TreeGridItemCollection collection = new()
-         {
-            root
-         };
-         collection[0].Expanded = true;
-         treeView.DataStore = collection;
 
-         if (treeView.Columns.Count == 0)
-         {
-            GridColumn column = new()
-            {
-               AutoSize = true,
-               DataCell = new TextBoxCell("Name")
-            };
-            treeView.Columns.Add(column);
-         }
-      }
+
       public void RefreshTree()
       {
          TreeGridView treeView = GetTreeGridView();
@@ -2036,60 +1869,22 @@ namespace LaSSI
          }
          return control.Size;
       }
-      private void DetailsModified()
+      internal override void DetailsModified()
       {
-         Apply.Enabled = Revert.Enabled = true;
+         base.DetailsModified();
+         //Apply.Enabled = Revert.Enabled = true;
 
-         ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Modified;
+         ((DetailsLayout)GetRightPanelDetailsLayout().Content).Status = DetailsLayout.State.Modified;
       }
-      private void DetailsUnmodified()
+      internal override void DetailsUnmodified()
       {
-         Apply.Enabled = Revert.Enabled = false;
+         base.DetailsModified();
+         //Apply.Enabled = Revert.Enabled = false;
 
-         ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Unmodified;
+         ((DetailsLayout)GetRightPanelDetailsLayout().Content).Status = DetailsLayout.State.Unmodified;
       }
-      private void DetailsApplied()
-      {
-         ((DetailsLayout)GetPanel2DetailsLayout().Content).Status = DetailsLayout.State.Applied;
-         UpdateApplyRevertButtons(DetailsLayout.State.Applied);
-      }
-      public bool ChangesAreUnapplied()
-      {
-         foreach (KeyValuePair<Node, DetailsLayout> v in DetailPanelsCache)
-         {
-            if (v.Value.Status == DetailsLayout.State.Modified)
-            {
-               return true;
-            }
-         }
-         return false;
-      }
-      internal void ApplyAllChanges()
-      {
-         foreach (KeyValuePair<Node, DetailsLayout> v in DetailPanelsCache)
-         {
-            if (v.Value.Status == DetailsLayout.State.Modified)
-            {
-               ApplyChange(v.Key, v.Value.Children.First(x => x.ID is "DefaultGridView" or "ListBuilder")); // todo: _really_ need to genericize this!
-               v.Value.Status = DetailsLayout.State.Applied;
-            }
-         }
-         UpdateApplyRevertButtons(DetailsLayout.State.Applied);
-         dataState = DataState.Unsaved;
-      }
-      internal void RevertAllUnappliedChanges()
-      {
-         List<KeyValuePair<Node, DetailsLayout>> cachedPanels = DetailPanelsCache.ToList();
-         foreach (var panel in cachedPanels)
-         {
-            if (((DetailsLayout)panel.Value).Status == DetailsLayout.State.Modified)
-            {
-               UpdateDetailsPanel(panel.Key, true);
-            }
-         }
-         UpdateApplyRevertButtons(DetailsLayout.State.Unmodified);
-         SubtractUnappliedFromDataState();
-      }
+
+
       /// <summary>
       /// Returns -1 if no columns are editable
       /// </summary>
@@ -2104,136 +1899,27 @@ namespace LaSSI
 
          return -1;
       }
-      internal void ResetDataState()
-      {
-         dataState = DataState.Unchanged;
-      }
-      internal bool DataStateMatches(DataState state)
-      {
-         return dataState == state;
-      }
-      internal void AddUnappliedToDataState()
-      {
-         if (dataState == DataState.Unchanged)
-         {
-            dataState = DataState.Unapplied;
-         }
-         else if (dataState == DataState.Unsaved)
-         {
-            dataState = DataState.UnsavedAndUnapplied;
-         }
-      }
-      internal void AddUnsavedToDataState()
-      {
-         if (dataState == DataState.Unchanged)
-         {
-            dataState = DataState.Unsaved;
-         }
-         else if (dataState == DataState.Unapplied)
-         {
-            dataState = DataState.UnsavedAndUnapplied;
-         }
-      }
-      internal void SubtractUnappliedFromDataState()
-      {
-         if (dataState == DataState.Unapplied)
-         {
-            dataState = DataState.Unchanged;
-         }
-         else if (dataState == DataState.UnsavedAndUnapplied)
-         {
-            dataState = DataState.Unsaved;
-         }
-      }
-      internal void SubtractUnsavedFromDataState()
-      {
-         if (dataState == DataState.Unsaved)
-         {
-            dataState = DataState.Unchanged;
-         }
-         else if (dataState == DataState.UnsavedAndUnapplied)
-         {
-            dataState = DataState.Unapplied;
-         }
-      }
+
       #region event handlers
 
-      private void DeleteNode_Executed(object? sender, EventArgs e)
+      private void DefaultGridView_Shown(object? sender, EventArgs e)
       {
-         List<Node> nodesToDelete = GetTreeGridView().SelectedItems.Cast<Node>().ToList();
-         ClearDetails();
-         foreach (Node node in nodesToDelete)
+         if ((DetailsPanelInitialSize.Height == 0 || DetailsPanelInitialSize.Width == 0) && sender is GridView and not null)
          {
-            if (node.GetParent() is not null and Node parent)
-            {
-               parent.RemoveChild(node);
-               ClearItemFromCache(node);
-            }
+            DetailsPanelInitialSize = GetTheSizeUnderControl((GridView)sender, (GridView)sender);
          }
-         AddUnsavedToDataState();
-         RebuildTreeView(Root!);
-      }
-      private void GridViewProperties_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-      {
-         UpdateApplyRevertButtons(DetailsLayout.State.Modified);
-         // todo: register changes
-         //if (e != null)
-         //{
-         //   switch (e.Action)
-         //   {
-         //      case NotifyCollectionChangedAction.Add:
-         //         {
-         //            break;
-         //         }
-         //      case NotifyCollectionChangedAction.Remove:
-         //         {
-         //            break;
-         //         }
-         //      default:
-         //         {
-         //            break;
-         //         }
-         //   }
-         //}
-      }
-      private void TreeView_CellFormatting(object? sender, GridCellFormatEventArgs e)
-      {
-         if (sender is not null and TreeGridView tree)
+         if (sender is GridView and not null)
          {
-            if (mainForm is not null)
-            {
-               if (mainForm.prefs.FindPref("Holiday fun") is not null and Pref pref && pref.value is not null and YesNo holidayfun && holidayfun == YesNo.yes)
-               {
-                  var today = DateTime.Today;
-
-                  DateTime ChristmasDay = new(DateTime.Now.Year, 12, 25, 0, 0, 0);
-                  DateTime NewYearDay = new(DateTime.Now.Year, 1, 1, 0, 0, 0);
-
-                  //today = ChristmasDay.AddDays(8);
-                  if ((today >= ChristmasDay.AddDays(-5)) && (today <= ChristmasDay.AddDays(7)))
-                  {
-                     if (e.Item is not null /*and Node item*/)
-                     {
-                        e.ForegroundColor = e.Row % 2 == 0 ? Colors.Green : Colors.Red;
-                        //e.BackgroundColor = (Color)newColor;
-                     }
-                  }
-                  else if (today >= NewYearDay && today < NewYearDay.AddDays(3))
-                  {
-                     e.ForegroundColor = Colors.SaddleBrown;
-                  }
-               }
-            }
+            ((GridView)sender).Size = DetailsPanelInitialSize;
          }
       }
-
       private void DeleteRow_Executed(object? sender, EventArgs e)
       {
          GridView grid = GetDefaultGridView();
          if (grid.SelectedRow >= 0)
          {
             Oncler row = (Oncler)grid.SelectedItem;
-            CollectionChange.AddChange(((DetailsLayout)GetPanel2DetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
+            CollectionChange.AddChange(((DetailsLayout)GetRightPanelDetailsLayout().Content).Changes, row, CollectionChange.ActionType.Deletion);
 
             ((ObservableCollection<Oncler>)grid.DataStore).Remove(row);
             DetailsModified();
@@ -2396,34 +2082,8 @@ namespace LaSSI
 
       }
 
-      private void TreeView_SelectedItemChanged(object? sender, EventArgs e)
-      {
-         if (sender is not null and TreeGridView view)
-         {
-            UpdateDetailsPanel((Node)view.SelectedItem);
 
-            /* Node item = (Node)view.SelectedItem;
-             //item.SetValue(2, Colors.Magenta);
-             if (item is not null)
-             {
 
-             }*/
-            //else
-            //{
-            //   ClearDetailsPanel();
-            //}
-         }
-      }
-      private void TreeView_SelectedItemsChanged(object? sender, EventArgs e)
-      {
-         if (sender is not null and TreeGridView view)
-         {
-            if (view.SelectedItems.Count() > 1)
-            {
-               ClearDetails();
-            }
-         }
-      }
       //private void X_CellFormatting(object? sender, GridCellFormatEventArgs e)
       //{
       //   //e.BackgroundColor = e.Row % 2 == 0 ? Colors.Blue : Colors.LightBlue;
@@ -2458,102 +2118,32 @@ namespace LaSSI
       //   }
       //   //Colors.
       //}
-      private void DefaultGridView_Shown(object? sender, EventArgs e)
-      {
-         if ((DetailsPanelInitialSize.Height == 0 || DetailsPanelInitialSize.Width == 0) && sender is GridView and not null)
-         {
-            DetailsPanelInitialSize = GetTheSizeUnderControl((GridView)sender, (GridView)sender);
-         }
-         if (sender is GridView and not null)
-         {
-            ((GridView)sender).Size = DetailsPanelInitialSize;
-         }
-      }
 
-      private void RevertButton_Click(object? sender, EventArgs e)
-      {
-         Node item = GetSelectedNode();
-         UpdateDetailsPanel(item, true);
-      }
 
-      private void ApplyButton_Click(object? sender, EventArgs e) // todo: generic way to get ahold of the current details-details panel (damn, I've really screwed up the nomenclature...)
-      {
-         Node item = GetSelectedNode();
-         Control detailControl = GetDetailsControl();
-         if (detailControl is not null)
-         {
-            dirtyBit = true;
-            dataState = DataState.Unsaved;
-            ApplyChange(item, detailControl);
 
-            DetailsApplied();
-         }
-      }
 
-      private Control GetDetailsControl()
-      {
-         DynamicLayout detailsLayout = (DynamicLayout)GetPanel2DetailsLayout().Content;
-         Control detailsControl = detailsLayout.FindChild("DefaultGridView");
-         if (detailsControl is null)
-         {
-            detailsControl = detailsLayout.FindChild("ListBuilder");
-         }
-         return detailsControl;
-      }
 
-      private static void ApplyChange(Node item, Control detailControl)
-      {
-         OrderedDictionary itemDictionary = new OrderedDictionary();
 
-         if (detailControl is not null)
-         {
-            if (detailControl is GridView gridView)
-            {
-               ObservableCollection<Oncler> gridCollection = (ObservableCollection<Oncler>)gridView.DataStore;
-               foreach (var oncler in gridCollection)
-               {
-                  itemDictionary.Add(oncler.Key, oncler.Value);
-               }
-            }
-            else if (detailControl is ListBuilder lb)
-            {
-               ObservableCollection<InventoryGridItem> listItems = lb.GetRightList();
-               foreach (var entry in listItems)
-               {
-                  itemDictionary.Add(entry.Name, entry.Count);
-               }
-            }
-            item.Properties = itemDictionary;
-         }
-      }
 
-      private Node GetSelectedNode()
-      {
-         return (Node)GetTreeGridView().SelectedItem;
-      }
       private void RightGrid_Updated(object? sender, EventArgs? e)
       {
-         if (sender is not null and ObservableCollection<InventoryGridItem> RightList)
+         if (sender is not null and ObservableCollection<InventoryGridItem> RightList
+               && GetTreeGridView() is not null and TreeGridView treeGrid
+               && treeGrid.SelectedItem is Node item)
          {
-            if (GetTreeGridView() is not null and TreeGridView treeGrid)
+            Dictionary<string, string> currentData = new();
+            foreach (var entry in RightList)
             {
-               if (treeGrid.SelectedItem is Node item)
-               {
-                  Dictionary<string, string> currentData = new Dictionary<string, string>();
-                  foreach (var entry in RightList)
-                  {
-                     currentData.Add(entry.Name, entry.Count.ToString());
-                  }
-                  var dict = item.Properties.Cast<DictionaryEntry>().ToDictionary(k => (string)k.Key, v => v.Value!.ToString());
-                  if (ListBuilder.IsGridModified(dict!, currentData))
-                  {
-                     DetailsModified();
-                  }
-                  else
-                  {
-                     DetailsUnmodified();
-                  }
-               }
+               currentData.Add(entry.Name, entry.Count.ToString());
+            }
+            var dict = item.Properties.Cast<DictionaryEntry>().ToDictionary(k => (string)k.Key, v => v.Value!.ToString());
+            if (ListBuilder.IsGridModified(dict!, currentData))
+            {
+               DetailsModified();
+            }
+            else
+            {
+               DetailsUnmodified();
             }
          }
       }

@@ -9,7 +9,6 @@ using System.IO;
 
 namespace LaSSI
 {
-
    public enum PrefType
    {
       freetext,
