@@ -1634,6 +1634,12 @@ namespace LaSSI
          }
          return true; // todo: this should probably actually be tied to something succeeding
       }
+      internal bool DeleteCrashingDrones()
+      {
+         // todo: check all nodes that are drones with friendly homelayers for carryingID of own ID
+         // todo: delete such nodes
+         return false;
+      }
       internal bool RemoveHab(string shipId)
       {
          Node ship = FindShip(shipId)!;

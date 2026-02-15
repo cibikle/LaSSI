@@ -51,6 +51,7 @@ namespace LaSSI
          ToolsList.Add(CreateFireCrewCommand(FireCrew_Executed));
          ToolsList.Add(CreateClaimGhostShipsCommand(ClaimGhostShip_Executed));
          ToolsList.Add(CreateScuttleShipsCommand(ScuttleShips_Executed));
+         ToolsList.Add(CreateDeleteCrashingDronesCommand(DeleteCrashingDrones_Executed));
          //ToolsList.Add(CreateCleanupFreeSpaceCommand(cleanupFreeSpace_Executed));
          //ToolsList.Add(CreateAbandonedDronesCommand(abandondedDrones_Executed));
          ToolsList.Add(DeleteAcceptedMissionsCommand(DeleteMissions_Executed));
@@ -246,6 +247,17 @@ namespace LaSSI
          cleanupDeadCrewCommand.Executed += RemoveHab_Executed;
          cleanupDeadCrewCommand.Enabled = false;
          return cleanupDeadCrewCommand;
+      }
+      internal static Command CreateDeleteCrashingDronesCommand(EventHandler<EventArgs> DeleteCrashingDrones_Executed)
+      {
+         var deleteCrashingDronesCommand = new Command
+         {
+            MenuText = "Delete crashing drones",
+            ID = "DeleteCrashingDrones"
+         };
+         deleteCrashingDronesCommand.Executed += DeleteCrashingDrones_Executed;
+         deleteCrashingDronesCommand.Enabled = false;
+         return deleteCrashingDronesCommand;
       }
       #endregion tools
       #region commands
@@ -1080,6 +1092,15 @@ namespace LaSSI
                   }
                }
             }
+         }
+      }
+      internal void DeleteCrashingDrones_Executed(object? sender, EventArgs e)
+      {
+         if (sender is Command c and not null && MainForm.DataPanel.DeleteCrashingDrones())
+         {
+            _ = MessageBox.Show("Crashing drones deleted", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            c.Enabled = false;
+            MainForm.DataPanel.AddUnsavedToDataState();
          }
       }
       #endregion tool event handlers
