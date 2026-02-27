@@ -67,6 +67,7 @@ namespace LaSSI
       private List<MenuItem>? dataGridContextMenuItemsThatRequireATarget = null;
       private List<MenuItem>? dataGridContextMenuItemsThatDoNotRequireATarget = null;
       private ContextMenu? dataGridContextMenu = null;
+      private List<Node>? crashingDrones = null;
       public DataPanel()
       {
 
@@ -1634,11 +1635,66 @@ namespace LaSSI
          }
          return true; // todo: this should probably actually be tied to something succeeding
       }
-      internal bool DeleteCrashingDrones()
+      internal static bool DoPropertiesMatch(Dictionary<string, string> data)
       {
-         // todo: check all nodes that are drones with friendly homelayers for carryingID of own ID
-         // todo: delete such nodes
-         return false;
+         bool match = false;
+         string previousValue = string.Empty;
+         foreach (var key in data.Keys)
+         {
+            string value = data[key];
+            if (!string.IsNullOrEmpty(previousValue))
+            {
+               if (previousValue.Equals(value))
+               {
+                  match = true;
+               }
+               else
+               {
+                  return false;
+               }
+            }
+            previousValue = value;
+         }
+
+         return match;
+      }
+      internal void FindCrashingDrones()
+      {
+         crashingDrones = new();
+         Dictionary<string, string> data = new() { { "Id", "" }, { "CarrierId", "" }, { "CarryingId", "" } };
+         if (Root is not null)
+         {
+            TreeGridItemCollection drones = SaveFilev2.FindNodes(Root, new string[] { "Type:LogisticsDrone" });
+            foreach (Node drone in drones.Cast<Node>())
+            {
+               if (drone.TryGetProperties(data, all: true) && DoPropertiesMatch(data))
+               {
+                  crashingDrones.Add(drone);
+
+               }
+            }
+         }
+      }
+      internal int DeleteCrashingDrones(bool reportOnly)
+      {
+         int count = 0;
+         if (crashingDrones is null)
+         {
+            FindCrashingDrones();
+         }
+
+         if (crashingDrones is not null)
+         {
+            count = crashingDrones.Count;
+            if (!reportOnly)
+            {
+               foreach (Node drone in crashingDrones)
+               {
+                  drone.GetParent()!.RemoveChild(drone);
+               }
+            }
+         }
+         return count;
       }
       internal bool RemoveHab(string shipId)
       {
@@ -1956,6 +2012,7 @@ namespace LaSSI
          friendlyShips = null;
          assignedMissions = null;
          allShipsInTheGalaxy = null;
+         crashingDrones = null;
          CustomCommands.EnableTools(mainForm!.Menu, this);
       }
       private void ClearDetails()

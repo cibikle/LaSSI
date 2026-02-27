@@ -560,6 +560,11 @@ namespace LaSSI
                   enablability = data.DeleteAcceptedMissions() > 0;
                   break;
                }
+            case "DeleteCrashingDrones":
+               {
+                  enablability = data.DeleteCrashingDrones(reportOnly: true) > 0;
+                  break;
+               }
          }
 
          return enablability;
@@ -1096,9 +1101,9 @@ namespace LaSSI
       }
       internal void DeleteCrashingDrones_Executed(object? sender, EventArgs e)
       {
-         if (sender is Command c and not null && MainForm.DataPanel.DeleteCrashingDrones())
+         if (sender is Command c and not null && MainForm.DataPanel.DeleteCrashingDrones(reportOnly: false) is int d && d > 0)
          {
-            _ = MessageBox.Show("Crashing drones deleted", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
+            _ = MessageBox.Show($"{d} crashing drones deleted", "Complete", MessageBoxButtons.OK, MessageBoxType.Information, MessageBoxDefaultButton.OK);
             c.Enabled = false;
             MainForm.DataPanel.AddUnsavedToDataState();
          }
